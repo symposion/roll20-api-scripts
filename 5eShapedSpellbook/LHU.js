@@ -73,7 +73,7 @@ var LHU = LHU || function() {
     
     firstOrNull = function(array) {
         return _.isEmpty(array) ? null : _.first(array);
-    };
+    },
     
     isNPCToken = function (obj) {
         if(obj.get('subtype') === 'token') {
@@ -84,7 +84,7 @@ var LHU = LHU || function() {
             }
         }
         return false;
-    }
+    };
     
     return { 
         getObjectMapperFunc: getObjectMapperFunc, 
