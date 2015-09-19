@@ -4,7 +4,7 @@ var SpellMonitor = SpellMonitor || (function() {
     var version = '0.1',
     
     checkInstall = function () {
-        LHUtilities.ensureMixins();
+        LHU.ensureMixins();
         log("Loaded SpellMonitor v." + version);
     },
     
@@ -227,7 +227,7 @@ var SpellMonitor = SpellMonitor || (function() {
     
     getSpellButtonAppender = function(character) {
         return function(spellString, spell) {
-            var targetParam = spellNeedsTarget(spell) ? " --targetAC &#64;{target|AC} --targetName &#64;{target|token_name} " : "";
+            var targetParam = spellNeedsTarget(spell) ? " --targetAC @{target|AC} --targetName @{target|token_name} " : "";
             var enabled = false;
             var castCommand = " --cast-spell ";
             var spellLevelParam = "";
@@ -336,7 +336,7 @@ var SpellMonitor = SpellMonitor || (function() {
     
     getSelectedCharacters = function(msg, callback) {
         return _.chain(getSelectedTokens(msg))
-                    .map(LHUtilities.getObjectMapperFunc(LHUtilities.getPropertyResolver('represents'), 'character'))
+                    .map(LHU.getObjectMapperFunc(LHU.getPropertyResolver('represents'), 'character'))
                     .value();
     },
     
@@ -348,7 +348,7 @@ var SpellMonitor = SpellMonitor || (function() {
                 }
             })
             .filter(_.matcher({_type: 'graphic'}))
-            .map(LHUtilities.getObjectMapperFunc(LHUtilities.getPropertyResolver('_id'), 'graphic', 'token'))
+            .map(LHU.getObjectMapperFunc(LHU.getPropertyResolver('_id'), 'graphic', 'token'))
             .value();
     },
       
