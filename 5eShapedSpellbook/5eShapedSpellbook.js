@@ -5,6 +5,9 @@ var SpellMonitor = SpellMonitor || (function() {
     
     checkInstall = function () {
         LHU.ensureMixins();
+        if (LHU.version < 0.2) {
+            sendChat("Spell Book", "Error, incorrect version of LHU utilities script installed, please upgrade.");
+        }
         log("Loaded SpellMonitor v." + version);
     },
     
