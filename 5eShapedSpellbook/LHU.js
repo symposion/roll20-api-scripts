@@ -84,7 +84,90 @@ var LHU = LHU || function() {
             }
         }
         return false;
-    };
+    },
+    
+    instrumentWithProfiler = function (object) {
+        
+        _.chain(object).functions().each(function(functionName) {
+            var oldFunction = object[functionName];
+            var profileData = {
+                runCount:0,
+                totalExecutionTime:0,
+                executions:[]
+            };
+            var newFunction = function() {
+                var startTime = Date.now();
+                var retVal = oldFunction.apply(this, arguments);
+                var endTime = Date.now();
+                profileData.runCount++;
+                profileData.totalExecutionTime += (endTime - startTime);
+                profileData.executions.push([startTime, endTime, arguments]);
+                return retVal;
+            };
+            
+            newFunction.profileData = profileData
+            newFunction.originalFunction = oldFunction;
+            object[functionName] = newFunction;
+        });
+        
+        object.logProfileData = function() {
+             _.chain(this).functions().map(function(functionName) {
+                return this[functionName];
+             })
+             .sortBy(function(funcObject) {
+                return funcObject.profileData.totalExecutionTime;
+             })
+             .each(function(functionName) {
+                var profileData = this[functionName].profileData
+                log("***********************************************");
+                log("* Profile Data for " + functionName);
+                log("*");
+                log("* Total Execution Time: " + profileData.totalExecutionTime);
+                log("* Run Count: " + profileData.runCount);
+                log("* Average Execution Time: " + profileData.totalExecutionTime / profileData.runCount);
+                log("***********************************************"); 
+             });
+        };
+        
+        object.resetProfilingData = function() {
+            _.chain(this).functions().each(function(functionName) {
+                var profileData = this[functionName].profileData;
+                profileData.runCount = 0;
+                profileData.totalExecutionTime = 0;
+                executions = [];
+             });   
+        };
+        
+        object.deInstrument = function() {
+             _.chain(this).functions().each(function(functionName) {
+                this[functionName] = this[functionName].originalFunction; 
+             });
+             delete this.logProfileData;
+             delete this.deInstrument;
+        }
+    },
+    
+    ch = function (c) {
+    	var entities = {
+			'<' : 'lt',
+			'>' : 'gt',
+			"'" : '#39',
+			'@' : '#64',
+			'{' : '#123',
+			'|' : '#124',
+			'}' : '#125',
+			'[' : '#91',
+			']' : '#93',
+			'"' : 'quot',
+			'-' : 'mdash',
+			' ' : 'nbsp'
+		};
+
+		if(_.has(entities,c) ){
+			return ('&'+entities[c]+';');
+		}
+		return '';
+	};
     
     return { 
         getObjectMapperFunc: getObjectMapperFunc, 
@@ -92,7 +175,9 @@ var LHU = LHU || function() {
         getPropertyResolver: getPropertyResolver, 
         ensureMixins: ensureMixins,
         firstOrNull: firstOrNull,
-        isNPCToken: isNPCToken
+        isNPCToken: isNPCToken,
+        ch:ch
         
     };
 }();
+

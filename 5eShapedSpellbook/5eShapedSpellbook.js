@@ -1,17 +1,14 @@
 var SpellMonitor = SpellMonitor || (function() {
     'use strict';
 
-    var version = '0.1',
+    var version = '0.2',
     
     checkInstall = function () {
         LHU.ensureMixins();
         log("Loaded SpellMonitor v." + version);
     },
     
-    asynchAttributeCache = {},
-    
     HandleInput = function(msg) {
-        profile("HandleInputStart");
         try{
             if(msg.type !== 'api' || 
                 msg.content.indexOf('!5esb') !== 0) {
@@ -48,7 +45,6 @@ var SpellMonitor = SpellMonitor || (function() {
             log('*******');
             message("There was an error, see log for more details", msg.playerid);
         }
-        profile("HandleInputEnd");
     },
     
         
@@ -75,7 +71,6 @@ var SpellMonitor = SpellMonitor || (function() {
     },
     
     castSpell = function(playerId, character, spellName, level, targetAC, targetName, ritual) {
-        profile("CastSpellStart");
         var spellMap = buildSpellMap(character);
         var spell = spellMap[spellName];
         if (_.isUndefined(spell)) {
@@ -106,13 +101,11 @@ var SpellMonitor = SpellMonitor || (function() {
         else {
             message(character.get('name') + " doesn't have the spell " + spellName + " prepared.", playerId)
         }
-        profile("CastSpellEnd");
     },
     
 
     
     outputSpell = function(character, spell, level, targetAC, targetName, ritual) {
-        profile("outputSpellStart");
         if(ritual){ 
             spell.spell_casting_time =  '10 mins';
             spell.spellritual = '{{spellritual=1}}';
@@ -144,7 +137,6 @@ var SpellMonitor = SpellMonitor || (function() {
         
         rollTemplate = stripHelpfulLabelsToAvoidRoll20ApiBug(rollTemplate);
         sendChat(character.get('name'), rollTemplate);
-        profile("outputSpellStart");
     },
 
     stripHelpfulLabelsToAvoidRoll20ApiBug = function(chatString) {
@@ -152,7 +144,6 @@ var SpellMonitor = SpellMonitor || (function() {
     },
 
     interpolateAttributes = function(rollTemplate, lookupFunctions) {
-        profile("interpolateAttributesStart");
         var replacementMade = false;
         var safetyCount = 0;
         var regexp = /\@\{([^\}]+)\}/gi;
@@ -171,7 +162,6 @@ var SpellMonitor = SpellMonitor || (function() {
             }, rollTemplate);
             replacementMade = (rollTemplate != startingRollTemplate);
         } while (replacementMade && (++safetyCount  < 10) );
-        profile("interpolateAttributesEnd");
         return rollTemplate;
     },
     
@@ -190,18 +180,15 @@ var SpellMonitor = SpellMonitor || (function() {
 
     
     decrementSpellSlots = function(character, level, playerId, warlockSlots) {
-        profile("decrementSpellSlotsStart");
         var otherSpellSlots = getNormalSpellSlots(character);
         //Try warlock slots first, as they are cheapest
         if (!_.isEmpty(warlockSlots) && warlockSlots[0].level == level && warlockSlots[0].current > 0) {
             warlockSlots[0].attribute.set('current', --warlockSlots[0].current);
-            profile("decrementSpellSlotsEnd");
             return;
         }
         
         if(otherSpellSlots[level].current > 0) {
             otherSpellSlots[level].attribute.set('current', --otherSpellSlots[level].current);
-            profile("decrementSpellSlotsEnd");
             return;
         }
         
@@ -209,7 +196,6 @@ var SpellMonitor = SpellMonitor || (function() {
     },
     
     showSpellBook = function(character, playerId) {
-        profile("showSpellBookStart");
         if(!character) {
             message("ERROR: You must have a token selected to display the spell book!", playerId);
             return;
@@ -221,18 +207,14 @@ var SpellMonitor = SpellMonitor || (function() {
                 .sortBy(function(spell) {
                     return spell.level + '_' + spell.spellname;
                 })
-                .tap(function() {profile("Before spellButtonAppender");})
                 .reduce(getSpellButtonAppender(character, remainingSlots), {})
-                .tap(function() {profile("After spellButtonAppender");})
                 .value();
         
              message(buildUI(buttons, character, warlockSlots), playerId, true);
         });
-       profile("showSpellBookEnd");
     },
     
     buildUI = function(buttonMap, character, warlockSlots) {
-        profile("buildUIStart");
         var ui = '<div style="border: 1px solid black; background-color: white; padding: 3px 3px;">';
         ui += '<h3>' + character.get('name') + "'s Spellbook</h3>";
         var slotMap = _.chain(getNormalSpellSlots(character))
@@ -270,7 +252,6 @@ var SpellMonitor = SpellMonitor || (function() {
                 return uiString;
             }, ui).value();
         ui += '</div>';
-        profile("buildUIEnd");
         return ui;
     },
     
@@ -385,7 +366,6 @@ var SpellMonitor = SpellMonitor || (function() {
     },
     
     buildSpellLevelParam = function(spell, slots) {
-        profile("buildSpellLevelParam");
         if (slots === null) {
             return "";
         }
@@ -396,17 +376,14 @@ var SpellMonitor = SpellMonitor || (function() {
                             paramString += (singleSlot ? "" : "|") + slotLevel;
                             return paramString;
                         }, paramString)
-                        .tap(function(){profile('buildSpellLevelParamEnd')})
                         .value().concat(singleSlot ? "" : "}");
     },
    
     calculateValidSpellSlots = function(spell, remainingSlots) {
-        profile("calculateValidSpellSlots");
         return  _.chain(remainingSlots).map(function(spellsRemaining, slotLevel) {
                         return (slotLevel >= spell.level && spellsRemaining > 0) ? slotLevel : null; 
                     })
                 .compact()
-                .tap(function() { profile("calculateValidSpellSlotsEnd");})
                 .value();
     },
    
@@ -451,12 +428,14 @@ var SpellMonitor = SpellMonitor || (function() {
             resolved:false,
             listeners:[],
             _result: undefined,
-            handler:function(rollResult){
-                promise.resolved = true;
-                promise._result = rollResult[0].inlinerolls[0].results.total;
-                _.each(promise.listeners, function(listener) {
-                    listener(promise._result);
-                });   
+            getChatHandler:function(){
+                return function(rollResult) {
+                    this._result = rollResult[0].inlinerolls[0].results.total;
+                    this.resolved = true;
+                    _.each(this.listeners, function(listener) {
+                        listener(this._result);
+                    }.bind(this));
+                }.bind(this);
             },
             result:function(callback) {
                 if (promise.resolved) {
@@ -467,14 +446,13 @@ var SpellMonitor = SpellMonitor || (function() {
                 }
             }
         };
-        sendChat("", expression, promise.handler);
+        sendChat("", expression, promise.getChatHandler());
         
         return promise;
     },
 
     
     awaitWarlockSlots = function(character, callback) {
-        profile("awaitWarlockSlotsStart");
         var warlockSpellSlotsLevel = getAttributeExpressionPromise(character, "[[0d0 + " + getAttrByName(character.id, 'warlock_spell_slots_level', 'current') + "]]");
         var warlockSpellSlotsMax = getAttributeExpressionPromise(character, " [[0d0 + " + getAttrByName(character.id, 'warlock_spell_slots', 'max') +" ]]");
         var warlockSpellSlots = parseInt(getAttrByName(character.id, 'warlock_spell_slots', 'current'), 10) || 0;  
@@ -488,14 +466,10 @@ var SpellMonitor = SpellMonitor || (function() {
         });
         awaitAll([warlockSpellSlotsMax, warlockSpellSlotsLevel], function() {
             var pruned = pruneWarlockSlots([slots]);
-            profile("awaitWarlockSlots Promises all returned");
             callback(pruned);
         });
     },
     
-    profile = function(string) {
-        //log(Date.now() + ' : ' + string);
-    },
     
     awaitAll = function(promiseArray, callback) {
         var resolvedCount = 0;
@@ -514,25 +488,20 @@ var SpellMonitor = SpellMonitor || (function() {
         return warlockSlots;
     },
       
-    handleLongRest = function(token) {
-        var represents = token.get('represents');
-        if (represents) {
-            _.chain(_.range(1,10))
-                .map(function(level){
-                    return "spell_slots_l" + level;
-                })
-                .concat(['warlock_spell_slots'])
-                .each(function(slotAttributeName) {
-                    var slotAttribute = findObjs({_type: 'attribute', _characterid: represents, name: slotAttributeName})[0];
-                    slotAttribute.set('current', slotAttribute.get('max'));
+    handleLongRest = function(character) {
+        awaitWarlockSlots(character, function(warlockSlots) {           
+            _.chain(getNormalSpellSlots(character))
+                .concat(warlockSlots)
+                .reject(function(slot) { return slot.level === 0 || slot.max === 0})
+                .each(function(slot) {
+                    slot.attribute.set('current', slot.max);
                 });
-        }
+        });
     },  
     
    
     
     buildSpellMap = function(character) {
-        profile("buildSpellMapStart");
       var re = /repeating_spellbook(?:(cantrip)|level([\d]))_([\d]+)_(.*)/;
       return _.chain(findObjs({_type: 'attribute', _characterid: character.id}))
         .select(function(attribute){
@@ -554,7 +523,6 @@ var SpellMonitor = SpellMonitor || (function() {
             spellMap[spellObject.spellname] = spellObject;
             return spellMap;
         }, {})
-        .tap(function() {profile("buildSpellMapEnd");})
         .value(); 
         
     },
@@ -683,6 +651,8 @@ var SpellMonitor = SpellMonitor || (function() {
     registerEventHandlers = function () {
         on('chat:message', HandleInput);
     };
+    
+    
     
     return { CheckInstall: checkInstall, RegisterEventHandlers: registerEventHandlers};
     
