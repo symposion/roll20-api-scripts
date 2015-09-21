@@ -1,7 +1,7 @@
 var SpellMonitor = SpellMonitor || (function() {
     'use strict';
 
-    var version = '0.2',
+    var version = '0.2.1',
     
     checkInstall = function () {
         LHU.ensureMixins();
@@ -647,7 +647,8 @@ var SpellMonitor = SpellMonitor || (function() {
         spell_attack_second_dmg: 0,
         spell_attack_dmg_stat: 0,
         spell_save_dmg_stat: 0,
-        spelltarget: ""
+        spelltarget: "",
+        healbonus:0
         
    },
    
