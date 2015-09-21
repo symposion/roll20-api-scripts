@@ -31,10 +31,8 @@ var SpellMonitor = SpellMonitor || (function() {
                                 , parameterMap.targetName || "", _.has(parameterMap, 'ritual'));
                     break;
                 case "test":
-                    var string = "[[d20cs>20]] [[d20 + [[2]] ]]";
-                    sendChat("",string, function(results) {
-                        log(results);
-                    });
+                    var string = " &{template:5eDefault} {{spell=1}} {{character_name=Mage}}  {{spellfriendlylevel=Cantrip}} {{title=Fire Bolt}}   {{spellschool=Evocation}} {{spell_casting_time=1 action}} {{spellduration=Instantaneous}} {{target=a creature or object}} {{aoe=}} {{range=120 ft}} {{spell_components_verbal=1}} {{spell_components_somatic=1}}    {{emote=hurls a mote of fire at a creature or object}} {{attack=[[d20cs>20 + (2 + floor(abs(((((1-0) * (0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 2 + 9 + 0 + 0 + 0 + 0 + 0 + 0)) + (0 * 6))-1)/4))) + floor((17-10)/2) + 0 + (0 * 0) + (0)]]}} {{attackadv=[[d20cs>20 + (2 + floor(abs(((((1-0) * (0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 2 + 9 + 0 + 0 + 0 + 0 + 0 + 0)) + (0 * 6))-1)/4))) + floor((17-10)/2) + 0 + (0 * 0) + (0)]]}} {{targetAC=[[0d0 + 15 ]]}} {{targetName=J F Sebastian}} {{action_damage=[[0d0 + ((0 + 1) / 6 + 0.5)d10 + 0 + (0 * 0) + (0) + (( - 0) * 0)d0]]}} {{action_damage_type=fire}}  {{can_crit=1}} {{action_crit_damage=[[0d0 + ((0 + 1) / 6 + 0.5)d10 + (( - 0) * 0)d0]]}} {{action_second_crit_damage=[[0d0 + 0 + (( - 0) * 0)d0]]}}   0 0 {{effects=A flammable object hit by this spell ignites if it isn't being worn or carried.}}    0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0";
+                    sendChat("",string);
                     break;
                 default:
                     log('Unrecognised command');
@@ -117,7 +115,8 @@ var SpellMonitor = SpellMonitor || (function() {
             spell.spellritual = '';
         }
        
-        spell.casting_level = (level == 0) ? "Cantrip" : "Level " + level;
+        spell.casting_level = level;
+        spell.friendly_level = (level == 0) ? "Cantrip" : "Level " + spell.level
         
         //We need to replace all attributes defined in the spell, then run substitution
         //against the hidden variable lookups pulled from the charsheet, and finally inject values
@@ -139,7 +138,27 @@ var SpellMonitor = SpellMonitor || (function() {
         rollTemplate = interpolateAttributes(rollTemplate, [getCharacterAttributeLookup(character)]);
         
         rollTemplate = stripHelpfulLabelsToAvoidRoll20ApiBug(rollTemplate);
+        rollTemplate = removeNestedRolls(rollTemplate);
+        log(rollTemplate);
         sendChat(character.get('name'), rollTemplate);
+    },
+    
+    //OMG this is *so* deeply nasty. For some reason the API frequently barfs
+    //on nested inline rolls, especially where there are two in a row. It outputs
+    //the math expression without evaluation, for some bizarre reason. This
+    //function collapse all the nested rolls so each roll is a single expression to avoid
+    //this bug
+    removeNestedRolls = function(rollTemplate) {
+        var nestLevel = 0;
+        var re = /(?:\[\[|\]\])/g;
+        return rollTemplate.replace(re, function(match) {
+            if (match === '[[') {
+                return (++nestLevel > 1) ? "" : "[[";
+            }
+            else {
+                return (--nestLevel > 0) ? "" : "]]";
+            }
+        });     
     },
 
     stripHelpfulLabelsToAvoidRoll20ApiBug = function(chatString) {
@@ -565,7 +584,7 @@ var SpellMonitor = SpellMonitor || (function() {
     rollTemplateLookups = {
         spell_var_description: "{{spelldescription=@{spelldescription}}}",
         spell_var_higher_lvl: "{{spellhigherlevel=@{spellhighersloteffect}}}",
-        spell_var_output_higher_lvl_query: "{{spell_cast_as_level=@{casting_level}}}",
+        spell_var_output_higher_lvl_query: "{{spell_cast_as_level=Level @{casting_level}}}",
         higher_level_query: "@{casting_level}",
         spell_to_hit: "@{PB} + @{attackstat} + (@{spell_attack_bonus} * @{spell_toggle_bonuses})",
         spell_attack_higher_level_formula: "((@{spell_toggle_higher_lvl_query} - @{spellbaselevel}) * @{spell_attack_higher_level_dmg_dice})@{spell_attack_higher_level_dmg_die}[higher lvl]",
@@ -598,7 +617,7 @@ var SpellMonitor = SpellMonitor || (function() {
     },
      
     spellCastRollTemplate = "@{output_option} &{template:5eDefault} {{spell=1}} {{character_name=@{character_name}}} " +
-                            "@{show_character_name} {{spellfriendlylevel=@{casting_level}}} {{title=@{spellname}}} " + 
+                            "@{show_character_name} {{spellfriendlylevel=@{friendly_level}}} {{title=@{spellname}}} " + 
                             "@{spellconcentration} @{spellritual} {{spellschool=@{spellschool}}} " +
                             "{{spell_casting_time=@{spell_casting_time}}} {{spellduration=@{spellduration}}} {{target=@{spelltarget}}} " +
                             "{{aoe=@{spellaoe}}} {{range=@{spellrange}}} @{spellcomponents_verbal} @{spellcomponents_somatic} " +
