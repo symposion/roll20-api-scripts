@@ -1,7 +1,7 @@
 var ShapedSpellbook = ShapedSpellbook || (function() {
     'use strict';
 
-    var version = '0.2.1',
+    var version = '0.3',
     
     checkInstall = function () {
         if (typeof LHU === 'undefined' || (LHU.version < 0.2)) {
