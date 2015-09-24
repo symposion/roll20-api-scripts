@@ -1,14 +1,17 @@
-var SpellMonitor = SpellMonitor || (function() {
+var ShapedSpellbook = ShapedSpellbook || (function() {
     'use strict';
 
-    var version = '0.2.2',
+    var version = '0.2.1',
     
     checkInstall = function () {
-        LHU.ensureMixins();
-        if (LHU.version < 0.2) {
-            sendChat("Spell Book", "Error, incorrect version of LHU utilities script installed, please upgrade.");
+        if (typeof LHU === 'undefined' || (LHU.version < 0.2)) {
+            throw new Error ("ShapedSpellbook Error, incorrect version of LHU utilities script installed, please upgrade.");
         }
-        log("Loaded SpellMonitor v." + version);
+        LHU.ensureMixins();
+        if (typeof ShapedSpellbookDefaults === 'undefined') {
+            throw new Error ("ShapedSpellbook Error, spell defaults script not installed");
+        }
+        log("Loaded ShapedSpellbook v." + version);
     },
     
     HandleInput = function(msg) {
@@ -71,7 +74,7 @@ var SpellMonitor = SpellMonitor || (function() {
                      .value();
     },
     
-    castSpell = function(playerId, character, spellName, level, targetAC, targetName, ritual) {
+    castSpell = function(playerId, character, spellName, castingLevel, targetAC, targetName, ritual) {
         var spellMap = buildSpellMap(character);
         var spell = spellMap[spellName];
         if (_.isUndefined(spell)) {
@@ -79,22 +82,22 @@ var SpellMonitor = SpellMonitor || (function() {
             return;
         }
         //If no level is specified cast at the level of the spell
-        level = level || spell.level;
-        if (spell.level === 0) {
+        castingLevel = castingLevel || spell.spellbaselevel;
+        if (spell.spellbaselevel === 0) {
             outputSpell(character, spell, 0, targetAC, targetName);
         }
         else if(ritual) {
             //Be explicit about level, not allowed to cast rituals at higher level
-            outputSpell(character, spell, spell.level, targetAC, targetName, true);
+            outputSpell(character, spell, spell.spellbaselevel, targetAC, targetName, true);
         }
         else if(spell['spellisprepared'] === "on") {
             awaitWarlockSlots(character, function(warlockSlots){
-                if (getTotalSpellSlotsRemainingByLevel(character, warlockSlots)[level] > 0) {
-                    outputSpell(character, spell, level, targetAC, targetName);
-                    decrementSpellSlots(character, level, playerId, warlockSlots);
+                if (getTotalSpellSlotsRemainingByLevel(character, warlockSlots)[castingLevel] > 0) {
+                    outputSpell(character, spell, castingLevel, targetAC, targetName);
+                    decrementSpellSlots(character, castingLevel, playerId, warlockSlots);
                 }
                 else {
-                    message(character.get('name') + " doesn't have any slots of level " +level + ' left to cast ' + spellName + " Spellbook will reload. ", playerId);
+                    message(character.get('name') + " doesn't have any slots of level " +castingLevel + ' left to cast ' + spellName + " Spellbook will reload. ", playerId);
                     showSpellBook(character, playerId);
                 }
             });
@@ -106,7 +109,7 @@ var SpellMonitor = SpellMonitor || (function() {
     
 
     
-    outputSpell = function(character, spell, level, targetAC, targetName, ritual) {
+    outputSpell = function(character, spell, castingLevel, targetAC, targetName, ritual) {
         if(ritual){ 
             spell.spell_casting_time =  '10 mins';
             spell.spellritual = '{{spellritual=1}}';
@@ -115,18 +118,16 @@ var SpellMonitor = SpellMonitor || (function() {
             spell.spellritual = '';
         }
        
-        spell.casting_level = level;
-        spell.friendly_level = (level == 0) ? "Cantrip" : "Level " + spell.level
+        spell.casting_level = castingLevel;
+        spell.friendly_level = (spell.spellbaselevel == 0) ? "Cantrip" : "Level " + spell.spellbaselevel
         
         //We need to replace all attributes defined in the spell, then run substitution
         //against the hidden variable lookups pulled from the charsheet, and finally inject values
         // for target info We keep going round this loop until no more replacements happen
         var rollTemplate = interpolateAttributes(spellCastRollTemplate, 
                                                     [getMapLookup(spell), 
-                                                     getMapLookup(rollTemplateLookups),
                                                      getMapLookup({attacks_vs_target_ac: targetAC, 
                                                                     attacks_vs_target_name: targetName})
-                                                     //,getCharacterAttributeLookup(character)
                                                      ]);
                                                      
                                                      
@@ -136,7 +137,7 @@ var SpellMonitor = SpellMonitor || (function() {
         //is probably slower than the rest and we should avoid doing it more than
         //needed.
         rollTemplate = interpolateAttributes(rollTemplate, [getCharacterAttributeLookup(character)]);
-        
+        log(rollTemplate);
         rollTemplate = stripHelpfulLabelsToAvoidRoll20ApiBug(rollTemplate);
         rollTemplate = removeNestedRolls(rollTemplate);
         log(rollTemplate);
@@ -171,6 +172,7 @@ var SpellMonitor = SpellMonitor || (function() {
         var regexp = /\@\{([^\}]+)\}/gi;
         do {
             var startingRollTemplate = rollTemplate;
+            log("Starting template: " + startingRollTemplate);
             rollTemplate = _.reduce(lookupFunctions, function(innerRollTemplate, lookupFunc, index){
                 return innerRollTemplate.replace(regexp, function(match, submatch) {
                     var replacement = lookupFunc(submatch);
@@ -182,6 +184,7 @@ var SpellMonitor = SpellMonitor || (function() {
                     }
                 });
             }, rollTemplate);
+            log("Ending template: " + rollTemplate);
             replacementMade = (rollTemplate != startingRollTemplate);
         } while (replacementMade && (++safetyCount  < 10) );
         return rollTemplate;
@@ -201,20 +204,20 @@ var SpellMonitor = SpellMonitor || (function() {
     },
 
     
-    decrementSpellSlots = function(character, level, playerId, warlockSlots) {
+    decrementSpellSlots = function(character, castingLevel, playerId, warlockSlots) {
         var otherSpellSlots = getNormalSpellSlots(character);
         //Try warlock slots first, as they are cheapest
-        if (!_.isEmpty(warlockSlots) && warlockSlots[0].level == level && warlockSlots[0].current > 0) {
+        if (!_.isEmpty(warlockSlots) && warlockSlots[0].level == castingLevel && warlockSlots[0].current > 0) {
             warlockSlots[0].attribute.set('current', --warlockSlots[0].current);
             return;
         }
         
-        if(otherSpellSlots[level].current > 0) {
-            otherSpellSlots[level].attribute.set('current', --otherSpellSlots[level].current);
+        if(otherSpellSlots[castingLevel].current > 0) {
+            otherSpellSlots[castingLevel].attribute.set('current', --otherSpellSlots[castingLevel].current);
             return;
         }
         
-        throw new Error('No slots of level ' + level + ' were available, spell could not be cast!');
+        throw new Error('No slots of level ' + castingLevel + ' were available, spell could not be cast!');
     },
     
     showSpellBook = function(character, playerId) {
@@ -227,7 +230,7 @@ var SpellMonitor = SpellMonitor || (function() {
             var buttons = _.chain(buildSpellMap(character))
                 .tap(function(spells) { if(_.isEmpty(spells)) { return; }})
                 .sortBy(function(spell) {
-                    return spell.level + '_' + spell.spellname;
+                    return spell.spellbaselevel + '_' + spell.spellname;
                 })
                 .reduce(getSpellButtonAppender(character, remainingSlots), {})
                 .value();
@@ -289,7 +292,7 @@ var SpellMonitor = SpellMonitor || (function() {
             
             var enabled = false;    
             var spellButtons = [];
-            if (spell.level === 0) {
+            if (spell.spellbaselevel === 0) {
                 spellButtons.push(getSpellButtonText(spell, null, character, false));
             }
             else {
@@ -308,7 +311,7 @@ var SpellMonitor = SpellMonitor || (function() {
                 spellButtons.push('<span style="color:gray; background-color:lightgrey; padding:5px; display:inline-block; border: 1px solid white;" >' + spell.spellname + '</span>');    
             }
             
-            buttonMap[spell.level] = buttonMap[spell.level] ? buttonMap[spell.level].concat(spellButtons) : spellButtons;
+            buttonMap[spell.spellbaselevel] = buttonMap[spell.spellbaselevel] ? buttonMap[spell.spellbaselevel].concat(spellButtons) : spellButtons;
             
             return buttonMap;
         };  
@@ -403,7 +406,7 @@ var SpellMonitor = SpellMonitor || (function() {
    
     calculateValidSpellSlots = function(spell, remainingSlots) {
         return  _.chain(remainingSlots).map(function(spellsRemaining, slotLevel) {
-                        return (slotLevel >= spell.level && spellsRemaining > 0) ? slotLevel : null; 
+                        return (slotLevel >= spell.spellbaselevel && spellsRemaining > 0) ? slotLevel : null; 
                     })
                 .compact()
                 .value();
@@ -538,10 +541,10 @@ var SpellMonitor = SpellMonitor || (function() {
         .reduce(function(spellMap, spellEntry){
             var spellObject = _.reduce(spellEntry, function(spell, fieldObject){
                 spell[fieldObject.fieldName] = fieldObject.fieldValue;
-                spell['level'] = fieldObject.level;
+                spell['spellbaselevel'] = fieldObject.level;
                 spell['originalIndex'] = "repeating_spellbook" + ((fieldObject.level == 0) ? "cantrip" : fieldObject.level) + "_" + fieldObject.indexInLevel + "_";
                 return spell;
-            }, _.clone(baseSpellObject));
+            }, getBaseSpellObject());
             spellMap[spellObject.spellname] = spellObject;
             return spellMap;
         }, {})
@@ -549,10 +552,23 @@ var SpellMonitor = SpellMonitor || (function() {
         
     },
     
+    getBaseSpellObject = function() {
+        var spell =   _.clone(ShapedSpellbookDefaults.values);
+        spell.spell_var_output_higher_lvl_query = "{{spell_cast_as_level=Level @{casting_level}}}";
+        spell.higher_level_query =  "@{casting_level}";
+        return spell;
+    },
     
     getSelectedCharacters = function(msg, callback) {
         return _.chain(getSelectedTokens(msg))
                     .map(LHU.getObjectMapperFunc(LHU.getPropertyResolver('represents'), 'character'))
+                    .map(function(character) {
+                        var spellDataHash = getAttrByName(character.id, "spell_data_hash");
+                        if (!spellDataHash || spellDataHash !== ShapedSpellbookDefaults.hash) {
+                            throw new Error('ShapedSpellbook ERROR: ' + character.get('name')  + " is using a character sheet that does not match the version of the spellbook script")
+                        }
+                        return character;
+                    })
                     .value();
     },
     
@@ -581,40 +597,7 @@ var SpellMonitor = SpellMonitor || (function() {
         }
     },
     
-    rollTemplateLookups = {
-        spell_var_description: "{{spelldescription=@{spelldescription}}}",
-        spell_var_higher_lvl: "{{spellhigherlevel=@{spellhighersloteffect}}}",
-        spell_var_output_higher_lvl_query: "{{spell_cast_as_level=Level @{casting_level}}}",
-        higher_level_query: "@{casting_level}",
-        spell_to_hit: "@{PB} + @{attackstat} + (@{spell_attack_bonus} * @{spell_toggle_bonuses})",
-        spell_attack_higher_level_formula: "((@{spell_toggle_higher_lvl_query} - @{spellbaselevel}) * @{spell_attack_higher_level_dmg_dice})@{spell_attack_higher_level_dmg_die}[higher lvl]",
-        spell_attack_higher_level_formula_second: "((@{spell_toggle_higher_lvl_query} - @{spellbaselevel}) * @{spell_attack_second_higher_level_dmg_dice})@{spell_attack_second_higher_level_dmg_die}[higher lvl]",
-        spell_var_emote: "{{emote=@{spellemote}}}",
-        spell_var_attack: "{{attack=[[d20cs>@{spell_attack_crit_range}@{d20_mod} + @{spell_to_hit} + (@{global_spell_attack_bonus})]]}} {{attackadv=[[d20cs>@{spell_attack_crit_range}@{d20_mod} + @{spell_to_hit} + (@{global_spell_attack_bonus})]]}} {{targetAC=@{attacks_vs_target_ac}}} {{targetName=@{attacks_vs_target_name}}}",
-        spell_var_attack_damage: "{{action_damage=[[0d0 + @{spell_attack_dmg}[dmg] + @{spell_attack_dmg_total}[bonus dmg] + (@{global_spell_damage_bonus})[global spell dmg bonus] + @{spell_attack_higher_level_formula}]]}} {{action_damage_type=@{spell_attack_dmg_type}}}",
-        spell_var_attack_second_damage: "{{action_second_damage=[[0d0 + @{spell_attack_second_dmg}[dmg] + @{spell_attack_second_dmg_total}[bonus dmg] + (@{global_spell_damage_bonus})[global spell dmg bonus] + @{spell_attack_higher_level_formula_second}]]}} {{action_second_damage_type=@{spell_attack_second_dmg_type}}}",
-        spell_var_attack_crit: "{{can_crit=1}} {{action_crit_damage=[[0d0 + @{spell_attack_dmg} + @{spell_attack_higher_level_formula}]]}} {{action_second_crit_damage=[[0d0 + @{spell_attack_second_dmg} + @{spell_attack_higher_level_formula_second}]]}}",
-        spell_attack_dmg_total: "@{spell_attack_dmg_stat} + (@{spell_attack_dmg_bonus} * @{spell_toggle_bonuses})",
-        spell_var_save: "{{action_save=1}} {{save_dc=[[@{spell_save_dc_total}]]}} {{action_save_stat=@{savestat}}} {{save_condition=@{save_condition}}} {{save_failure=@{savefailure}}} {{save_success=@{savesuccess}}} {{targetName=@{attacks_vs_target_name}}}",
-        spell_var_save_damage: "{{save_damage=[[0d0 + @{spell_save_dmg}[dmg] + @{spell_save_dmg_total}[bonus dmg] + (@{global_spell_damage_bonus})[global spell dmg bonus] + ((@{spell_toggle_higher_lvl_query} - @{spellbaselevel}) * @{spell_save_higher_level_dmg_dice})@{spell_save_higher_level_dmg_die}[higher lvl] ]]}} {{save_damage_type=@{spell_save_dmg_type}}}",
-        spell_var_save_second_damage: "{{save_second_damage=[[0d0 + @{spell_save_second_dmg}[dmg] + @{spell_save_second_dmg_total}[bonus dmg] + (@{global_spell_damage_bonus})[global spell dmg bonus] + ((@{spell_toggle_higher_lvl_query} - @{spellbaselevel}) * @{spell_save_second_higher_level_dmg_dice})@{spell_save_second_higher_level_dmg_die}[higher lvl] ]]}} {{save_second_damage_type=@{spell_save_second_dmg_type}}}",
-        spell_save_dmg_total: "@{spell_save_dmg_stat} + (@{spell_save_dmg_bonus} * @{spell_toggle_bonuses})",   
-        spell_save_dc_total: "@{spellsavedc}[dc] + (@{spell_save_dc_bonus} * @{spell_toggle_bonuses})[bonus]",
-        spell_var_healing: "{{spellhealing=[[0d0 + @{spellhealamount}[amount] + @{healstatbonus}[stat bonus] + @{healbonus}[bonus] + (@{global_spell_heal_bonus})[global spell heal bonus] + ((@{spell_toggle_higher_lvl_query} - @{spellbaselevel}) * @{spell_heal_higher_level_amount}) + ((@{spell_toggle_higher_lvl_query} - @{spellbaselevel}) * @{spell_heal_higher_level_dmg_dice})@{spell_heal_higher_level_dmg_die}[higher lvl] ]]}}",
-        spell_var_effects: "{{effects=@{spelleffect}}}",
-        spell_var_source: "{{spellsource=@{spellsource}}}",
-        spell_var_gained_from: "{{spellgainedfrom=@{spellgainedfrom}}}",
-        spell_var_bonuses: "1",
-        spellcomponents_verbal_var: "{{spell_components_verbal=1}}",
-        spellcomponents_somatic_var: "{{spell_components_somatic=1}}",
-        spell_casting_time_reaction_var: "1 reaction",
-        spell_casting_time_bonus_var: "1 bonus action",
-        spell_casting_time_action_var: "1 action",
-        spell_casting_time_minute_var: "1 minute",
-        spellcomponents_material_var: "{{spell_components_material=@{spellcomponents}}}",
-        spell_casting_time_longer_var: "@{spellcasttime}",
-        spellbaselevel: "@{level}"
-    },
+   
      
     spellCastRollTemplate = "@{output_option} &{template:5eDefault} {{spell=1}} {{character_name=@{character_name}}} " +
                             "@{show_character_name} {{spellfriendlylevel=@{friendly_level}}} {{title=@{spellname}}} " + 
@@ -627,49 +610,7 @@ var SpellMonitor = SpellMonitor || (function() {
                             "@{spell_toggle_healing} @{spell_toggle_effects} @{spell_toggle_source} @{spell_toggle_gained_from} " +
                             "@{spell_toggle_output_higher_lvl_query} @{classactionspellcast}",
    
-   //Default values for attributes aren't accessible through the API, 
-   //so they have to be duplicated here. Sigh.
-   baseSpellObject = {
-        spellconcentration:"",
-        spellcomponents_verbal:"",
-        spellcomponents_somatic:"",
-        spellcomponents_material:"",
-        spell_toggle_description:"",
-        spell_toggle_higher_lvl:"",
-        spell_toggle_emote:"",
-        spell_toggle_attack:"",
-        spell_toggle_attack_damage:"",
-        spell_toggle_attack_second_damage:"",
-        spell_toggle_attack_crit:"",
-        spell_toggle_save:"",
-        spell_toggle_save_damage:"",
-        spell_toggle_bonuses: 0,
-        spell_toggle_healing: 0,
-        spell_toggle_effects:"",
-        spell_toggle_source:"",
-        spell_toggle_gained_from:"",
-        spell_toggle_output_higher_lvl_query:"",
-        spell_toggle_higher_lvl_query: "",
-        spell_attack_higher_level_dmg_dice: 0,
-        spell_attack_higher_level_dmg_die: "d0",
-        spell_attack_second_higher_level_dmg_dice: 0,
-        spell_attack_second_higher_level_dmg_die: "d0",
-        spellaoe:"",
-        spell_save_dc_bonus: 0,
-        spell_save_dmg_bonus: 0,
-        save_condition:"",
-        savesuccess: "",
-        savefailure: "",
-        spell_attack_bonus: 0,
-        spell_attack_dmg_bonus: 0,
-        spell_attack_crit_range: 20,
-        spell_attack_second_dmg: 0,
-        spell_attack_dmg_stat: 0,
-        spell_save_dmg_stat: 0,
-        spelltarget: "",
-        healbonus:0
-        
-   },
+  
    
     registerEventHandlers = function () {
         on('chat:message', HandleInput);
@@ -684,7 +625,7 @@ var SpellMonitor = SpellMonitor || (function() {
 on("ready",function(){
     'use strict';
 
-        SpellMonitor.CheckInstall();
-        SpellMonitor.RegisterEventHandlers();
+        ShapedSpellbook.CheckInstall();
+        ShapedSpellbook.RegisterEventHandlers();
 });
 
