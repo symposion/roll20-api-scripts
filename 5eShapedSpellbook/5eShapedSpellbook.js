@@ -1,7 +1,7 @@
 var ShapedSpellbook = ShapedSpellbook || (function() {
     'use strict';
 
-    var version = '0.3',
+    var version = '0.3.1',
     
     checkInstall = function () {
         if (typeof LHU === 'undefined' || (LHU.version < 0.2)) {
@@ -34,7 +34,7 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
                                 , parameterMap.targetName || "", _.has(parameterMap, 'ritual'));
                     break;
                 case "test":
-                    var string = " &{template:5eDefault} {{spell=1}} {{character_name=Mage}}  {{spellfriendlylevel=Cantrip}} {{title=Fire Bolt}}   {{spellschool=Evocation}} {{spell_casting_time=1 action}} {{spellduration=Instantaneous}} {{target=a creature or object}} {{aoe=}} {{range=120 ft}} {{spell_components_verbal=1}} {{spell_components_somatic=1}}    {{emote=hurls a mote of fire at a creature or object}} {{attack=[[d20cs>20 + (2 + floor(abs(((((1-0) * (0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 2 + 9 + 0 + 0 + 0 + 0 + 0 + 0)) + (0 * 6))-1)/4))) + floor((17-10)/2) + 0 + (0 * 0) + (0)]]}} {{attackadv=[[d20cs>20 + (2 + floor(abs(((((1-0) * (0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 0 + 2 + 9 + 0 + 0 + 0 + 0 + 0 + 0)) + (0 * 6))-1)/4))) + floor((17-10)/2) + 0 + (0 * 0) + (0)]]}} {{targetAC=[[0d0 + 15 ]]}} {{targetName=J F Sebastian}} {{action_damage=[[0d0 + ((0 + 1) / 6 + 0.5)d10 + 0 + (0 * 0) + (0) + (( - 0) * 0)d0]]}} {{action_damage_type=fire}}  {{can_crit=1}} {{action_crit_damage=[[0d0 + ((0 + 1) / 6 + 0.5)d10 + (( - 0) * 0)d0]]}} {{action_second_crit_damage=[[0d0 + 0 + (( - 0) * 0)d0]]}}   0 0 {{effects=A flammable object hit by this spell ignites if it isn't being worn or carried.}}    0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0";
+                    var string = "!5esb --show";
                     sendChat("",string);
                     break;
                 default:
@@ -562,13 +562,13 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
     getSelectedCharacters = function(msg, callback) {
         return _.chain(getSelectedTokens(msg))
                     .map(LHU.getObjectMapperFunc(LHU.getPropertyResolver('represents'), 'character'))
-                    .map(function(character) {
+                    /*.map(function(character) {
                         var spellDataHash = getAttrByName(character.id, "spell_data_hash");
                         if (!spellDataHash || spellDataHash !== ShapedSpellbookDefaults.hash) {
                             throw new Error('ShapedSpellbook ERROR: ' + character.get('name')  + " is using a character sheet that does not match the version of the spellbook script")
                         }
                         return character;
-                    })
+                    })*/
                     .value();
     },
     
