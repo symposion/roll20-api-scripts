@@ -1,7 +1,7 @@
 var ShapedSpellbook = ShapedSpellbook || (function() {
     'use strict';
 
-    var version = '0.3.1',
+    var version = '0.3.2',
     
     checkInstall = function () {
         if (typeof LHU === 'undefined' || (LHU.version < 0.2)) {
@@ -34,7 +34,7 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
                                 , parameterMap.targetName || "", _.has(parameterMap, 'ritual'));
                     break;
                 case "test":
-                    var string = "!5esb --show";
+                    var string = "[[1d20cs>20 ]] [[1d20 + [[2 ]] ]]";
                     sendChat("",string);
                     break;
                 default:
@@ -87,8 +87,14 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
             outputSpell(character, spell, 0, targetAC, targetName);
         }
         else if(ritual) {
-            //Be explicit about level, not allowed to cast rituals at higher level
-            outputSpell(character, spell, spell.spellbaselevel, targetAC, targetName, true);
+            if (spell.spellritual != 0) {
+                //Be explicit about level, not allowed to cast rituals at higher level
+                outputSpell(character, spell, spell.spellbaselevel, targetAC, targetName, true);
+            }
+            else {
+                message(character.get('name') + " cannot cast " + spellName + " as a ritual", playerId);
+                return;
+            }
         }
         else if(spell['spellisprepared'] === "on") {
             awaitWarlockSlots(character, function(warlockSlots){
@@ -112,7 +118,6 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
     outputSpell = function(character, spell, castingLevel, targetAC, targetName, ritual) {
         if(ritual){ 
             spell.spell_casting_time =  '10 mins';
-            spell.spellritual = '{{spellritual=1}}';
         }
         else {
             spell.spellritual = '';
@@ -137,10 +142,8 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
         //is probably slower than the rest and we should avoid doing it more than
         //needed.
         rollTemplate = interpolateAttributes(rollTemplate, [getCharacterAttributeLookup(character)]);
-        log(rollTemplate);
         rollTemplate = stripHelpfulLabelsToAvoidRoll20ApiBug(rollTemplate);
         rollTemplate = removeNestedRolls(rollTemplate);
-        log(rollTemplate);
         sendChat(character.get('name'), rollTemplate);
     },
     
@@ -172,7 +175,6 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
         var regexp = /\@\{([^\}]+)\}/gi;
         do {
             var startingRollTemplate = rollTemplate;
-            log("Starting template: " + startingRollTemplate);
             rollTemplate = _.reduce(lookupFunctions, function(innerRollTemplate, lookupFunc, index){
                 return innerRollTemplate.replace(regexp, function(match, submatch) {
                     var replacement = lookupFunc(submatch);
@@ -184,7 +186,6 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
                     }
                 });
             }, rollTemplate);
-            log("Ending template: " + rollTemplate);
             replacementMade = (rollTemplate != startingRollTemplate);
         } while (replacementMade && (++safetyCount  < 10) );
         return rollTemplate;
@@ -289,7 +290,6 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
     
     getSpellButtonAppender = function(character, remainingSlots) {
         return function(buttonMap, spell) {
-            
             var enabled = false;    
             var spellButtons = [];
             if (spell.spellbaselevel === 0) {
@@ -302,7 +302,7 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
                     spellButtons.push(getSpellButtonText(spell, appropriateSlots, character, false));
                 }
                 
-                if (spell['spellritual']) {
+                if (spell['spellritual'] != 0) {
                     spellButtons.push(getSpellButtonText(spell, appropriateSlots, character, true));
                 }
             }
