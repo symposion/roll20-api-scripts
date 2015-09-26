@@ -1,7 +1,7 @@
 var ShapedSpellbook = ShapedSpellbook || (function() {
     'use strict';
 
-    var version = '0.3.2',
+    var version = '0.4',
     
     checkInstall = function () {
         if (typeof LHU === 'undefined' || (LHU.version < 0.2)) {
@@ -29,9 +29,10 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
                     showSpellBook(_.first(getSelectedCharacters(msg)), msg.playerid);
                     break;
                 case "cast":
-                    castSpell(msg.playerid, getObj("character", parameterMap.character), 
-                                parameterMap['cast'], parameterMap.level, resolveAC(parameterMap.targetAC, msg.inlinerolls)
-                                , parameterMap.targetName || "", _.has(parameterMap, 'ritual'));
+                    attemptSpell(msg.playerid, getObj("character", parameterMap.character), 
+                                parameterMap['cast'], parameterMap.level, parameterMap.targetId, 
+                                resolveAC(parameterMap.targetAC, msg.inlinerolls),
+                                _.has(parameterMap, 'ritual'));
                     break;
                 case "test":
                     var string = "[[1d20cs>20 ]] [[1d20 + [[2 ]] ]]";
@@ -51,13 +52,28 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
         }
     },
     
-        
+    spellHandlers = {},
+    
+    registerCustomSpellHandler = function(spellName, handler) {
+        if(!_.some(fifthSpells.spellsData, function(spell){ return spell['name'] === spellName;} )) {
+            log('Warning, registering handler for spell "' + spellName + '" not found in standard spell list.');
+        }
+        else {
+            log('Registering handler ' + handler + ' for spell "' + spellName + '".');
+        }
+        spellHandlers[spellName] = handler;  
+    },
+    
+    //This is pure evil. Thanks to this: https://app.roll20.net/forum/post/2434679/floor-expressions-being-mangled-on-the-way-in-to-api
+    //the only reliable way to get the AC of a target into this script is by putting a @{target|AC} parameter on the API call. Thanks
+    //to brokenness in the way the attribute is processed, it turns up to us as a massive math expression, which sendChat refuses to evaluate
+    //for some reason. As a workaround, I have turned it into javascript and called eval() on it. Urgh.
     resolveAC = function(acExpression, inlineRolls) {
         if (!acExpression) { return ""}
         var re = /\$\[\[([\d]+)\]\]/g;
         var re2 = /(abs|floor)/g;
         var resolved =  acExpression.replace(re, function(match, rollIndex) {
-            return inlineRolls[rollIndex].results.total;    
+            return inlineRolls[rollIndex].results.total;
         }).replace(re2, 'Math.$1');
         return '[[0d0 + '+ eval(resolved) + ' ]]';
     },
@@ -74,7 +90,9 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
                      .value();
     },
     
-    castSpell = function(playerId, character, spellName, castingLevel, targetAC, targetName, ritual) {
+    attemptSpell = function(playerId, character, spellName, castingLevel, targetId, targetAC, ritual) {
+        
+        
         var spellMap = buildSpellMap(character);
         var spell = spellMap[spellName];
         if (_.isUndefined(spell)) {
@@ -84,12 +102,12 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
         //If no level is specified cast at the level of the spell
         castingLevel = castingLevel || spell.spellbaselevel;
         if (spell.spellbaselevel === 0) {
-            outputSpell(character, spell, 0, targetAC, targetName);
+            castSpell(character, spell, 0, targetId, targetAC);
         }
         else if(ritual) {
             if (spell.spellritual != 0) {
                 //Be explicit about level, not allowed to cast rituals at higher level
-                outputSpell(character, spell, spell.spellbaselevel, targetAC, targetName, true);
+                castSpell(character, spell, spell.spellbaselevel, targetId, targetAC, true);
             }
             else {
                 message(character.get('name') + " cannot cast " + spellName + " as a ritual", playerId);
@@ -99,8 +117,9 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
         else if(spell['spellisprepared'] === "on") {
             awaitWarlockSlots(character, function(warlockSlots){
                 if (getTotalSpellSlotsRemainingByLevel(character, warlockSlots)[castingLevel] > 0) {
-                    outputSpell(character, spell, castingLevel, targetAC, targetName);
-                    decrementSpellSlots(character, castingLevel, playerId, warlockSlots);
+                    if (castSpell(character, spell, castingLevel, targetId, targetAC)) {
+                        decrementSpellSlots(character, castingLevel, playerId, warlockSlots);    
+                    }
                 }
                 else {
                     message(character.get('name') + " doesn't have any slots of level " +castingLevel + ' left to cast ' + spellName + " Spellbook will reload. ", playerId);
@@ -113,9 +132,34 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
         }
     },
     
+    castSpell = function(character, spell, castingLevel, targetId, targetAC, ritual) {
+        var targetName ="";
+        var targetCharacterId="";
+        if (targetId) {
+            var token = getObj("graphic", targetId);
+            targetCharacterId = token.get("represents");
+            targetName = token.get("name");
+        }
+        var outputFunc = _.partial(outputSpell, character, spell, castingLevel, targetCharacterId, targetName, targetAC, ritual)
+        if (spellHandlers[spell.spellname]) {
+            return spellHandlers[spell.spellname].handlerFunction(character, 
+                                                            spell.spellname, 
+                                                            castingLevel,
+                                                            targetCharacterId,
+                                                            targetName,
+                                                            ritual, 
+                                                            _.partial(sendChat, character.get('name')), 
+                                                            outputFunc);
+        }
+        else {
+            outputFunc();
+            return true;
+        }
+       
+    },
 
     
-    outputSpell = function(character, spell, castingLevel, targetAC, targetName, ritual) {
+    outputSpell = function(character, spell, castingLevel, targetCharacterId, targetName, targetAC, ritual) {
         if(ritual){ 
             spell.spell_casting_time =  '10 mins';
         }
@@ -124,17 +168,17 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
         }
        
         spell.casting_level = castingLevel;
-        spell.friendly_level = (spell.spellbaselevel == 0) ? "Cantrip" : "Level " + spell.spellbaselevel
+        spell.friendly_level = (spell.spellbaselevel == 0) ? "Cantrip" : "Level " + spell.spellbaselevel;
         
+    
         //We need to replace all attributes defined in the spell, then run substitution
         //against the hidden variable lookups pulled from the charsheet, and finally inject values
         // for target info We keep going round this loop until no more replacements happen
         var rollTemplate = interpolateAttributes(spellCastRollTemplate, 
-                                                    [getMapLookup(spell), 
-                                                     getMapLookup({attacks_vs_target_ac: targetAC, 
+                                                    [getMapLookup(spell),
+                                                    getMapLookup({attacks_vs_target_ac: targetAC, 
                                                                     attacks_vs_target_name: targetName})
                                                      ]);
-                                                     
                                                      
                                                      
         //Do this last to avoid loads of crappy error messages in the log for 
@@ -318,7 +362,7 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
     }, 
     
     getSpellButtonText = function(spell, appropriateSlots, character, asRitual) {
-        var targetParam = spellNeedsTarget(spell) ? " --targetAC " + LHU.ch('@') + "{target|AC} --targetName " + LHU.ch('@') + "{target|token_name} " : "";
+        var targetParam = spellNeedsTarget(spell) ? " --targetId " + LHU.ch('@') + "{target|token_id} --targetAC " + LHU.ch('@') + "{target|AC}" : "";
         var ritualFlag = asRitual ? " --ritual " : "";
         var spellButtonText = spell.spellname + (asRitual ? " (R)" : "");
         var titleText = asRitual ? "" : ' title="Spell slots: ' + getLevelsButtonText(appropriateSlots) + '" ';
@@ -369,6 +413,10 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
     },
     
     spellNeedsTarget = function(spell) {
+        if (spellHandlers[spell.spellname] && spellHandlers[spell.spellname].requestTarget) {
+            return true;
+        }
+        
         return (!_.isEmpty(spell.spell_toggle_save) || 
                     !_.isEmpty(spell.spell_toggle_attack)) && 
                 _.isEmpty(spell.spellaoe);
@@ -618,7 +666,7 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
     
     
     
-    return { CheckInstall: checkInstall, RegisterEventHandlers: registerEventHandlers};
+    return { CheckInstall: checkInstall, RegisterEventHandlers: registerEventHandlers, RegisterCustomSpellHandler:registerCustomSpellHandler};
     
 })();
 
@@ -628,4 +676,3 @@ on("ready",function(){
         ShapedSpellbook.CheckInstall();
         ShapedSpellbook.RegisterEventHandlers();
 });
-
