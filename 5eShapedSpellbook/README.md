@@ -11,7 +11,9 @@ The file 5eCustomSpellHandlers.js is experimental and should only be installed i
 ## Usage
 ###Showing spellbook
 The basic command is:
+
 ```!5esb --show```
+
 This will show the spellbook for the currently selected token. It will list all spells on the token's character sheet, and will also display the number of spell slots remaining for each level for which the character has max slots > 0. Warlock slots will also be displayed. Spells which are not prepared, or for which no appropriate slots are available to cast them will be greyed out. Otherwise a button will be displayed that allows the spell to be cast. 
 
 If the spell can usefully be cast at multiple levels and multiple levels of slot are available to cast it, clicking the button will prompt for the level to cast at. Otherwise the spell will be cast at the lowest appropriate slot that is available. Hovering over the spell button will display a tooltip showing the level at which it wil be cast.
@@ -24,12 +26,16 @@ Once a spell is successfully cast, the relevant spell slot will be decremented u
 
 ###Long rest
 You can restore slots as for a long rest by running:
+
 ```!5esb --long-rest```
+
 This will reset all current spell slot values to their maxima.
 
 ###Casting directly
 Internally, the spellbook buttons run commands of the form:
+
 ```!5esb --cast Magic Missile --character <character_id> --targetAC @{target|AC} --targetId @{target|token_id}```
+
 The name of the spell must follow the --cast, and then the character id must be provided with --character. Additional optional parameters are:
 * **--ritual** cast the spell as a ritual (will fail if the spell is not marked as being a ritual in the character sheet)
 * **--targetAC @{target|AC} --targetId @{target|token_id}** if the spell has a target, this will allow the target's AC and name to be displayed. Please note that due to bugs and limitations in the current API, this information must be provided exactly as specified here - you can't pass in the AC any other way (e.g. --targetAC @{MyCharacterName|AC} does NOT work!)
