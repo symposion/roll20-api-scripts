@@ -610,13 +610,13 @@ var ShapedSpellbook = ShapedSpellbook || (function() {
     getSelectedCharacters = function(msg, callback) {
         return _.chain(getSelectedTokens(msg))
                     .map(LHU.getObjectMapperFunc(LHU.getPropertyResolver('represents'), 'character'))
-                    /*.map(function(character) {
+                    .map(function(character) {
                         var spellDataHash = getAttrByName(character.id, "spell_data_hash");
                         if (!spellDataHash || spellDataHash !== ShapedSpellbookDefaults.hash) {
                             throw new Error('ShapedSpellbook ERROR: ' + character.get('name')  + " is using a character sheet that does not match the version of the spellbook script")
                         }
                         return character;
-                    })*/
+                    })
                     .value();
     },
     
