@@ -676,3 +676,4 @@ on("ready",function(){
         ShapedSpellbook.CheckInstall();
         ShapedSpellbook.RegisterEventHandlers();
 });
+
