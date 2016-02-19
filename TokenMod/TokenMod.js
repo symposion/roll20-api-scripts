@@ -5,8 +5,8 @@
 var TokenMod = TokenMod || (function() {
     'use strict';
 
-    var version = '0.8.14',
-        lastUpdate = 1442235743,
+    var version = '0.8.18',
+        lastUpdate = 1454855624,
         schemaVersion = 0.1,
 
         fields = {
@@ -114,7 +114,24 @@ var TokenMod = TokenMod || (function() {
 						n = Math.min(360,Math.max(0,n));
 					}
 					return n;
-				}
+				},
+            orderType: function(t){
+                    switch(t){
+                        case 'tofront':
+                        case 'front':
+                        case 'f':
+                        case 'top':
+                            return 'tofront';
+
+                        case 'toback':
+                        case 'back':
+                        case 'b':
+                        case 'bottom':
+                            return 'toback';
+                        default:
+                            return;
+                    }
+                }
 		},
 		ch = function (c) {
 			var entities = {
@@ -195,6 +212,9 @@ var TokenMod = TokenMod || (function() {
 					+'<b><span style="font-family: serif;">'+ch('<')+'--set'+ch('>')+'</span></b> '+ch('-')+' Each parameter is treated as a key and value, divided by a | character.  Sets the key to the value.  If the value has spaces, you must enclose it '+ch("'")+' or '+ch('quot')+'.  See below for specific value handling logic.'
 				+'</li> '
 				+'<li style="border-top: 1px solid #ccc;border-bottom: 1px solid #ccc;">'
+					+'<b><span style="font-family: serif;">'+ch('<')+'--order'+ch('>')+'</span></b> '+ch('-')+' changes the ordering of tokens.  Specify one of '+ch("'")+'tofront'+ch("'")+', '+ch("'")+'front'+ch("'")+', '+ch("'")+'f'+ch("'")+', '+ch("'")+'top'+ch("'")+' to bring something to the front or '+ch("'")+'toback'+ch("'")+', '+ch("'")+'back'+ch("'")+', '+ch("'")+'b'+ch("'")+', '+ch("'")+'bottom'+ch("'")+' to push it to the back.'
+				+'</li> '
+				+'<li style="border-top: 1px solid #ccc;border-bottom: 1px solid #ccc;">'
 					+'<b><span style="font-family: serif;">'+ch('<')+'--ids'+ch('>')+'</span></b> '+ch('-')+' Each parameter is a Token ID, usually supplied with something like '+ch('@')+ch('{')+'target'+ch('|')+'Target 1'+ch('|')+'token_id'+ch('}')+'. '
 					+'By default, only a GM can use this argument.  You can enable players to use it as well with <b>--config players-can-ids|on</b>.'
 				+'</li> '
@@ -208,9 +228,9 @@ var TokenMod = TokenMod || (function() {
 			+'<pre style="white-space:normal;word-break:normal;word-wrap:normal;">'
 				+'!token-mod --ids -Jbz-mlHr1UXlfWnGaLh -JbjeTZycgyo0JqtFj-r -JbjYq5lqfXyPE89CJVs --on showname showplayers_name'
 			+'</pre>'
-		+'<p>Usually, you will want to specify these with the @{target} syntax:</p>'
+		+'<p>Usually, you will want to specify these with the '+ch('@')+ch('{')+'target'+ch('}')+' syntax:</p>'
 			+'<pre style="white-space:normal;word-break:normal;word-wrap:normal;">'
-				+'!token-mod --ids @{target|1|token_id} @{target|2|token_id} @{target|3|token_id} --on showname showplayers_name'
+				+'!token-mod --ids '+ch('@')+ch('{')+'target|1|token_id'+ch('}')+' '+ch('@')+ch('{')+'target|2|token_id'+ch('}')+' '+ch('@')+ch('{')+'target|3|token_id'+ch('}')+' --on showname showplayers_name'
 			+'</pre>'
 	+'</div>'
 
@@ -674,7 +694,7 @@ var TokenMod = TokenMod || (function() {
                         t='';
                     }
                     t2=args[0].match(regex.numberString) ? args[0] : '' ;
-					if(! _.isNaN(parseFloat(t2)) ) {
+					if( ''===t2 || !_.isNaN(parseFloat(t2)) ) {
 						retr[cmd].push(t+t2);
 					}
 					break;
@@ -729,38 +749,37 @@ var TokenMod = TokenMod || (function() {
 					break;
 
 				case 'character_id':
-					t=getObj('character', args[0]);
-					if(t) {
-						retr[cmd].push(args[0]);
-					} else {
-						// try to find a character with this name
-						t2=findObjs({type: 'character',archived: false});
-						t=_.chain([ args[0].replace(regex.stripSingleQuotes,'$1').replace(regex.stripDoubleQuotes,'$1') ])
-							.map(function(n){
-								var l=_.filter(t2,function(c){
-									return c.get('name').toLowerCase() === n.toLowerCase();
-								});
-								return ( 1 === l.length ? l : _.filter(t2,function(c){
-									return -1 !== c.get('name').toLowerCase().indexOf(n.toLowerCase());
-								}));
-							})
-							.flatten()
-							.value();
-						if(1 === t.length) {
-							retr[cmd].push(t[0].id);
-						} else {
-							retr=undefined;
-						}
-					}
+                    if('' === args[0]){
+                        retr[cmd].push('');
+                    } else {
+                        t=getObj('character', args[0]);
+                        if(t) {
+                            retr[cmd].push(args[0]);
+                        } else {
+                            // try to find a character with this name
+                            t2=findObjs({type: 'character',archived: false});
+                            t=_.chain([ args[0].replace(regex.stripSingleQuotes,'$1').replace(regex.stripDoubleQuotes,'$1') ])
+                                .map(function(n){
+                                    var l=_.filter(t2,function(c){
+                                        return c.get('name').toLowerCase() === n.toLowerCase();
+                                    });
+                                    return ( 1 === l.length ? l : _.filter(t2,function(c){
+                                        return -1 !== c.get('name').toLowerCase().indexOf(n.toLowerCase());
+                                    }));
+                                })
+                                .flatten()
+                                .value();
+                            if(1 === t.length) {
+                                retr[cmd].push(t[0].id);
+                            } else {
+                                retr=undefined;
+                            }
+                        }
+                    }
 					break;
 
 				case 'attribute':
 					retr[cmd].push(args.shift().replace(regex.stripSingleQuotes,'$1').replace(regex.stripDoubleQuotes,'$1'));
-					break;
-
-				case 'tofront':
-					break;
-				case 'toback':
 					break;
 
 				case 'player_id':
@@ -816,6 +835,14 @@ var TokenMod = TokenMod || (function() {
 		}
 		return memo;
 	},
+
+    parseOrderArguments = function(list,base) {
+        return _.chain(list)
+            .map(transforms.orderType)
+            .reject(_.isUndefined)
+            .union(base)
+            .value();
+    },
 
 	parseSetArguments = function(list,base) {
 		return _.chain(list)
@@ -883,6 +910,17 @@ var TokenMod = TokenMod || (function() {
 			current=decomposeStatuses(token.get('statusmarkers')||''),
             statusCount=(token.get('statusmarkers')||'').split(/,/).length;
 
+        _.each(modlist.order,function(f){
+            switch(f){
+                case 'tofront':
+                    toFront(token);
+                    break;
+
+                case 'toback':
+                    toBack(token);
+                    break;
+            }
+        });
 		_.each(modlist.on,function(f){
 			mods[f]=true;
 		});
@@ -1100,7 +1138,8 @@ var TokenMod = TokenMod || (function() {
 				flip: [],
 				on: [],
 				off: [],
-				set: {}
+				set: {},
+                order: []
 			};
 
 		if (msg.type !== "api") {
@@ -1164,6 +1203,10 @@ var TokenMod = TokenMod || (function() {
 						case 'set':
 							modlist.set=parseSetArguments(cmds,modlist.set);
 							break;
+
+                        case 'order':
+                            modlist.order=parseOrderArguments(cmds,modlist.order);
+                            break;
 
                         case 'ignore-selected':
                             ignoreSelected=true;
