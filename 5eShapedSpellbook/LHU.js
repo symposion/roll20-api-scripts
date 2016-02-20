@@ -181,3 +181,12 @@ var LHU = LHU || function() {
     };
 }();
 
+on("ready",function(){
+    'use strict';
+
+        on('chat:message', function(msg){
+            if(msg.content === '!dump-obj') {
+                sendChat('', JSON.stringify(_.map(msg.selected, function(obj){ return getObj(obj._type, obj._id)})));
+            }
+        });
+});
