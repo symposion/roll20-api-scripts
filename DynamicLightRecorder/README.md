@@ -20,7 +20,7 @@ This is a script for use with the Roll20 API. It connects dynamic lighting paths
 * **Detaching** Making a local copy of a global template for a particular graphic, so that the DL paths for it remain unaffected by changes to the global template
 
 ## Installation
-Copy DynamicLightRecorder.js into the API scripts for you campaign. It has no external dependencies.
+Copy DynamicLightRecorder.js into the API scripts for your campaign. It has no external dependencies.
 
 ## Usage
 ###Linking dynamic lighting paths
@@ -63,14 +63,14 @@ Move/rotate/flip your door so that it satisfies these conditions. Then select th
 !dl-door
 ```
 
-This will create a lighting path for the door (running through the middle of it), and will also create a magic rotation token centred on the hinge on the token layer. Give control of this token to any player that you want to be able to control the door. When this token is rotated, the door will rotate accordingly, opening and shutting. Naturally this move the DL path for the door as well.
+This will create a lighting path for the door (running through the middle of it), and will also create a magic rotation token centred on the hinge on the token layer. Give control of this token to any player that you want to be able to control the door. When this token is rotated, the door will rotate accordingly, opening and shutting. Naturally this will move the DL path for the door as well.
 
 If run on a door token alone, the command will assume that the door occupies the full width of the token. If this is not the case (e.g. for doors that are designed to pivot properly around the centre of their token), you can draw a rectangular path around the part of the token that represents the door itself. Select this along with the token image before running `!dl-door` and the command will position the hinge of the door at the vertical middle of the left hand edge of the path.
 
 One downside of the door system is that the door animates slightly clunkily thanks to the way Roll20 handles token moving. If you have door tokens that already rotate properly around their centre, you can select one and run 
 
 ```
-dl-directDoor
+!dl-directDoor
 ```
 
 Note that this command also assumes your door's hinge is on the left, so rotate your token appropriately. With this command, instead of creating a transparent control token at the hinge of the door, it makes the door image itself into a control token on the objects layer. This means that players can rotate the door image directly, which means that it will respond directly to player input, rather than updating when it's dropped back on the canvas. Since the door image resides on the token layer, and since the script automatically undoes any attempt to move or scale the door token (other than rotating it), the script creates an identically shaped, linked, clear token on the map layer that matches up with the door token. The GM can use this as a handle to move the door around.
@@ -148,16 +148,4 @@ This will generate a **lot** of logging, so you probably want to turn it off aga
 ```
 
 ##Known issues/intended enhancements:
-* Overwriting a directDoor global template leaves some orphan paths behind
-* Automatically reset attempts to move DL paths
-* Find a nice way to show door opening limits graphically (on GM layer?)
-* Sometimes the control token for directDoors can be moved once after creation (thanks to the APICREATE cb thing)
-* !dl-wipe destroys direct doors completely
-* !dl-link on a tile that already has a local template will just overwrite the local template - this is probably right, although I think it should require —overwrite before doing it. I think we need another command, “makeGlobal” to push a local template up to global, which will also need a —overwrite option to ensure you don’t overwrite a global template accidentally.
-* Allow setting local template with no paths - perhaps a special command for this?
-* Creating a local door out of one that is already global creates an extra orphaned control token
-* Very slight bug with rotation thanks to approximation of path height (doesn’t take stroke width into account)
-
-
-Ideas for the future:
-* SVG import/export
+See GitHub issue tracker.
