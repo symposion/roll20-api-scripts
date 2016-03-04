@@ -22,26 +22,45 @@ var objectAsSrdString = function(object) {
 	}, "");
 };
 
+var stringProperty = {
+	type:"string"
+};
+
+var integerProperty = {
+	type:"integer"
+};
+
+var makeEnumProperty = function(enumValues) {
+	return {
+		type:"enum",
+		values: enumValues
+	};
+};
+
+var abilityProperty = makeEnumProperty(abilities);
+var damageTypeProperty = makeEnumProperty(damageTypes);
+
+var distanceProperty = {
+	type: "integer",
+	srdOutput: asDistanceInFeet.bind(this)
+};
+
+var stringArrayProperty = {
+	type: "stringArray",
+	srdOutput: commaSepOutput
+};
+
 var CompendiumFormat = {
 	Name: {
 		attribute: "character_name",
 		type: "string"
 	},
-	Size: {
-		type: "enum",
-		values: ["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"]
-	},
-	Type: {
-		type: "enum",
-		values: ["Aberration", "Beast", "Celestial", "Construct", "Dragon",
+	Size: makeEnumProperty(["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"]),
+	Type: makeEnumProperty(["Aberration", "Beast", "Celestial", "Construct", "Dragon",
 			"Elemental", "Fey", "Fiend", "Giant", "Humanoid", "Monstrosity", "Ooze", "Plant",
-			"Undead"]
-	},
-	Alignment: {
-		type: "enum",
-		values: ["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil",
-			"Chaotic Good", "Chaotic Neutral", "Chaotic Evil", "Unaligned"]
-	},
+			"Undead"]),
+	Alignment: makeEnumProperty(["Lawful Good", "Lawful Neutral", "Lawful Evil", "Neutral Good", "Neutral", "Neutral Evil",
+			"Chaotic Good", "Chaotic Neutral", "Chaotic Evil", "Unaligned"]),
 	AC: {
 		attribute: "ac_srd",
 		type: "object",
@@ -71,22 +90,10 @@ var CompendiumFormat = {
 					return "" + distance + " ft."
 				}
 			},
-			Fly: {
-				type: "integer",
-				srdOutput: asDistanceInFeet.bind(this)
-			},
-			Climb:{
-				type: "integer",
-				srdOutput: asDistanceInFeet.bind(this)
-			},
-			Swim:{
-				type: "integer",
-				srdOutput: asDistanceInFeet.bind(this)
-			},
-			Burrow: {
-				type: "integer",
-				srdOutput: asDistanceInFeet.bind(this)
-			},
+			Fly: distanceProperty,
+			Climb:distanceProperty,
+			Swim:distanceProperty,
+			Burrow: distanceProperty,
 			Hover: {
 				type: "boolean",
 				srdOutput: function(value) {
@@ -111,29 +118,14 @@ var CompendiumFormat = {
 	Senses: {
 		type: "object",
 		definition: {
-			Blindsight: {
-				type: "integer",
-				srdOutput: asDistanceInFeet
-			},
-			Darkvision: {
-				type:"integer",
-				srdOutput: asDistanceInFeet
-			},
-			Tremorsense: {
-				type: "integer",
-				srdOutput: asDistanceInFeet
-			},
-			Truesight: {
-				type:"integer",
-				srdOutput: asDistanceInFeet
-			}
+			Blindsight: distanceProperty,
+			Darkvision: distanceProperty,
+			Tremorsense: distanceProperty,
+			Truesight: distanceProperty
 		},
 		srdOutput: objectAsSrdString
 	},
-	Languages: {
-		type: "stringArray",
-		srdOutput: commaSepOutput
-	},
+	Languages: stringArrayProperty,
 	"Saving Throws": {
 		attribute: "saving_throws_srd",
 		type: "stringArray",
@@ -180,72 +172,32 @@ var CompendiumFormat = {
 			Traits: {
 				type: "objectArray",
 				definition: {
-					Name:{
-						type:"string"
-					},
-					Type:{
-						type:"enum",
-						values:['Melee', 'Ranged', 'Other']
-					},
-					Recharge:{
-						type:"string"
-					},
-					"Saving Throw Condition": {
-						type:"string"
-					},
-					"Saving Throw Ability": {
-						type:"enum",
-						values:abilities
-					},
-					"Saving Throw Bonus": {
-						type:"integer"
-					},
-					"Saving Throw Vs Ability":{
-						type:"enum",
-						values:abilities
-					},
-					"Saving Throw Failure": {
-						type:"string"
-					},
-					"Saving Throw Success": {
-						type:"string"
-					},
+					Name:stringProperty,
+					Type:makeEnumProperty(['Melee', 'Ranged', 'Other']),
+					Recharge:stringProperty,
+					"Saving Throw Condition": stringProperty,
+					"Saving Throw Ability": abilityProperty,
+					"Saving Throw Bonus": integerProperty,
+					"Saving Throw Vs Ability":abilityProperty,
+					"Saving Throw Failure": stringProperty,
+					"Saving Throw Success": stringProperty,
 					Damage: {
 						type:"rollExpr"
 					},
-					"Damage Ability": {
-						type:"enum",
-						values:abilities
-					},
-					"Damage Bonus": {
-						type:"integer"
-					},
-					"Damage Type": {
-						type:"enum",
-						values:damageTypes
-					},
+					"Damage Ability": abilityProperty,
+					"Damage Bonus": integerProperty,
+					"Damage Type": damageTypeProperty,
 					"Damage Crit": {
 						type:"rollExpr"
 					},
 					Heal: {
 						type:"rollExpr"
 					},
-					"Heal Ability": {
-						type:"enum",
-						values:abilities
-					},
-					"Heal Bonus": {
-						type:"integer"
-					},
-					Emote: {
-						type:"string"
-					},
-					Freetext: {
-						type:"string"
-					},
-					Freeform: {
-						type:"string"
-					}
+					"Heal Ability": abilityProperty,
+					"Heal Bonus": integerProperty,
+					Emote: stringProperty,
+					Freetext: stringProperty,
+					Freeform: stringProperty
 				}
 			},
 			Actions: {
