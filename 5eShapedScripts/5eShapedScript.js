@@ -13,11 +13,21 @@ var ShapedScripts = ShapedScripts || (function () {
 	myState = state.ShapedScripts,
 	hpBar = 'bar1',
 
+	booleanValidator = function (value) {
+		var converted = value === 'true' || (value === 'false' ? false : value);
+		return {
+			valid: (typeof value === 'boolean') || value === 'true' || value === 'false',
+			converted: converted
+		};
+	},
+
 	//All the main functions sit inside a module object so that I can
 	//wrap them for log tracing purposes
 	module = {
 		handleInput: function (msg) {
+			logger.debug(msg);
 			if (msg.type !== "api") {
+				module.checkForAmmoUpdate(msg);
 				return;
 			}
 			try {
@@ -48,7 +58,8 @@ var ShapedScripts = ShapedScripts || (function () {
 			logLevel: function (value) {
 				var converted = value.toUpperCase();
 				return {valid: _.has(logger, converted), converted: converted};
-			}
+			},
+			updateAmmo: booleanValidator
 		},
 
 		makeOpts: function (args, spec) {
@@ -131,25 +142,71 @@ var ShapedScripts = ShapedScripts || (function () {
 		handleChangeToken: function (token) {
 			if (_.contains(module.addedTokenIds, token.id)) {
 				module.addedTokenIds = _.without(module.addedTokenIds, token.id);
-				var represents = token.get('represents');
-				var character = getObj('character', represents);
-				var hpBarLink = token.get(hpBar + '_link');
-				if (hpBarLink) return;
-				var formula = getAttrByName(represents, 'hp_formula');
-				if (!formula) return;
-
-
-				sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
-					if (results && results.length === 1) {
-						var message = module.processInlinerolls(results[0]);
-						var total = results[0].inlinerolls[0].results.total;
-						sendChat('HP Roller', '/w GM &{template:5e-shaped} ' + message);
-						token.set(hpBar + '_value', total);
-						token.set(hpBar + '_max', total);
-					}
-				});
+				module.rollHPForToken(token);
 			}
 		},
+
+		rollHPForToken: function (token) {
+			var represents = token.get('represents');
+			if (!represents) return;
+			var character = getObj('character', represents);
+			if (!character) return;
+			var hpBarLink = token.get(hpBar + '_link');
+			if (hpBarLink) return;
+			var formula = getAttrByName(represents, 'hp_formula');
+			if (!formula) return;
+
+
+			sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
+				if (results && results.length === 1) {
+					var message = module.processInlinerolls(results[0]);
+					var total = results[0].inlinerolls[0].results.total;
+					sendChat('HP Roller', '/w GM &{template:5e-shaped} ' + message);
+					token.set(hpBar + '_value', total);
+					token.set(hpBar + '_max', total);
+				}
+			});
+		},
+
+
+		checkForAmmoUpdate: function (msg) {
+			if (myState.config.updateAmmo && msg.rolltemplate === '5e-shaped' && msg.content.indexOf('{{ammo=') !== -1) {
+				var match;
+				var characterName;
+				var attackId;
+				var regex = /\{\{(.*?)\}\}/g;
+
+				while (match = regex.exec(msg.content)) {
+					if (match[1]) {
+						var splitAttr = match[1].split('=');
+						if (splitAttr[0] === 'character_name') {
+							characterName = splitAttr[1];
+						}
+						if (splitAttr[0] === 'attack_id') {
+							attackId = splitAttr[1];
+						}
+					}
+				}
+				if (attackId && characterName) {
+					var character = findObjs({
+						_type: 'character',
+						name: characterName
+					})[0];
+					var attr = findObjs({
+						type: 'attribute',
+						characterid: character.id,
+						name: 'repeating_attack_' + attackId + '_ammo'
+					}, {caseInsensitive: true})[0];
+
+					var val = parseInt(attr.get('current'), 10) || 0;
+					attr.set({current: val - 1});
+				}
+
+			}
+		},
+
+
+
 
 		processInlinerolls: function (msg) {
 			if (_.has(msg, 'inlinerolls')) {
@@ -167,6 +224,8 @@ var ShapedScripts = ShapedScripts || (function () {
 			}
 		},
 
+
+
 		checkInstall: function () {
 			logger.info('-=> ShapedScripts v$$$ <=-', version);
 			if (!_.has(state, 'ShapedScripts') || myState.version !== schemaVersion) {
@@ -178,7 +237,8 @@ var ShapedScripts = ShapedScripts || (function () {
 							state.ShapedScripts = {
 								version: schemaVersion,
 								config: {
-									logLevel: 'INFO'
+									logLevel: 'INFO',
+									updateAmmo: false
 								}
 							};
 							myState = state.ShapedScripts;
@@ -307,7 +367,10 @@ var ShapedScripts = ShapedScripts || (function () {
 		RegisterEventHandlers: registerEventHandlers,
 		CheckInstall: module.checkInstall.bind(module)
 	};
-}());
+}
+()
+)
+;
 
 
 on("ready", function () {
