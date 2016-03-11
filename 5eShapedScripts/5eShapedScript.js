@@ -12,6 +12,7 @@ var ShapedScripts = ShapedScripts || (function () {
 	schemaVersion = 0.1,
 	myState = state.ShapedScripts,
 	hpBar = 'bar1',
+	SRDConverter,
 
 	booleanValidator = function (value) {
 		var converted = value === 'true' || (value === 'false' ? false : value);
@@ -25,18 +26,20 @@ var ShapedScripts = ShapedScripts || (function () {
 	//wrap them for log tracing purposes
 	module = {
 		handleInput: function (msg) {
-			logger.debug(msg);
-			if (msg.type !== "api") {
-				module.checkForAmmoUpdate(msg);
-				return;
-			}
 			try {
+				logger.debug(msg);
+				if (msg.type !== "api") {
+					module.checkForAmmoUpdate(msg);
+					return;
+				}
 				var args = msg.content.split(/\s+--/);
 				var command = args.shift();
 				switch (command) {
 					case '!5es-config':
 						this.configure(this.makeOpts(args, this.configOptionsSpec));
 						break;
+					case '!5es-import':
+						this.importStatblock(this.processSelection(msg, {graphic:{min:1, max:Infinity}}).graphic);
 				}
 			}
 			catch (e) {
@@ -46,6 +49,7 @@ var ShapedScripts = ShapedScripts || (function () {
 				}
 				else {
 					logger.error('Error: ' + e.toString());
+					logger.error(e.stack);
 					report('An error occurred. Please see the log for more details.');
 				}
 			}
@@ -124,6 +128,43 @@ var ShapedScripts = ShapedScripts || (function () {
 			});
 
 			report('Configuration is now: ' + JSON.stringify(myState.config));
+		},
+
+		importStatblock: function(graphics) {
+			logger.info("Importing statblocks for tokens $$$", graphics);
+			_.each(graphics, function(token) {
+				var text = token.get('gmnotes');
+				if(text) {
+					var errors = [];
+					var srdObject = SRDConverter.parseFromText(text, errors);
+					if (_.isEmpty(errors)) {
+						var represents = token.get('represents');
+						var character;
+						if (!represents) {
+							character = createObj('character', {name:charSpec.name});
+							represents = character.id;
+						}
+						else {
+							character = getObj('character', represents);
+						}
+
+						if(character) {
+							_.each(srdObject, function(fieldValue, fieldName) {
+								var attrs = findObjs({type:'attribute', name:fieldName, characterid:represents});
+								if(attrs && attrs.length === 1) {
+									attrs[0].set('current', fieldValue);
+								}
+							})
+						}
+						else {
+							//TODO handle error
+						}
+					}
+					else {
+						logger.error(errors);
+					}
+				}
+			});
 		},
 
 		addedTokenIds: [],
@@ -254,6 +295,7 @@ var ShapedScripts = ShapedScripts || (function () {
 				}
 				logger.info('Upgraded state: $$$', myState);
 			}
+			SRDConverter = getSRDConverter(logger, myState.config);
 		},
 
 		logWrap: 'module'
@@ -286,14 +328,18 @@ var ShapedScripts = ShapedScripts || (function () {
 
 		var stringify = function (object) {
 			if (typeof object === 'undefined') return object;
-			var result = (typeof object === 'string') ? object : JSON.stringify(object);
+			var result = (typeof object === 'string') ? object : JSON.stringify(object, function(key, value) {
+				if(key !== 'logWrap' && key !== 'isLogWrapped') {
+					return value;
+				}
+			});
 			if (result) result = result.replace(/"/g, '');
 			return result;
 		};
 
 		var shouldLog = function (level) {
 			var logLevel = logger.INFO;
-			if (myState && myState.config && myState.config.logLevel !== undefined) {
+			if (myState && myState.config && myState.config.logLevel) {
 				logLevel = logger[myState.config.logLevel]
 			}
 
@@ -345,7 +391,7 @@ var ShapedScripts = ShapedScripts || (function () {
 					logger.prefixString = logger.prefixString.slice(0, -2);
 					logger.trace('$$$.$$$ ending with return value $$$', moduleName, name, retVal);
 					if (retVal && retVal.logWrap && !retVal.isLogWrapped) {
-						logger.wrapModule(retVal, retVal.logWrap);
+						logger.wrapModule(retVal);
 					}
 					return retVal;
 				};
@@ -367,10 +413,7 @@ var ShapedScripts = ShapedScripts || (function () {
 		RegisterEventHandlers: registerEventHandlers,
 		CheckInstall: module.checkInstall.bind(module)
 	};
-}
-()
-)
-;
+}());
 
 
 on("ready", function () {

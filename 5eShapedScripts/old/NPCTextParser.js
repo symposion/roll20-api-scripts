@@ -8,9 +8,8 @@ function getTextParser(logger, config) {
 			var keyword = findKeyword(text);
 			var section = splitStatblock(text, keyword);
 
-			characterName = capitalizeEachWord(section.attr.name.toLowerCase());
-
-			shaped.setCharacter(token, text.replace(/#/g, '<br>'));
+			var parsedObject = {};
+			parsedObject.name = capitalizeEachWord(section.attr.name.toLowerCase());
 			processSection(section);
 		},
 
@@ -164,7 +163,7 @@ function getTextParser(logger, config) {
 			}
 
 			// Power
-			regex = /(?:#)([A-Z][\w-\']+(?:\s(?:[A-Z][\w-\']+|[\(\)\/\d\-]|of|and|or|a)+)*)(?=\s*\.)/gi;
+			regex = /(?:#)([A-Z][\w\-\']+(?:\s(?:[A-Z][\w\-\']+|[\(\)\/\d\-]|of|and|or|a)+)*)(?=\s*\.)/gi;
 			log('parsed statblock: ' + statblock);
 			var match;
 			while (match = regex.exec(statblock)) {
@@ -221,7 +220,8 @@ function getTextParser(logger, config) {
 		}
 	};
 	logger.wrapModule(module);
-	return {
 
+	return {
+		parseStatblock: module.parseStatblock.bind(module)
 	};
 }
