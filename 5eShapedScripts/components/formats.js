@@ -1,11 +1,11 @@
-var format = {
+var formats = {
 	"name":"npc",
 	"type":"orderedContent",
 	"contentModel": [
 		{
 			"name":"coreInfo",
 			"type":"orderedContent",
-			"output":"flatten",
+			"flatten":true,
 			"contentModel": [
 				{
 					"name":"name",
@@ -37,6 +37,7 @@ var format = {
 		{
 			"name":"attributes",
 			"type":"unorderedContent",
+			"flatten":true,
 			"contentModel":[
 				{
 					"name":"ac",
@@ -106,7 +107,7 @@ var format = {
 				{
 					"attribute": "damage_vulnerabilities",
 					"minOccurs":0,
-					"type":"pattern",
+					"type":"string",
 					"name": "vulnerabilties",
 					"parseToken": "damage vulnerabilities",
 					"pattern":"^\\w+(,\\s*\\w+)*$"
@@ -139,11 +140,11 @@ var format = {
 					"name":"senses",
 					"type":"string",
 					"minOccurs":0,
-					"pattern":"^((blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?(,(?!$)\\s*|$))+$"
+					"pattern":"^((blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)(,\\s*(blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)*"
 				},
 				{
 					"name":"passivePerception",
-					"parseToken":"passive Perception",
+					"parseToken":",?\\s*passive Perception",
 					"minOccurs":0,
 					"type":"integer",
 					"outputIn": "json"
@@ -157,7 +158,8 @@ var format = {
 		},
 		{
 			"name":"challenge",
-			"type":"numberOrFraction"
+			"type":"string",
+			"pattern":"^.*$"
 		},
 		{
 			"name":"spellBook",
@@ -171,7 +173,7 @@ var format = {
 			"type":"orderedContent",
 			"minOccurs":0,
 			"maxOccurs":1,
-			"outputAs":"flatten",
+			"flatten":true,
 			"contentModel":[
 				{
 					"name":"traits",
@@ -184,17 +186,20 @@ var format = {
 							"type":"string",
 							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
 							"matchGroup":1,
+							"bare":true,
 							"caseSensitive":true
 						},
 						{
 							"name":"recharge",
 							"type":"string",
 							"pattern":"^\\(([^\\)]+)\\)\\.",
+							"bare":true,
 							"matchGroup":1,
 							"minOccurs":0
 						},
 						{
 							"name":"text",
+							"bare":true,
 							"type":"string"
 						}
 					]
@@ -206,15 +211,16 @@ var format = {
 			"type":"orderedContent",
 			"minOccurs":0,
 			"maxOccurs":1,
-			"outputAs":"flatten",
+			"flatten":true,
 			"contentModel":[
 				{
 					"name":"actionHeader",
 					"type":"heading",
+					"bare":true,
 					"pattern":"^Actions$"
 				},
 				{
-					"name":"action",
+					"name":"actions",
 					"type":"orderedContent",
 					"minOccurs":1,
 					"maxOccurs":"Infinity",
@@ -224,17 +230,20 @@ var format = {
 							"type":"string",
 							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
 							"matchGroup":1,
+							"bare":true,
 							"caseSensitive":true
 						},
 						{
 							"name":"recharge",
 							"type":"string",
+							"bare":true,
 							"pattern":"^\\(([^\\)]+)\\)\\.",
 							"matchGroup":1,
 							"minOccurs":0
 						},
 						{
 							"name":"text",
+							"bare":true,
 							"type":"string"
 						}
 					]
@@ -246,16 +255,18 @@ var format = {
 			"type":"orderedContent",
 			"minOccurs":0,
 			"maxOccurs":1,
-			"outputAs":"flatten",
+			"flatten":true,
 			"contentModel":[
 				{
 					"name":"actionHeader",
 					"type":"heading",
+					"bare":true,
 					"pattern":"^Legendary Actions$"
 				},
 				{
 					"name":"legendaryPoints",
 					"type":"integer",
+					"bare":true,
 					"pattern":"^\\s*can take (\\d+) legendary actions.*?start of each turn[.]?",
 					"matchGroup":1
 				},
@@ -268,6 +279,7 @@ var format = {
 						{
 							"name":"name",
 							"type":"string",
+							"bare":true,
 							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
 							"matchGroup":1,
 							"caseSensitive":true
@@ -275,12 +287,14 @@ var format = {
 						{
 							"name":"cost",
 							"type":"integer",
+							"bare":true,
 							"pattern":"^\\s*\\(\\s*costs (\\d+) actions\\s*\\)",
 							"matchGroup":1,
 							"minOccurs":0
 						},
 						{
 							"name":"text",
+							"bare":true,
 							"type":"string"
 						}
 					]
@@ -292,11 +306,12 @@ var format = {
 			"type":"orderedContent",
 			"minOccurs":0,
 			"maxOccurs":1,
-			"outputAs":"flatten",
+			"flatten":true,
 			"contentModel":[
 				{
 					"name":"actionHeader",
 					"type":"heading",
+					"bare":true,
 					"pattern":"^Lair Actions$"
 				},
 				{
@@ -308,12 +323,14 @@ var format = {
 						{
 							"name":"name",
 							"type":"string",
+							"bare":true,
 							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
 							"matchGroup":1,
 							"caseSensitive":true
 						},
 						{
 							"name":"text",
+							"bare":true,
 							"type":"string"
 						}
 					]
@@ -321,4 +338,8 @@ var format = {
 			]
 		}
 	]
+};
+
+module.exports = {
+	mmFormat: formats
 };

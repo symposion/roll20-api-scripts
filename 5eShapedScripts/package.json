@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "Scripts to support the 5e Shaped Character Sheet on Roll20.net",
   "main": "5eShapedScript.js",
-  "dependencies": {},
+  "dependencies": {
+    "underscore": "^1.8.3"
+  },
   "devDependencies": {
     "gulp": "^3.9.1",
     "mocha": "^2.4.5"

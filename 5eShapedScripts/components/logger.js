@@ -1,5 +1,6 @@
+var _ = require('underscore');
 
-logger = (function () {
+function getLogger(myState) {
 	var logger = {
 		OFF: 0,
 		ERROR: 1,
@@ -26,7 +27,7 @@ logger = (function () {
 				return value;
 			}
 		});
-		if (result) result = result.replace(/"/g, '');
+		//if (result) result = result.replace(/"/g, '');
 		return result;
 	};
 
@@ -78,7 +79,7 @@ logger = (function () {
 				return func;
 			}
 			return function () {
-				logger.trace('$$$.$$$ starting with args $$$', moduleName, name, arguments);
+				logger.trace('$$$.$$$ starting with this value: $$$ and args $$$', moduleName, name, this, arguments);
 				logger.prefixString = logger.prefixString + '  ';
 				var retVal = func.apply(this, arguments);
 				logger.prefixString = logger.prefixString.slice(0, -2);
@@ -92,4 +93,9 @@ logger = (function () {
 		return func;
 	};
 	return logger;
-})();
+}
+
+
+module.exports = {
+	getLogger: getLogger
+};
