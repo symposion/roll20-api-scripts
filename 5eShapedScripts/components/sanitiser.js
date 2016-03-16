@@ -1,5 +1,5 @@
 function sanitise(logger, statblock) {
-	"use strict";
+	'use strict';
 
 	statblock = statblock
 		.replace(/\s+([\.,;:])/g, '$1')
@@ -19,13 +19,13 @@ function sanitise(logger, statblock) {
 		.replace(/#On a successful save/gi, 'On a successful save')
 		.replace(/DC#(\d+)/g, 'DC $1')
 		.replace('LanguagesChallenge', 'Languages -\nChallenge')
-		.replace("' Speed", 'Speed')
+		.replace('\' Speed', 'Speed')
 		.replace(/(\w+) s([\s\.,])/g, '$1s$2')
 		.replace(/#Medium or/gi, ' Medium or')
 		.replace(/take#(\d+)/gi, 'take $1')
 		.replace(/#/g, '\n');
 
-	logger.debug("First stage cleaned statblock: $$$", statblock);
+	logger.debug('First stage cleaned statblock: $$$', statblock);
 
 	//Sometimes the texts ends up like 'P a r a l y z i n g T o u c h . M e l e e S p e l l A t t a c k : + 1 t o h i t
 	//In this case we can fix the title case stuff, because we can find the word boundaries. That will at least meaning
@@ -111,7 +111,7 @@ function sanitise(logger, statblock) {
 		'natura l': 'natural',
 		'ofeach': 'of each',
 		'ofthe': 'of the',
-		"on'e": 'one',
+		'on\'e': 'one',
 		'on ly': 'only',
 		'0n': 'on',
 		'pass ive': 'passive',
@@ -139,7 +139,7 @@ function sanitise(logger, statblock) {
 		return replaceObj[matched];
 	});
 
-	logger.debug("Final stage cleaned statblock: $$$", statblock);
+	logger.debug('Final stage cleaned statblock: $$$', statblock);
 	return statblock;
 
 }
