@@ -22,7 +22,9 @@ var formats = {
 				{
 					"name":"type",
 					"type":"string",
-					"bare":"true"
+					"bare":"true",
+					"pattern":"^([\\w\\s\\(\\)]+),",
+					"matchGroup":1
 				},
 				{
 					"name":"alignment",
@@ -57,37 +59,37 @@ var formats = {
 					"minOccurs":0,
 					"attribute":"npc_speed",
 					"type":"string",
-					"pattern":"^\\d+\\s*ft[\\.]?(,\\s*(fly|swim|burrow|climb)\\s+\\d+ft[\\.]?)*(\\(hover\\))?$"
+					"pattern":"^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\(hover\\))?$"
 				},
 				{
 					"name":"strength",
 					"parseToken":"str",
-					"type":"string"
+					"type":"ability"
 				},
 				{
 					"name":"dexterity",
 					"parseToken":"dex",
-					"type":"string"
+					"type":"ability"
 				},
 				{
 					"name":"constitution",
 					"parseToken":"con",
-					"type":"string"
+					"type":"ability"
 				},
 				{
 					"name":"intelligence",
 					"parseToken":"int",
-					"type":"string"
+					"type":"ability"
 				},
 				{
 					"name":"wisdom",
 					"parseToken":"wis",
-					"type":"string"
+					"type":"ability"
 				},
 				{
 					"name":"charisma",
 					"parseToken":"cha",
-					"type":"string"
+					"type":"ability"
 				},
 				{
 					"name": "savingThrows",
@@ -95,52 +97,48 @@ var formats = {
 					"attribute":"saving_throws_srd",
 					"parseToken": "saving throws",
 					"type":"string",
-					"pattern":"^((Str|Dex|Con|Int|Wis|Cha)\\s+[\\-\\+]\\d+(,(?!$)\\s*|$))+$"
+					"pattern":"(?:(?:^|,\\s*)(?:Str|Dex|Con|Int|Wis|Cha)\\s+[\\-\\+]\\d+)+"
 				},
 				{
 					"name": "skills",
 					"minOccurs":0,
 					"attribute":"skills_srd",
 					"type":"string",
-					"pattern":"^((Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Slight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+(,(?!$)\\s?|$))+$"
+					"pattern":"(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Slight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
 				},
 				{
 					"attribute": "damage_vulnerabilities",
 					"minOccurs":0,
 					"type":"string",
 					"name": "vulnerabilties",
-					"parseToken": "damage vulnerabilities",
-					"pattern":"^\\w+(,\\s*\\w+)*$"
+					"parseToken": "damage vulnerabilities"
 				},
 				{
 					"attribute": "damage_resistances",
 					"minOccurs":0,
 					"type":"string",
 					"name": "resistances",
-					"parseToken": "damage resistances",
-					"pattern":"^\\w+(,\\s*\\w+)*$"
+					"parseToken": "damage resistances"
 				},
 				{
 					"attribute": "damage_immunities",
 					"minOccurs":0,
 					"type":"string",
 					"name": "immunities",
-					"parseToken": "damage immunities",
-					"pattern":"^\\w+(,\\s*\\w+)*$"
+					"parseToken": "damage immunities"
 				},
 				{
 					"attribute": "condition_immunities",
 					"minOccurs":0,
 					"type":"string",
 					"name": "conditionImmunities",
-					"parseToken": "condition immunities",
-					"pattern":"^\\w+(,\\s*\\w+)*$"
+					"parseToken": "condition immunities"
 				},
 				{
 					"name":"senses",
 					"type":"string",
 					"minOccurs":0,
-					"pattern":"^((blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)(,\\s*(blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)*"
+					"pattern":"(?:(?:^|,\\s*)(?:blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)+"
 				},
 				{
 					"name":"passivePerception",
@@ -165,7 +163,6 @@ var formats = {
 			"name":"spellBook",
 			"attribute":"spells_srd",
 			"type":"string",
-			"pattern":"^\\w+(,\\s*\\w+)*$",
 			"minOccurs":0
 		},
 		{
@@ -184,15 +181,17 @@ var formats = {
 						{
 							"name":"name",
 							"type":"string",
-							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
-							"matchGroup":1,
+							"pattern":"(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+							"matchGroup":2,
+							"forPreviousMatchGroup":1,
+							"forNextMatchGroup":3,
 							"bare":true,
 							"caseSensitive":true
 						},
 						{
 							"name":"recharge",
 							"type":"string",
-							"pattern":"^\\(([^\\)]+)\\)\\.",
+							"pattern":"^\\(([^\\)]+)\\)",
 							"bare":true,
 							"matchGroup":1,
 							"minOccurs":0
@@ -228,8 +227,10 @@ var formats = {
 						{
 							"name":"name",
 							"type":"string",
-							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
-							"matchGroup":1,
+							"pattern":"(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+							"matchGroup":2,
+							"forPreviousMatchGroup":1,
+							"forNextMatchGroup":3,
 							"bare":true,
 							"caseSensitive":true
 						},
@@ -237,7 +238,53 @@ var formats = {
 							"name":"recharge",
 							"type":"string",
 							"bare":true,
-							"pattern":"^\\(([^\\)]+)\\)\\.",
+							"pattern":"^\\(([^\\)]+)\\)",
+							"matchGroup":1,
+							"minOccurs":0
+						},
+						{
+							"name":"text",
+							"bare":true,
+							"type":"string"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name":"reactionSection",
+			"type":"orderedContent",
+			"minOccurs":0,
+			"maxOccurs":1,
+			"flatten":true,
+			"contentModel":[
+				{
+					"name":"reactionHeader",
+					"type":"heading",
+					"bare":true,
+					"pattern":"^Reactions$"
+				},
+				{
+					"name":"reactions",
+					"type":"orderedContent",
+					"minOccurs":1,
+					"maxOccurs":"Infinity",
+					"contentModel":[
+						{
+							"name":"name",
+							"type":"string",
+							"pattern":"(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+							"matchGroup":2,
+							"forPreviousMatchGroup":1,
+							"forNextMatchGroup":3,
+							"bare":true,
+							"caseSensitive":true
+						},
+						{
+							"name":"recharge",
+							"type":"string",
+							"bare":true,
+							"pattern":"^\\(([^\\)]+)\\)",
 							"matchGroup":1,
 							"minOccurs":0
 						},
@@ -267,7 +314,7 @@ var formats = {
 					"name":"legendaryPoints",
 					"type":"integer",
 					"bare":true,
-					"pattern":"^\\s*can take (\\d+) legendary actions.*?start of each turn[.]?",
+					"pattern":"^The[ \\w]+can take (\\d+) legendary actions.*?start of its turn[.]?",
 					"matchGroup":1
 				},
 				{
@@ -280,8 +327,10 @@ var formats = {
 							"name":"name",
 							"type":"string",
 							"bare":true,
-							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
-							"matchGroup":1,
+							"pattern":"(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+							"matchGroup":2,
+							"forPreviousMatchGroup":1,
+							"forNextMatchGroup":3,
 							"caseSensitive":true
 						},
 						{
@@ -324,8 +373,9 @@ var formats = {
 							"name":"name",
 							"type":"string",
 							"bare":true,
-							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?(\\([^\\)]+\\))?\\s*\\.",
-							"matchGroup":1,
+							"pattern":"^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?\\.(?!$)",
+							"matchGroup":2,
+							"forPreviousMatchGroup":1,
 							"caseSensitive":true
 						},
 						{

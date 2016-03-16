@@ -1,0 +1,73 @@
+{
+  "npc": {
+    "name": "Lich",
+    "size": "Medium",
+    "type": "undead",
+    "alignment": "any evil alignment",
+    "ac": "17 (natural armor)",
+    "hp": "135 (18d8 +54)",
+    "speed": "30ft",
+    "strength": 11,
+    "dexterity": 16,
+    "constitution": 16,
+    "intelligence": 20,
+    "wisdom": 14,
+    "charisma": 16,
+    "savingThrows": "Con +10, Int +12, Wis +9",
+    "skills": "Arcana +18, History +12, Insight +9, Perception +9",
+    "resistances": "cold, lightning, necrotic",
+    "immunities": "poison; bludgeoning, piercing, and slashing from nonmagical weapons",
+    "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, poisoned",
+    "senses": "truesight 120 ft",
+    "passivePerception": 19,
+    "languages": "Common plus up to five other languages",
+    "challenge": "21 (33,000 XP)",
+    "traits": [
+      {
+        "name": "Legendary Resistance",
+        "recharge": "3/Day",
+        "text": "If the lich fails a saving throw, it can choose to succeed instead."
+      },
+      {
+        "name": "Rejuvenation",
+        "text": "If it has a phylactery, a destroyed lich gains a new body in 1d10 days, regaining all its hit points and becoming active again. The new body appears within 5 feet of the phylactery."
+      },
+      {
+        "name": "Spellcasting",
+        "text": "The lich is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 20, +12 to hit with spell attacks). The lich has the following wizard spells prepared:\nCantrips (at will): mage hand, prestidigitation, ray off rost 1st level (4 slots): detect magic, magic missile, shield, t h unde rwave\n2nd level (3 slots): detect thoughts, invisibility, Me/f's acid arrow, mirror image\n3rd level (3 slots): animate dead, counterspell, dispel magic, fireball\n4th level (3 slots): blight, dimension door\n5th level (3 slots): c/oudki/1, scrying\n6th level (1 slot): disintegrate, globe of invulnerability 7thlevel(1 slot):fingerofdeath,planeshift\n8th level (1 slot): dominate monster, power word stun 9th level(1slot):powerwordkill"
+      },
+      {
+        "name": "Turn Resistance",
+        "text": "The lich has advantage on saving throws against anyeffect that turns undead."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Paralyzing Touch",
+        "text": "Melee Spell Attack: +1 2 t o h i t, r e a c h 5 f t., o n e creature. Hit: 10 (3d6) cold damage. The target must succeed on a DC 18 Constitution saving throw or be paralyzed for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itselfon a success."
+      }
+    ],
+    "legendaryPoints": 3,
+    "legendaryActions": [
+      {
+        "name": "Cantrip",
+        "text": "The lich casts a cantrip."
+      },
+      {
+        "name": "Paralyzing Touch",
+        "cost": 2,
+        "text": "The lich uses its\nParalyzing Touch."
+      },
+      {
+        "name": "Frightening Gaze",
+        "cost": 2,
+        "text": "The lich fixes its gaze on one creature it can see within 10 feet of it. The target must succeed on a DC 18 Wisdom saving throw against this magic or become frightened for 1 minute. The frightened target can repeat the saving throw at the end of each ofits turns, ending the effect on itselfon a success. Ifa target's saving throw is successfulorthe effect ends for it, the target is immune to the lich's gaze for the next 24 hours."
+      },
+      {
+        "name": "Disrupt Life",
+        "cost": 3,
+        "text": "Each living creature within 20 feet of the lich must make a DC 18 Constitution saving throw against this magic, taking 21 (6d6) necrotic damage on a failed save, or half as much damage on a successful one."
+      }
+    ]
+  }
+}

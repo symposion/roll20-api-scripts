@@ -7,11 +7,17 @@
     "underscore": "^1.8.3"
   },
   "devDependencies": {
+    "bluebird": "^3.3.4",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^5.2.0",
+    "glob": "latest",
     "gulp": "^3.9.1",
-    "mocha": "^2.4.5"
+    "gulp-mocha": "^2.2.0",
+    "mocha": "^2.4.5",
+    "should": "^8.2.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "gulp test"
   },
   "repository": {
     "type": "git",
