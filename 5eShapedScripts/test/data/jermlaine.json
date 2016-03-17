@@ -4,7 +4,7 @@
     "size": "Tiny",
     "type": "fey",
     "alignment": "neutral evil",
-    "ac": "13",
+    "ac_srd": "13",
     "hp_srd": "1 (1d4-1)",
     "npc_speed": "40 ft",
     "strength": 3,

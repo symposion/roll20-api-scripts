@@ -4,7 +4,7 @@
     "size": "Gargantuan",
     "type": "dragon",
     "alignment": "lawful good",
-    "ac": "22 (natural armor)",
+    "ac_srd": "22 (natural armor)",
     "hp_srd": "546 (28d20 + 252)",
     "strength": 30,
     "dexterity": 14,

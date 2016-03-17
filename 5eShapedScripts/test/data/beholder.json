@@ -4,7 +4,7 @@
     "size": "Large",
     "type": "aberration",
     "alignment": "lawful evil",
-    "ac": "18 (natural armor)",
+    "ac_srd": "18 (natural armor)",
     "hp_srd": "180 (19d10 + 76)",
     "npc_speed": "0 ft, fly 20ft (hover)",
     "strength": 10,

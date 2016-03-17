@@ -4,7 +4,7 @@
     "size": "Medium",
     "type": "undead",
     "alignment": "any evil alignment",
-    "ac": "17 (natural armor)",
+    "ac_srd": "17 (natural armor)",
     "hp_srd": "135 (18d8 +54)",
     "npc_speed": "30ft",
     "strength": 11,

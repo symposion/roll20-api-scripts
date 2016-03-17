@@ -65,6 +65,7 @@
       "contentModel": [
         {
           "name": "ac",
+          "attribute": "ac_srd",
           "parseToken": "armor class",
           "pattern": "\\d+\\s*(?:\\([^)]*\\))?",
           "type": "string"

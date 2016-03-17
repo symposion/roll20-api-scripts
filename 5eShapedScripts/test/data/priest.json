@@ -4,7 +4,7 @@
     "size": "Medium",
     "type": "humanoid (any race)",
     "alignment": "any alignment",
-    "ac": "13 (chain shirt)",
+    "ac_srd": "13 (chain shirt)",
     "hp_srd": "27 (5d8 + 5)",
     "npc_speed": "25ft",
     "strength": 10,

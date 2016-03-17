@@ -4,7 +4,7 @@
     "size": "Medium",
     "type": "undead",
     "alignment": "chaotic evil",
-    "ac": "20 (plate, shield)",
+    "ac_srd": "20 (plate, shield)",
     "hp_srd": "180 (19d8 + 95)",
     "npc_speed": "30ft",
     "strength": 20,

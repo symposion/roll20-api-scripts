@@ -4,7 +4,7 @@
     "size": "Medium",
     "type": "swarm ofTiny beasts",
     "alignment": "unaligned",
-    "ac": "13",
+    "ac_srd": "13",
     "hp_srd": "28 (8d8 - 8)",
     "npc_speed": "0 ft, swim 40 ft",
     "strength": 13,
