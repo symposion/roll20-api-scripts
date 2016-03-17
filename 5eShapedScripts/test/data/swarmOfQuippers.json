@@ -2,7 +2,7 @@
   "npc": {
     "character_name": "SWARM OF QUIPPERS",
     "size": "Medium",
-    "type": "swarm of Tiny beasts",
+    "type": "swarm ofTiny beasts",
     "alignment": "unaligned",
     "ac": "13",
     "hp_srd": "28 (8d8 - 8)",

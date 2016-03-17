@@ -203,23 +203,33 @@ function getParser(formatSpec, logger) {
 
         enumType: function (fieldSpec) {
             var parser = this.makeSimpleValueParser();
-            var parseModule = this;
 
             if (fieldSpec.bare) {
                 parser.matchValue = function (myParseState, textLines) {
                     var parser = this;
-                    var matchingEnumValue = _.find(fieldSpec.enumValues, function (enumValue) {
-                        logger.debug('Attempting to parse as enum property $$$', enumValue);
-                        parser.pattern = '^(.*?)(' + enumValue + ')(?:[\\s.]+|$)';
-                        parser.matchGroup = 2;
-                        parser.forPreviousMatchGroup = 1;
-                        return parseModule.matchValue.call(parser, myParseState, textLines);
-                    });
-                    delete parser.pattern;
-                    delete parser.matchGroup;
-                    delete parser.forPreviousMatchGroup;
-                    if (matchingEnumValue) {
-                        logger.debug('Finished trying to parse as enum property, match: $$$', matchingEnumValue);
+                    var firstMatch = _.chain(fieldSpec.enumValues)
+                        .map(function (enumValue) {
+                            logger.debug('Attempting to parse as enum property $$$', enumValue);
+                            var pattern = '^(.*?)(' + enumValue + ')(?:[\\s.]+|$)';
+                            var re = new RegExp(pattern, parser.caseSensitive ? '' : 'i');
+                            return textLines[0].match(re);
+                        })
+                        .compact()
+                        .sortBy(function (match) {
+                            return match[1].length;
+                        })
+                        .first()
+                        .value();
+
+
+                    if (firstMatch) {
+                        logger.debug('Finished trying to parse as enum property, match: $$$', firstMatch);
+                        myParseState.text = firstMatch[2];
+                        myParseState.forPrevious = firstMatch[1];
+                        textLines[0] = textLines[0].slice(firstMatch.index + firstMatch[0].length);
+                        if (!textLines[0]) {
+                            textLines.shift();
+                        }
                         return true;
                     }
                     return false;
