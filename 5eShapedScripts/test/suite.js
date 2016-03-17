@@ -25,11 +25,6 @@ var sanitise = require('../lib/sanitise');
 describe('Monster Manual tests', function () {
     'use strict';
 
-
-    chaiAsPromised.transformAsserterArgs = function (args) {
-        return Promise.all(args);
-    };
-
     var parser;
 
     before(function () {
@@ -44,8 +39,12 @@ describe('Monster Manual tests', function () {
     var files = glob.sync('./test/data/*.txt');
     files.forEach(function (file) {
         it('correctly parses ' + file.replace(/\.txt$/, ''), function () {
-            //noinspection JSUnresolvedVariable
-            return runTestForFile(parser, file).should.eventually.deep.equal(getExpectedOutputForFile(file));
+            return Promise.join(runTestForFile(parser, file),
+                getExpectedOutputForFile(file),
+                function (test, expected) {
+                    //noinspection JSUnresolvedVariable
+                    return test.should.deep.equal(expected);
+                });
         });
 
     });
@@ -75,7 +74,7 @@ function getExpectedOutputForFile(file) {
 function runParse(parser, statBlockText) {
     'use strict';
     try {
-        return parser.parse(sanitise(logger, statBlockText));
+        return parser.parse(sanitise(statBlockText, logger));
     }
     catch (e) {
         //TODO: convert the errors

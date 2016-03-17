@@ -167,7 +167,7 @@
           "parseToken": ",?\\s*passive Perception",
           "minOccurs": 0,
           "type": "integer",
-          "outputIn": "json"
+          "skipOutput": true
         },
         {
           "name": "languages",

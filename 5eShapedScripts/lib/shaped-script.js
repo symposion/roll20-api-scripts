@@ -1,10 +1,10 @@
 var _ = require('underscore');
 var getParser = require('./parser');
-var sanitise = require('./sanitise');
 var roll20 = require('./roll20');
 var mmFormat = require('../resources/mmFormatSpec.json');
 var myState = roll20.getState('ShapedScripts');
 var logger = require('./logger')(myState.config);
+var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
 
 var version = '0.1',
     schemaVersion = 0.1,
@@ -173,7 +173,8 @@ const shapedModule = (function () {
                 var text = token.get('gmnotes');
                 if (text) {
                     try {
-                        var jsonObject = parser.parse(sanitise(text));
+                        text = sanitise(_.unescape(decodeURIComponent(text)), logger);
+                        var jsonObject = parser.parse(text);
 
                         var represents = token.get('represents');
                         var character;
@@ -203,7 +204,7 @@ const shapedModule = (function () {
                         }
                     }
                     catch (e) {
-                        logger.error(e);
+                        logger.error(e.toString());
                     }
                 }
             });
@@ -364,8 +365,8 @@ logger.wrapModule(shapedModule);
 
 
 module.exports = {
-    checkInstall: shapedModule.checkInstall,
-    registerEventHandlers: shapedModule.registerEventHandlers
+    checkInstall: shapedModule.checkInstall.bind(shapedModule),
+    registerEventHandlers: shapedModule.registerEventHandlers.bind(shapedModule)
 };
 
 

@@ -1,4 +1,4 @@
-function sanitise(logger, statblock) {
+function sanitise(statblock, logger) {
 	'use strict';
 
 	statblock = statblock

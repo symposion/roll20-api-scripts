@@ -427,7 +427,11 @@ function getParser(formatSpec, logger) {
                     }
                 },
                 enterChildParser: function (parser, resume) {
-                    currentPropertyPath.push({name: parser.name, allowed: parser.allowed, flatten: parser.flatten});
+                    currentPropertyPath.push({
+                        name: parser.attribute,
+                        allowed: parser.allowed,
+                        flatten: parser.flatten
+                    });
 
                     if (!resume || _.isEmpty(incompleteParserStack) || parser !== _.last(incompleteParserStack).parser) {
                         return module.makeBaseParseState(parser.skipOutput, _.clone(currentPropertyPath), this.outputObject, completedObjects);
@@ -447,7 +451,9 @@ function getParser(formatSpec, logger) {
         },
 
         parserId: 0,
-        parserAttributes: ['attribute', 'forPreviousMatchGroup', 'forNextMatchGroup', 'parseToken', 'flatten', 'pattern', 'matchGroup', 'bare', 'caseSensitive', 'name'],
+        parserAttributes: ['attribute', 'forPreviousMatchGroup', 'forNextMatchGroup',
+            'parseToken', 'flatten', 'pattern', 'matchGroup', 'bare', 'caseSensitive',
+            'name', 'skipOutput'],
         getParserFor: function (fieldSpec) {
             logger.debug('Making parser for field $$$', fieldSpec);
             var parserBuilder = this[fieldSpec.type];
