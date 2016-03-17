@@ -1,6 +1,12 @@
 var _ = require('underscore');
+var roll20 = require('./roll20');
 
-function getLogger(myState) {
+/**
+ *
+ * @param config
+ * @returns {{debug:function, error:function, info:function, trace:function, warn:function}}
+ */
+module.exports = function (config) {
     'use strict';
 
     var logger = {
@@ -12,8 +18,6 @@ function getLogger(myState) {
             TRACE: 5,
             prefixString: ''
         },
-
-        log = log || console.log,
 
         stringify = function (object) {
             if (object === undefined) {
@@ -29,8 +33,8 @@ function getLogger(myState) {
 
         shouldLog = function (level) {
             var logLevel = logger.INFO;
-            if (myState && myState.config && myState.config.logLevel) {
-                logLevel = logger[myState.config.logLevel];
+            if (config && config.logLevel) {
+                logLevel = logger[config.logLevel];
             }
 
             return level <= logLevel;
@@ -49,7 +53,7 @@ function getLogger(myState) {
                     return stringify(args.shift());
                 });
             }
-            log('ShapedScripts ' + Date.now() + ' ' + logger.getLabel(level) + ' : ' +
+            roll20.log('ShapedScripts ' + Date.now() + ' ' + logger.getLabel(level) + ' : ' +
                 (shouldLog(logger.TRACE) ? logger.prefixString : '') +
                 message);
         };
@@ -96,10 +100,6 @@ function getLogger(myState) {
         }
         return func;
     };
+    //noinspection JSValidateTypes
     return logger;
-}
-
-
-module.exports = {
-    getLogger: getLogger
 };
