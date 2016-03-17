@@ -1,10 +1,11 @@
-var _ = require('underscore');
-var getParser = require('./parser');
-var roll20 = require('./roll20');
-var mmFormat = require('../resources/mmFormatSpec.json');
+const _ = require('underscore');
+const getParser = require('./parser');
+const roll20 = require('./roll20');
+const mmFormat = require('../resources/mmFormatSpec.json');
 var myState = roll20.getState('ShapedScripts');
-var logger = require('./logger')(myState.config);
-var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
+const logger = require('./logger')(myState.config);
+const sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
+const srdConverter = require('./srd-converter');
 
 var version = '0.1',
     schemaVersion = 0.1,
@@ -36,6 +37,7 @@ var version = '0.1',
  * @property {SelectedItem[]} selected
  * @property {string} rolltemplate
  */
+
 
 /**
  *
@@ -174,12 +176,17 @@ const shapedModule = (function () {
                 if (text) {
                     try {
                         text = sanitise(_.unescape(decodeURIComponent(text)), logger);
-                        var jsonObject = parser.parse(text);
+                        //noinspection JSUnresolvedVariable
+                        var jsonObject = srdConverter(parser.parse(text).npc);
 
                         var represents = token.get('represents');
                         var character;
                         if (!represents) {
-                            character = roll20.createObj('character', {name: jsonObject.name});
+                            //noinspection JSUnresolvedVariable
+                            character = roll20.createObj('character', {
+                                name: jsonObject.character_name,
+                                avatar: token.get('imgsrc')
+                            });
                             represents = character.id;
                         }
                         else {
@@ -188,13 +195,17 @@ const shapedModule = (function () {
 
                         if (character) {
                             _.each(jsonObject, function (fieldValue, fieldName) {
-                                var attrs = roll20.findObjs({
+                                var attribute = {
                                     type: 'attribute',
                                     name: fieldName,
                                     characterid: represents
-                                });
-                                if (attrs && attrs.length === 1) {
+                                };
+                                var attrs = roll20.findObjs(attribute);
+                                if (attrs.length === 1) {
                                     attrs[0].set('current', fieldValue);
+                                }
+                                else {
+                                    roll20.createObj('attribute', _.extend(attribute, {current: fieldValue}));
                                 }
                             });
                         }
