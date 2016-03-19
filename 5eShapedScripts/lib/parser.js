@@ -239,10 +239,18 @@ function getParser(formatSpec, logger) {
             return parser;
         },
 
-        integer: function (fieldSpec) {
+        number: function (fieldSpec) {
             var parser = this.makeSimpleValueParser();
             parser.typeConvert = function (textValue) {
-                var intVal = parseInt(textValue);
+                var parts = textValue.split('/');
+                var intVal;
+                if (parts.length > 1) {
+                    intVal = parts[0] / parts[1];
+                }
+                else {
+                    intVal = parseInt(textValue);
+                }
+
                 if (_.isNaN(intVal)) {
                     throw 'Invalid integer value for field ' + fieldSpec.name + ' [' + textValue + ']';
                 }
@@ -251,8 +259,9 @@ function getParser(formatSpec, logger) {
             return parser;
         },
 
+
         ability: function (fieldSpec) {
-            var parser = this.integer();
+            var parser = this.number();
             parser.matchValue = function (parseState, textLines) {
                 if (_.isEmpty(textLines)) {
                     return false;

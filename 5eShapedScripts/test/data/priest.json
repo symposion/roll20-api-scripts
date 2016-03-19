@@ -15,7 +15,7 @@
     "charisma": 13,
     "skills_srd": "Medicine +7, Persuasion +3, Religion +4",
     "languages": "any two languages",
-    "challenge": "2 (450 XP)",
+    "challenge": 2,
     "traits": [
       {
         "name": "Divine Eminence",

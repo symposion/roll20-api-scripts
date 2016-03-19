@@ -17,7 +17,7 @@
     "skills_srd": "Perception +5, Stealth +5",
     "senses": "darkvision 60 ft",
     "languages": "Jermlaine",
-    "challenge": "1/4 (50 XP)",
+    "challenge": 0.25,
     "traits": [
       {
         "name": "Ambusher",

@@ -18,7 +18,7 @@
     "senses": "blindsight 60ft, darkvision 120ft",
     "damage_immunities": "fire",
     "languages": "Common, Draconic",
-    "challenge": "24 (36,500 XP)",
+    "challenge": 24,
     "traits": [
       {
         "name": "Amphibious",

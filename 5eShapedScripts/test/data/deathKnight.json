@@ -18,7 +18,7 @@
     "condition_immunities": "exhaustion,frightened,poisoned",
     "senses": "darkvision 120ft",
     "languages": "Abyssal, Common",
-    "challenge": "17 (18,000 XP)",
+    "challenge": 17,
     "traits": [
       {
         "name": "Magic Resistance",

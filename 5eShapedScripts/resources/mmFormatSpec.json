@@ -167,7 +167,7 @@
           "name": "passivePerception",
           "parseToken": ",?\\s*passive Perception",
           "minOccurs": 0,
-          "type": "integer",
+          "type": "number",
           "skipOutput": true
         },
         {
@@ -179,8 +179,9 @@
     },
     {
       "name": "challenge",
-      "type": "string",
-      "pattern": "^.*$"
+      "type": "number",
+      "pattern": "^\\s*(\\d+(?:\\s*\\/\\s*\\d)?)\\s*(?:\\(\\s*[\\d,]+\\s*XP\\s*\\)\\s*)?$",
+      "matchGroup": 1
     },
     {
       "name": "spellBook",
@@ -335,7 +336,7 @@
         },
         {
           "name": "legendaryPoints",
-          "type": "integer",
+          "type": "number",
           "bare": true,
           "pattern": "^The[ \\w]+can take (\\d+) legendary actions.*?start of its turn[.]?",
           "matchGroup": 1
@@ -358,7 +359,7 @@
             },
             {
               "name": "cost",
-              "type": "integer",
+              "type": "number",
               "bare": true,
               "pattern": "^\\s*\\(\\s*costs (\\d+) actions\\s*\\)",
               "matchGroup": 1,

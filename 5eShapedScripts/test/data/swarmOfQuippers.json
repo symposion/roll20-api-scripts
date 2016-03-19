@@ -16,7 +16,7 @@
     "damage_resistances": "bludgeoning, piercing, slashing",
     "condition_immunities": "charmed, frightened, paralyzed, petrified, prone, restrained, stunned",
     "senses": "darkvision 60ft",
-    "challenge": "1 (200 XP)",
+    "challenge": 1,
     "traits": [
       {
         "name": "Blood Frenzy",
