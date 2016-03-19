@@ -2,6 +2,7 @@
 require('chai').should();
 const srdConverter = require('../lib/srd-converter');
 
+
 describe('srd-converter', function () {
     'use strict';
 
@@ -49,40 +50,62 @@ describe('srd-converter', function () {
         ]
     };
 
+
     it('correctly concatenates a full object', function () {
-        srdConverter(fullObject).should.have.property('content_srd',
+        //noinspection JSUnresolvedVariable
+        var converted = srdConverter(fullObject);
+        converted.should.have.property('content_srd',
             'Traits\n' +
-            'Trait One (1/day) trait text blah blah\nblah\n' +
-            'Trait Two  trait 2 text blah blah\nblah\n' +
+            '**Trait One (1/day)**: trait text blah blah\nblah\n' +
+            '**Trait Two**: trait 2 text blah blah\nblah\n' +
             'Actions\n' +
-            'Action One (5-6) action text blah blah\nblah\n' +
-            'Action Two  action 2 text blah blah\nblah\n' +
+            '**Action One (5-6)**: action text blah blah\nblah\n' +
+            '**Action Two**: action 2 text blah blah\nblah\n' +
             'Reactions\n' +
-            'Reaction One (5-6) reaction text blah blah\nblah\n' +
-            'Reaction Two  reaction 2 text blah blah\nblah\n' +
+            '**Reaction One (5-6)**: reaction text blah blah\nblah\n' +
+            '**Reaction Two**: reaction 2 text blah blah\nblah\n' +
             'Legendary Actions\n' +
             'The Wobbler can take 3 legendary actions, choosing from the options below. ' +
             'It can take only one legendary action at a time and only at the end of another creature\'s turn. ' +
             'The Wobbler regains spent legendary actions at the start of its turn.\n' +
-            'Legendary Action One . legendary text blah blah\nblah\n' +
-            'Legendary Action Two (Costs 2 actions). legendary 2 text blah blah\nblah');
+            '**Legendary Action One**: legendary text blah blah\nblah\n' +
+            '**Legendary Action Two (Costs 2 actions)**: legendary 2 text blah blah\nblah');
+
+        converted.should.not.have.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
+    });
+
+    it('correctly adds extra fields', function () {
+        //noinspection JSUnresolvedVariable
+        var converted = srdConverter(fullObject);
+        converted.should.have.property('is_npc', 1);
+        converted.should.have.property('edit_mode', 'off');
+        converted.should.not.contain.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
     it('correctly concatenates an empty object', function () {
-        srdConverter(emptyObject).should.have.property('content_srd', '');
+        //noinspection JSUnresolvedVariable
+        var converted = srdConverter(emptyObject);
+        converted.should.have.property('content_srd', '');
+        converted.should.not.contain.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
     it('correctly concatenates an object with empty arrays', function () {
-        srdConverter(emptyArrayObject).should.have.property('content_srd', '');
+        //noinspection JSUnresolvedVariable
+        var converted = srdConverter(emptyArrayObject);
+        converted.should.have.property('content_srd', '');
+        converted.should.not.have.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
     it('correctly concatenates a medium object', function () {
-        srdConverter(someMissing).should.have.property('content_srd',
+        //noinspection JSUnresolvedVariable
+        var converted = srdConverter(someMissing);
+        converted.should.have.property('content_srd',
             'Traits\n' +
-            'Trait Two  trait 2 text blah blah\nblah\n' +
+            '**Trait Two**: trait 2 text blah blah\nblah\n' +
             'Actions\n' +
-            'Action One (5-6) action text blah blah\nblah\n' +
-            'Action Two  action 2 text blah blah\nblah');
+            '**Action One (5-6)**: action text blah blah\nblah\n' +
+            '**Action Two**: action 2 text blah blah\nblah');
+        converted.should.not.have.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
 
