@@ -17,7 +17,7 @@
   "undef": true,
   "nonew": true,
   "forin": true,
-  "esversion": 6,
-  "es5": false,
+  "esversion": 5,
+  "es5": true,
   "es3": false
 }

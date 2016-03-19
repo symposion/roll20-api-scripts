@@ -1,34 +1,26 @@
-const _ = require('underscore');
-const getParser = require('./parser');
-const roll20 = require('./roll20');
-const mmFormat = require('../resources/mmFormatSpec.json');
-var myState = roll20.getState('ShapedScripts');
-const logger = require('./logger')(myState.config);
-const sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
-const srdConverter = require('./srd-converter');
+var _ = require('underscore');
+var srdConverter = require('./srd-converter');
 
 var version = '0.1',
-    schemaVersion = 0.1,
-    hpBar = 'bar1',
+  schemaVersion = 0.1,
+  hpBar = 'bar1',
 
-    booleanValidator = function (value) {
-        'use strict';
-        var converted = value === 'true' || (value === 'false' ? false : value);
-        return {
-            valid: typeof value === 'boolean' || value === 'true' || value === 'false',
-            converted: converted
-        };
-    },
+  booleanValidator = function (value) {
+      'use strict';
+      var converted = value === 'true' || (value === 'false' ? false : value);
+      return {
+          valid: typeof value === 'boolean' || value === 'true' || value === 'false',
+          converted: converted
+      };
+  },
 
-    report = function (msg) {
-        'use strict';
-        //Horrible bug with this at the moment - seems to generate spurious chat
-        //messages when noarchive:true is set
-        //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
-        roll20.sendChat('ShapedScripts', '/w gm ' + msg);
-    },
-
-    parser = getParser(mmFormat, logger);
+  report = function (msg) {
+      'use strict';
+      //Horrible bug with this at the moment - seems to generate spurious chat
+      //messages when noarchive:true is set
+      //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
+      roll20.sendChat('ShapedScripts', '/w gm ' + msg);
+  };
 
 /**
  * @typedef {Object} ChatMessage
@@ -46,9 +38,19 @@ var version = '0.1',
  * @property (string _type
  */
 
-const shapedModule = (function () {
+/**
+ *
+ * @param logger
+ * @param myState
+ * @param roll20
+ * @param parser
+ * @returns {{handleInput: function, configOptionsSpec: {Object}, makeOpts: function, processSelection: function, configure: function, importStatblock: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
+ */
+module.exports = function (logger, myState, roll20, parser) {
+    var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
+    var addedTokenIds = [];
     'use strict';
-    return {
+    var shapedModule = {
         /**
          *
          * @param {ChatMessage} msg
@@ -130,12 +132,12 @@ const shapedModule = (function () {
             var selection = msg.selected ? msg.selected : [];
             return _.reduce(constraints, function (result, constraintDetails, type) {
                 var objects = _.chain(selection)
-                    .where({_type: type})
-                    .map(function (selected) {
-                        return roll20.getObj(selected._type, selected._id);
-                    })
-                    .compact()
-                    .value();
+                  .where({_type: type})
+                  .map(function (selected) {
+                      return roll20.getObj(selected._type, selected._id);
+                  })
+                  .compact()
+                  .value();
                 if (_.size(objects) < constraintDetails.min || _.size(objects) > constraintDetails.max) {
                     throw 'Wrong number of objects of type [' + type + '] selected, should be between ' + constraintDetails.min + ' and ' + constraintDetails.max;
                 }
@@ -194,20 +196,19 @@ const shapedModule = (function () {
                         }
 
                         if (character) {
-                            _.each(jsonObject, function (fieldValue, fieldName) {
-                                var attribute = {
-                                    type: 'attribute',
-                                    name: fieldName,
-                                    characterid: represents
-                                };
-                                var attrs = roll20.findObjs(attribute);
-                                if (attrs.length === 1) {
-                                    attrs[0].set('current', fieldValue);
-                                }
-                                else {
-                                    roll20.createObj('attribute', _.extend(attribute, {current: fieldValue}));
-                                }
-                            });
+
+                            var attribute = {
+                                type: 'attribute',
+                                name: 'import_data',
+                                characterid: represents
+                            };
+                            var attrs = roll20.findObjs(attribute);
+                            if (attrs.length === 1) {
+                                attrs[0].set('current', JSON.stringify(jsonObject));
+                            }
+                            else {
+                                roll20.createObj('attribute', _.extend(attribute, {current: JSON.stringify(jsonObject)}));
+                            }
                         }
                         else {
                             //ToDO handle error better
@@ -221,7 +222,6 @@ const shapedModule = (function () {
             });
         },
 
-        addedTokenIds: [],
 
         /////////////////////////////////////////////////
         // Event Handlers
@@ -235,12 +235,12 @@ const shapedModule = (function () {
             if (!character) {
                 return;
             }
-            this.addedTokenIds.push(token.id);
+            addedTokenIds.push(token.id);
         },
 
         handleChangeToken: function (token) {
-            if (_.contains(this.addedTokenIds, token.id)) {
-                this.addedTokenIds = _.without(this.addedTokenIds, token.id);
+            if (_.contains(addedTokenIds, token.id)) {
+                addedTokenIds = _.without(addedTokenIds, token.id);
                 this.rollHPForToken(token);
             }
         },
@@ -280,10 +280,10 @@ const shapedModule = (function () {
          * @param {ChatMessage} msg
          */
         checkForAmmoUpdate: function (msg) {
-            if (myState.config.updateAmmo && msg.rolltemplate === '5e-shaped' && msg.content.indexOf('{{ammo=') !== -1) {
+            if (myState.config.updateAmmo && msg.rolltemplate === '5e-shaped' && msg.content.indexOf('{{ammo_name=') !== -1) {
                 var match;
                 var characterName;
-                var attackId;
+                var ammoName;
                 var regex = /\{\{(.*?)\}\}/g;
 
                 while (!!(match = regex.exec(msg.content))) {
@@ -292,24 +292,36 @@ const shapedModule = (function () {
                         if (splitAttr[0] === 'character_name') {
                             characterName = splitAttr[1];
                         }
-                        if (splitAttr[0] === 'attack_id') {
-                            attackId = splitAttr[1];
+                        if (splitAttr[0] === 'ammo_name') {
+                            ammoName = splitAttr[1];
                         }
                     }
                 }
-                if (attackId && characterName) {
+                if (ammoName && characterName) {
                     var character = roll20.findObjs({
                         _type: 'character',
                         name: characterName
                     })[0];
-                    var attr = roll20.findObjs({
-                        type: 'attribute',
-                        characterid: character.id,
-                        name: 'repeating_attack_' + attackId + '_ammo'
-                    }, {caseInsensitive: true})[0];
 
-                    var val = parseInt(attr.get('current'), 10) || 0;
-                    attr.set({current: val - 1});
+                    var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
+                      .filter(function (attribute) {
+                          return attribute.get('name').startsWith('repeating_ammo');
+                      })
+                      .groupBy(function (attribute) {
+                          return attribute.get('name').replace(/(repeating_ammo_[^_]+).*/, '$1');
+                      })
+                      .find(function (attributes) {
+                          return _.find(attributes, function (attribute) {
+                              return attribute.get('name').endsWith('name') && attribute.get('current') === ammoName;
+                          });
+                      })
+                      .find(function (attribute) {
+                          return attribute.get('name').endsWith('qty');
+                      })
+                      .value();
+
+                    var val = parseInt(ammoAttr.get('current'), 10) || 0;
+                    ammoAttr.set('current', Math.max(0, val - 1));
                 }
 
             }
@@ -319,14 +331,14 @@ const shapedModule = (function () {
         processInlinerolls: function (msg) {
             if (_.has(msg, 'inlinerolls')) {
                 return _.chain(msg.inlinerolls)
-                    .reduce(function (previous, current, index) {
-                        previous['$[[' + index + ']]'] = current.results.total || 0;
-                        return previous;
-                    }, {})
-                    .reduce(function (previous, current, index) {
-                        return previous.replace(index, current);
-                    }, msg.content)
-                    .value();
+                  .reduce(function (previous, current, index) {
+                      previous['$[[' + index + ']]'] = current.results.total || 0;
+                      return previous;
+                  }, {})
+                  .reduce(function (previous, current, index) {
+                      return previous.replace(index.toString(), current);
+                  }, msg.content)
+                  .value();
             } else {
                 return msg.content;
             }
@@ -353,7 +365,7 @@ const shapedModule = (function () {
                         else {
                             logger.error('Unknown schema version for state $$$', myState);
                             report('Serious error attempting to upgrade your global state, please see log for details. ' +
-                                'ShapedScripts will not function correctly until this is fixed');
+                              'ShapedScripts will not function correctly until this is fixed');
                             myState = undefined;
                         }
                         break;
@@ -370,15 +382,11 @@ const shapedModule = (function () {
 
         logWrap: 'shapedModule'
     };
-})(roll20);
 
-logger.wrapModule(shapedModule);
-
-
-module.exports = {
-    checkInstall: shapedModule.checkInstall.bind(shapedModule),
-    registerEventHandlers: shapedModule.registerEventHandlers.bind(shapedModule)
+    logger.wrapModule(shapedModule);
+    return shapedModule;
 };
+
 
 
 
