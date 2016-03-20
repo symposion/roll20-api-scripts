@@ -1481,10 +1481,9 @@
 						spells: srdConverter.convertSpells(options.spells)
 					};
 					this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
-					report('Added the following spells: ' + _.reduce(importData.spells, function (memo, spell) {
-						memo += spell.name;
-						return memo;
-					}, ''));
+					report('Added the following spells:\n' + _.map(importData.spells, function (spell) {
+						return spell.name;
+					}).join('\n'));
 				},
 
 				createNewCharacter: function (monsterData, token, overwrite) {
@@ -1514,7 +1513,9 @@
 						throw 'Failed to create new character';
 					}
 
+					token.set('represents', character.id);
 					this.getImportDataWrapper(character).setNewImportData({npc: converted});
+					report('Character [' + converted.character_name + '] successfully created.'); // jshint ignore:line
 					return character;
 
 				},
@@ -2016,7 +2017,7 @@
 		Command.prototype.optionLookup = function (groupName, lookupFunction) {
 			'use strict';
 			this.parsers.push(function (arg, errors, options) {
-				options[groupName] = [];
+				options[groupName] = options[groupName] || [];
 				var name = arg.toLowerCase();
 				var resolved = lookupFunction(name);
 				if (resolved) {

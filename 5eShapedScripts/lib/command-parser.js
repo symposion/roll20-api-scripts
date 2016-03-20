@@ -49,7 +49,7 @@ Command.prototype.options = function (optsSpec) {
 Command.prototype.optionLookup = function (groupName, lookupFunction) {
     'use strict';
     this.parsers.push(function (arg, errors, options) {
-        options[groupName] = [];
+        options[groupName] = options[groupName] || [];
         var name = arg.toLowerCase();
         var resolved = lookupFunction(name);
         if (resolved) {
