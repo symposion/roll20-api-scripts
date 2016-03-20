@@ -60,13 +60,13 @@
 	/***/ function (module, exports, __webpack_require__) {
 
 		/* globals FifthSpells, FifthMonsters */
-		var roll20       = __webpack_require__(1);
-		var getParser    = __webpack_require__(2);
-		var mmFormat     = __webpack_require__(4);
-		var myState      = roll20.getState('ShapedScripts');
-		var logger       = __webpack_require__(5)(myState.config);
+		var roll20 = __webpack_require__(1);
+		var parseModule = __webpack_require__(2);
+		var mmFormat = __webpack_require__(4);
+		var myState = roll20.getState('ShapedScripts');
+		var logger = __webpack_require__(5)(myState.config);
 		var entityLookup = __webpack_require__(6);
-		var shaped       = __webpack_require__(7)(logger, myState, roll20, getParser(mmFormat, logger), entityLookup);
+		var shaped = __webpack_require__(7)(logger, myState, roll20, parseModule.getParser(mmFormat, logger), entityLookup);
 
 
 		logger.wrapModule(entityLookup);
@@ -183,6 +183,7 @@
 		function getParser(formatSpec, logger) {
 			'use strict';
 
+
 			//noinspection JSUnusedGlobalSymbols
 			var parserModule = {
 
@@ -243,7 +244,7 @@
 								logger.debug('Stopped at parser $$$', stopParser);
 								canContinue = stopParser && stopParser.justMatched;
 								if (stopParser) {
-									someMatch              = someMatch || stopParser.justMatched;
+									someMatch = someMatch || stopParser.justMatched;
 									stopParser.justMatched = false;
 								}
 
@@ -263,7 +264,7 @@
 						complete: function (parseState, finalText) {
 							var missingContent = _.filter(parseState.subParsers, 'required');
 							if (!_.isEmpty(missingContent)) {
-								throw 'Incomplete content model error for parser ' + JSON.stringify(this) + '. Missing content: ' + JSON.stringify(missingContent);
+								throw new MissingContentError(missingContent);
 							}
 						}
 					};
@@ -274,13 +275,13 @@
 						return !_.isEmpty(textLines);
 					}
 
-					var re    = new RegExp('^(.*?)(' + this.parseToken + ')(?:[\\s.]+|$)', 'i');
+					var re = new RegExp('^(.*?)(' + this.parseToken + ')(?:[\\s.]+|$)', 'i');
 					var match = textLines[0].match(re);
 					if (match) {
 						logger.debug('Found match $$$', match[0]);
 						myParseState.forPrevious = match[1];
-						myParseState.text        = '';
-						textLines[0]             = textLines[0].slice(match[0].length).trim();
+						myParseState.text = '';
+						textLines[0] = textLines[0].slice(match[0].length).trim();
 						if (!textLines[0]) {
 							textLines.shift();
 						}
@@ -301,7 +302,7 @@
 						textLines[0] = textLines[0].trim();
 
 						var matchGroup = this.matchGroup || 0;
-						var re         = new RegExp(this.pattern, this.caseSensitive ? '' : 'i');
+						var re = new RegExp(this.pattern, this.caseSensitive ? '' : 'i');
 						logger.debug('$$$ attempting to match value [$$$] against regexp $$$', this.name, textLines[0], re.toString());
 						var match = textLines[0].match(re);
 
@@ -354,12 +355,12 @@
 
 					if (fieldSpec.bare) {
 						parser.matchValue = function (myParseState, textLines) {
-							var parser     = this;
+							var parser = this;
 							var firstMatch = _.chain(fieldSpec.enumValues)
 							.map(function (enumValue) {
 								logger.debug('Attempting to parse as enum property $$$', enumValue);
 								var pattern = '^(.*?)(' + enumValue + ')(?:[\\s.]+|$)';
-								var re      = new RegExp(pattern, parser.caseSensitive ? '' : 'i');
+								var re = new RegExp(pattern, parser.caseSensitive ? '' : 'i');
 								return textLines[0].match(re);
 							})
 							.compact()
@@ -372,9 +373,9 @@
 
 							if (firstMatch) {
 								logger.debug('Finished trying to parse as enum property, match: $$$', firstMatch);
-								myParseState.text        = firstMatch[2];
+								myParseState.text = firstMatch[2];
 								myParseState.forPrevious = firstMatch[1];
-								textLines[0]             = textLines[0].slice(firstMatch.index + firstMatch[0].length);
+								textLines[0] = textLines[0].slice(firstMatch.index + firstMatch[0].length);
 								if (!textLines[0]) {
 									textLines.shift();
 								}
@@ -388,7 +389,7 @@
 				},
 
 				number: function (fieldSpec) {
-					var parser         = this.makeSimpleValueParser();
+					var parser = this.makeSimpleValueParser();
 					parser.typeConvert = function (textValue) {
 						var parts = textValue.split('/');
 						var intVal;
@@ -400,7 +401,7 @@
 						}
 
 						if (_.isNaN(intVal)) {
-							throw 'Invalid integer value for field ' + fieldSpec.name + ' [' + textValue + ']';
+							throw new BadValueError(fieldSpec.name, textValue, '[Integer]');
 						}
 						return intVal;
 					};
@@ -409,7 +410,7 @@
 
 
 				ability: function (fieldSpec) {
-					var parser        = this.number();
+					var parser = this.number();
 					parser.matchValue = function (parseState, textLines) {
 						if (_.isEmpty(textLines)) {
 							return false;
@@ -421,7 +422,7 @@
 						if (match) {
 							logger.debug('Successful match $$$', match);
 							parseState.text = match[2];
-							textLines[0]    = match[1] + textLines[0].slice(match.index + match[0].length);
+							textLines[0] = match[1] + textLines[0].slice(match.index + match[0].length);
 							if (!textLines[0]) {
 								textLines.shift();
 							}
@@ -434,8 +435,8 @@
 				},
 
 				heading: function (fieldSpec) {
-					fieldSpec.bare    = true;
-					var parser        = this.makeSimpleValueParser();
+					fieldSpec.bare = true;
+					var parser = this.makeSimpleValueParser();
 					parser.skipOutput = true;
 					return parser;
 				},
@@ -445,7 +446,7 @@
 					return {
 						parse: function (stateManager, textLines) {
 							var parseState = stateManager.enterChildParser(this);
-							var match      = this.matchParseToken(parseState, textLines) &&
+							var match = this.matchParseToken(parseState, textLines) &&
 							this.matchValue(parseState, textLines);
 							if (match) {
 								stateManager.completeCurrentStack(parseState.forPrevious);
@@ -471,13 +472,13 @@
 
 
 								var regExp = new RegExp(this.pattern, this.caseSensitive ? '' : 'i');
-								var match  = text.match(regExp);
+								var match = text.match(regExp);
 								if (match) {
 									var matchGroup = this.matchGroup || 0;
 									return match[matchGroup];
 								}
 								else {
-									throw 'Invalid value [' + text + '] against pattern ' + regExp + ' for field [' + this.name + '] ';
+									throw new BadValueError(this.name, text, regExp);
 								}
 							}
 							else {
@@ -505,7 +506,7 @@
 					return {
 						text: '',
 						getObjectValue: function () {
-							var value    = outputObject;
+							var value = outputObject;
 							var segments = _.clone(propertyPath);
 							while (segments.length) {
 								var prop = segments.shift();
@@ -532,10 +533,10 @@
 								}
 
 								var currentValue = outputTo[prop.name];
-								var newValue     = segments.length === 0 ? this.value : {};
+								var newValue = segments.length === 0 ? this.value : {};
 
 								if (_.isUndefined(currentValue) && prop.allowed > 1) {
-									currentValue        = [];
+									currentValue = [];
 									outputTo[prop.name] = currentValue;
 								}
 
@@ -551,7 +552,7 @@
 									outputTo[prop.name] = newValue;
 								}
 								else if (segments.length === 0) {
-									throw 'Simple value property somehow already had value when we came to set it';
+									throw new Error('Simple value property somehow already had value when we came to set it');
 								}
 								else {
 									newValue = currentValue;
@@ -567,12 +568,11 @@
 					};
 				},
 
-
 				makeParseStateManager: function () {
 					var incompleteParserStack = [];
-					var currentPropertyPath   = [];
-					var completedObjects      = [];
-					var module                = this;
+					var currentPropertyPath = [];
+					var completedObjects = [];
+					var module = this;
 					return {
 						outputObject: {},
 						leaveChildParser: function (parser, state) {
@@ -625,17 +625,17 @@
 					logger.debug('Making parser for field $$$', fieldSpec);
 					var parserBuilder = this[fieldSpec.type];
 					if (!parserBuilder) {
-						throw 'Can\'t make parser for type ' + fieldSpec.type;
+						throw new Error('Can\'t make parser for type ' + fieldSpec.type);
 					}
-					var parser      = parserBuilder.call(this, fieldSpec);
+					var parser = parserBuilder.call(this, fieldSpec);
 					parser.required = _.isUndefined(fieldSpec.minOccurs) ? 1 : fieldSpec.minOccurs;
-					parser.allowed  = _.isUndefined(fieldSpec.maxOccurs) ? 1 : fieldSpec.maxOccurs;
+					parser.allowed = _.isUndefined(fieldSpec.maxOccurs) ? 1 : fieldSpec.maxOccurs;
 					_.extend(parser, _.pick(fieldSpec, this.parserAttributes));
 					_.defaults(parser, {
 						attribute: parser.name,
 						parseToken: parser.name
 					});
-					parser.id      = this.parserId++;
+					parser.id = this.parserId++;
 					parser.logWrap = 'parser[' + parser.name + ']';
 					return parser;
 				},
@@ -668,7 +668,7 @@
 					.value();
 					logger.debug(parser);
 					var stateManager = parserModule.makeParseStateManager();
-					var success      = parser.parse(stateManager, textLines);
+					var success = parser.parse(stateManager, textLines);
 					while (success && !_.isEmpty(textLines)) {
 						parser.resumeParse(stateManager, textLines);
 					}
@@ -685,7 +685,48 @@
 
 		}
 
-		module.exports = getParser;
+		/**
+		 * @constructor
+		 */
+		function ParserError(message) {
+			'use strict';
+			this.message = message;
+		}
+
+		ParserError.prototype = new Error();
+
+		/**
+		 * @constructor
+		 */
+		function MissingContentError(missingFieldParsers) {
+			'use strict';
+			this.missingFieldParsers = missingFieldParsers;
+			this.message = _.map(this.missingFieldParsers, function (parser) {
+				return 'Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times';
+			}).join('\n');
+		}
+
+		MissingContentError.prototype = new ParserError();
+
+		/**
+		 * @constructor
+		 */
+		function BadValueError(name, value, pattern) {
+			'use strict';
+			this.name = name;
+			this.value = value;
+			this.pattern = pattern;
+			this.message = 'Bad value [' + this.value + '] for field [' + this.name + ']. Should have matched pattern: ' + this.pattern;
+		}
+
+		BadValueError.prototype = new ParserError();
+
+		module.exports = {
+			getParser: getParser,
+			MissingContentError: MissingContentError,
+			BadValueError: BadValueError,
+			ParserError: ParserError
+		};
 
 
 		/***/
@@ -1121,7 +1162,7 @@
 	/* 5 */
 	/***/ function (module, exports, __webpack_require__) {
 
-		var _      = __webpack_require__(3);
+		var _ = __webpack_require__(3);
 		var roll20 = __webpack_require__(1);
 
 		/**
@@ -1170,7 +1211,7 @@
 					}
 
 					var args = arguments.length > 2 ? _.toArray(arguments).slice(2) : [];
-					message  = stringify(message);
+					message = stringify(message);
 					if (message) {
 						message = message.replace(/\$\$\$/g, function () {
 							return stringify(args.shift());
@@ -1198,7 +1239,7 @@
 					_.chain(modToWrap)
 					.functions()
 					.each(function (funcName) {
-						var origFunc        = modToWrap[funcName];
+						var origFunc = modToWrap[funcName];
 						modToWrap[funcName] = logger.wrapFunction(funcName, origFunc, modToWrap.logWrap);
 					});
 					modToWrap.isLogWrapped = true;
@@ -1213,7 +1254,7 @@
 					return function () {
 						logger.trace('$$$.$$$ starting with this value: $$$ and args $$$', moduleName, name, this, arguments);
 						logger.prefixString = logger.prefixString + '  ';
-						var retVal          = func.apply(this, arguments);
+						var retVal = func.apply(this, arguments);
 						logger.prefixString = logger.prefixString.slice(0, -2);
 						logger.trace('$$$.$$$ ending with return value $$$', moduleName, name, retVal);
 						if (retVal && retVal.logWrap && !retVal.isLogWrapped) {
@@ -1278,22 +1319,23 @@
 	/* 7 */
 	/***/ function (module, exports, __webpack_require__) {
 
-		var _            = __webpack_require__(3);
+		var _ = __webpack_require__(3);
 		var srdConverter = __webpack_require__(8);
+		var parseModule = __webpack_require__(2);
+		var cp = __webpack_require__(9);
 
-		var version          = '0.1',
-			schemaVersion    = 0.1,
-			hpBar            = 'bar1',
+		var version       = '0.1',
+			schemaVersion = 0.1,
+			hpBar         = 'bar1';
 
-			booleanValidator = function (value) {
-				'use strict';
-				var converted = value === 'true' || (value === 'false' ? false : value);
-				return {
-					valid: typeof value === 'boolean' || value === 'true' || value === 'false',
-					converted: converted
-				};
+		var booleanValidator = function (value) {
+			'use strict';
+			var converted = value === 'true' || (value === 'false' ? false : value);
+			return {
+				valid: typeof value === 'boolean' || value === 'true' || value === 'false',
+				converted: converted
 			};
-
+		};
 
 		/**
 		 * @typedef {Object} ChatMessage
@@ -1322,9 +1364,9 @@
 		 */
 		module.exports = function (logger, myState, roll20, parser, entityLookup) {
 			'use strict';
-			var sanitise      = logger.wrapFunction('sanitise', __webpack_require__(9), '');
+			var sanitise = logger.wrapFunction('sanitise', __webpack_require__(10), '');
 			var addedTokenIds = [];
-			var report        = function (msg) {
+			var report = function (msg) {
 				//Horrible bug with this at the moment - seems to generate spurious chat
 				//messages when noarchive:true is set
 				//sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
@@ -1332,48 +1374,49 @@
 			};
 
 			var shapedModule = {
+
 				/**
 				 *
 				 * @param {ChatMessage} msg
 				 */
 				handleInput: function (msg) {
+					var commandProcessor = cp('shaped')
+					.addCommand('config', this.configure.bind(this))
+					.options(this.configOptionsSpec)
+					.addCommand('import-statblock', this.importStatblock.bind(this))
+					.option('overwrite', booleanValidator)
+					.withSelection({
+						graphic: {
+							min: 1,
+							max: Infinity
+						}
+					})
+					.addCommand('import-monster', this.importMonstersFromJson.bind(this))
+					.optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
+					.addCommand('import-spell', this.importSpellsFromJson.bind(this))
+					.optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spell'))
+					.withSelection({
+						character: {
+							min: 1,
+							max: 1
+						}
+					})
+					.end();
+
 					try {
 						logger.debug(msg);
 						if (msg.type !== 'api') {
 							this.checkForAmmoUpdate(msg);
 							return;
 						}
-						var args    = msg.content.split(/\s+--/);
-						var command = args.shift();
-						switch (command) {
-							case '!shaped-config':
-								this.configure(this.options().addOpts(this.configOptionsSpec).parse(args));
-								break;
-							case '!shaped-import-statblock':
-								this.importStatblock(this.processSelection(msg, {
-									graphic: {
-										min: 1,
-										max: Infinity
-									}
-								}).graphic, this.options().addOpt('overwrite', booleanValidator).parse(args));
-								break;
-							case '!shaped-import-monster':
-								this.importMonstersFromJson(_.values(this.options().addLookUp(entityLookup.findEntity.bind(entityLookup, 'monster')).parse(args)));
-								break;
-							case '!shaped-import-spell':
-								this.importSpellsFromJson(this.processSelection(msg, {
-									character: {
-										min: 1,
-										max: 1
-									}
-								}).character, _.values(this.options().addLookUp(entityLookup.findEntity.bind(entityLookup, 'spell')).parse(args)));
-								break;
-						}
+
+						commandProcessor.processCommand(msg);
+
 					}
 					catch (e) {
-						if (typeof e === 'string') {
+						if (typeof e === 'string' || e instanceof parseModule.ParserError) {
 							report('An error occurred: ' + e);
-							logger.error('Error: $$$', e);
+							logger.error('Error: $$$', e.toString());
 						}
 						else {
 							logger.error('Error: ' + e.toString());
@@ -1394,115 +1437,6 @@
 					updateAmmo: booleanValidator
 				},
 
-				options: function () {
-					var parsers = [];
-					return {
-						parse: function (args) {
-							return _.reduce(args, function (options, arg) {
-								var errors = [];
-								var parser = _.find(parsers, function (parser) {
-									return parser(arg, errors, options);
-								});
-								if (!parser) {
-									logger.error('Unrecognised or poorly formed option [$$$]', arg);
-									report('ERROR: unrecognised or poorly formed option --' + arg + '');
-								}
-								_.each(errors, report);
-								return options;
-							}, {});
-						},
-						addOpts: function (optsSpec) {
-							var self = this;
-							_.each(optsSpec, function (validator, key) {
-								self.addOpt(key, validator);
-							});
-							return this;
-						},
-						addOpt: function (optionString, validator) {
-							parsers.push(function (arg, errors, options) {
-								var argParts = arg.split(/\s+/);
-								if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
-									if (argParts.length <= 2) {
-										//Allow for bare switches
-										var value  = argParts.length === 2 ? argParts[1] : true;
-										var result = validator(value);
-										if (result.valid) {
-											options[argParts[0]] = result.converted;
-											return options;
-										}
-										else {
-											errors.push('Invalid value [' + value + '] for option [' + argParts[0] + ']');
-										}
-									}
-									return true;
-								}
-								return false;
-							});
-							return this;
-						},
-						addLookUp: function (lookupFunction) {
-							parsers.push(function (arg, errors, options) {
-								var name     = arg.toLowerCase();
-								var resolved = lookupFunction(name);
-								if (resolved) {
-									options[arg] = resolved;
-									return true;
-								}
-								return false;
-							});
-							return this;
-						},
-						logWrap: 'options'
-					};
-				},
-
-
-				/**
-				 *
-				 * @param {ChatMessage} msg
-				 * @param constraints
-				 * @returns {*}
-				 */
-				processSelection: function (msg, constraints) {
-					var selection = msg.selected ? msg.selected : [];
-					return _.reduce(constraints, function (result, constraintDetails, type) {
-
-						var objects = _.chain(selection)
-						.where({_type: type === 'character' ? 'graphic' : type})
-						.map(function (selected) {
-							return roll20.getObj(selected._type, selected._id);
-						})
-						.map(function (object) {
-							if (type === 'character' && object) {
-								var represents = object.get('represents');
-								if (represents) {
-									return roll20.getObj('character', represents);
-								}
-							}
-						})
-						.compact()
-						.value();
-						if (_.size(objects) < constraintDetails.min || _.size(objects) > constraintDetails.max) {
-							throw 'Wrong number of objects of type [' + type + '] selected, should be between ' + constraintDetails.min + ' and ' + constraintDetails.max;
-						}
-						switch (_.size(objects)) {
-							case 0:
-								break;
-							case 1:
-								if (constraintDetails.max === 1) {
-									result[type] = objects[0];
-								}
-								else {
-									result[type] = objects;
-								}
-								break;
-							default:
-								result[type] = objects;
-						}
-						return result;
-					}, {});
-				},
-
 				/////////////////////////////////////////
 				// Command handlers
 				/////////////////////////////////////////
@@ -1515,29 +1449,42 @@
 					report('Configuration is now: ' + JSON.stringify(myState.config));
 				},
 
-				importStatblock: function (graphics, overwrite) {
-					logger.info('Importing statblocks for tokens $$$', graphics);
-					_.each(graphics, function (token) {
+				importStatblock: function (options) {
+
+					logger.info('Importing statblocks for tokens $$$', options.selected.graphic);
+					var self = this;
+					_.each(options.selected.graphic, function (token) {
 						var text = token.get('gmnotes');
 						if (text) {
 							text = sanitise(_.unescape(decodeURIComponent(text)), logger);
 							//noinspection JSUnresolvedVariable
-							this.createNewCharacter(parser.parse(text), token, overwrite);
+							self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
 						}
 					});
 				},
 
-				importMonstersFromJson: function (monsters) {
-					_.each(monsters, function (monsterData) {
-						this.createNewCharacter(monsterData);
+				//TODO: Monster JSON format needs adjustingxx
+				importMonstersFromJson: function (options) {
+					var self = this;
+					_.each(options.monsters, function (monsterData) {
+						self.createNewCharacter(monsterData);
 					});
+					report('Added the following monsters: ' + _.reduce(options.monsters, function (memo, spell) {
+						memo += spell.name;
+						return memo;
+					}, ''));
+
 				},
 
-				importSpellsFromJson: function (character, spells) {
+				importSpellsFromJson: function (options) {
 					var importData = {
-						spells: srdConverter.convertSpells(spells)
+						spells: srdConverter.convertSpells(options.spells)
 					};
-					this.getImportDataWrapper(character).mergeImportData(importData);
+					this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
+					report('Added the following spells: ' + _.reduce(importData.spells, function (memo, spell) {
+						memo += spell.name;
+						return memo;
+					}, ''));
 				},
 
 				createNewCharacter: function (monsterData, token, overwrite) {
@@ -1555,18 +1502,19 @@
 						}
 					}
 
+					logger.debug('Converted monster data: $$$', converted);
 					var character = roll20.createObj('character', {
-						name: monsterData.character_name, // jshint ignore:line
+						name: converted.character_name, // jshint ignore:line
 						avatar: token ? token.get('imgsrc') : undefined
 					});
 
 
 					if (!character) {
-						logger.error('Failed to create character for monsterData $$$', monsterData);
+						logger.error('Failed to create character for converted monsterData $$$', converted);
 						throw 'Failed to create new character';
 					}
 
-					this.getImportDataWrapper(character).setNewImportData(converted);
+					this.getImportDataWrapper(character).setNewImportData({npc: converted});
 					return character;
 
 				},
@@ -1578,7 +1526,7 @@
 							name: name,
 							characterid: character.id
 						};
-						var attrs     = roll20.findObjs(attribute);
+						var attrs = roll20.findObjs(attribute);
 						if (attrs && attrs.length === 1) {
 							return attrs[0];
 						}
@@ -1605,9 +1553,9 @@
 							if (_.isEmpty(importData)) {
 								return;
 							}
-							var attr            = getOrCreateAttribute('import_data');
+							var attr = getOrCreateAttribute('import_data');
 							var dataPresentAttr = getOrCreateAttribute('import_data_present');
-							var current         = {};
+							var current = {};
 							try {
 								if (!_.isEmpty(attr.get('current').trim())) {
 									current = JSON.parse(attr.get('current'));
@@ -1683,7 +1631,7 @@
 					roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
 						if (results && results.length === 1) {
 							var message = that.processInlinerolls(results[0]);
-							var total   = results[0].inlinerolls[0].results.total;
+							var total = results[0].inlinerolls[0].results.total;
 							roll20.sendChat('HP Roller', '/w GM &{template:5e-shaped} ' + message);
 							token.set(hpBar + '_value', total);
 							token.set(hpBar + '_max', total);
@@ -1831,7 +1779,7 @@
 			},
 			camelCaseFixMapper = function (key, value, output) {
 				'use strict';
-				var newKey     = key.replace(/([A-Z])/g, function (letter) {
+				var newKey = key.replace(/([A-Z])/g, function (letter) {
 					return '_' + letter.toLowerCase();
 				});
 				output[newKey] = value;
@@ -1940,9 +1888,9 @@
 				var output = _.clone(npcObject);
 
 				var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', {variable: 'data'});
-				var legendaryTemplate   = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
+				var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
 
-				var simpleSectionTemplate    = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
+				var simpleSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
 				var legendarySectionTemplate = _.template('<%=data.title%>\nThe <%=data.name%> can take <%=data.legendaryPoints%> legendary actions, ' +
 				'choosing from the options below. It can take only one legendary action at a time and only at the end of another creature\'s turn.' +
 				' The <%=data.name%> regains spent legendary actions at the start of its turn.\n<% print(data.items.join("\\n")) %>', {variable: 'data'});
@@ -1969,7 +1917,7 @@
 					};
 				};
 
-				output.is_npc    = 1;
+				output.is_npc = 1;
 				output.edit_mode = 'off';
 
 				output.content_srd = _.chain(srdContentSections)
@@ -2015,6 +1963,185 @@
 		/***/
 	},
 	/* 9 */
+	/***/ function (module, exports, __webpack_require__) {
+
+		var _ = __webpack_require__(3);
+		var roll20 = __webpack_require__(1);
+
+
+		/**
+		 * @constructor
+		 */
+		function Command(root, handler) {
+			'use strict';
+			this.root = root;
+			this.handler = handler;
+			this.parsers = [];
+		}
+
+
+		Command.prototype.option = function (optionString, validator) {
+			'use strict';
+			this.parsers.push(function (arg, errors, options) {
+				var argParts = arg.split(/\s+/);
+				if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
+					if (argParts.length <= 2) {
+						//Allow for bare switches
+						var value = argParts.length === 2 ? argParts[1] : true;
+						var result = validator(value);
+						if (result.valid) {
+							options[argParts[0]] = result.converted;
+							return options;
+						}
+						else {
+							errors.push('Invalid value [' + value + '] for option [' + argParts[0] + ']');
+						}
+					}
+					return true;
+				}
+				return false;
+			});
+			return this;
+		};
+
+		Command.prototype.options = function (optsSpec) {
+			'use strict';
+			var self = this;
+			_.each(optsSpec, function (validator, key) {
+				self.option(key, validator);
+			});
+			return this;
+		};
+
+		Command.prototype.optionLookup = function (groupName, lookupFunction) {
+			'use strict';
+			this.parsers.push(function (arg, errors, options) {
+				options[groupName] = [];
+				var name = arg.toLowerCase();
+				var resolved = lookupFunction(name);
+				if (resolved) {
+					options[groupName].push(resolved);
+					return true;
+				}
+				return false;
+			});
+			return this;
+		};
+
+		Command.prototype.handle = function (args, selection) {
+			'use strict';
+			var self = this;
+			var options = _.reduce(args, function (options, arg) {
+				var parser = _.find(self.parsers, function (parser) {
+					return parser(arg, options.errors, options);
+				});
+				if (!parser) {
+					options.errors.push('Unrecognised or poorly formed option [$$$]', arg);
+				}
+
+				return options;
+			}, {errors: []});
+			if (options.errors.length > 0) {
+				throw options.errors.join('\n');
+			}
+			delete options.errors;
+			options.selected = this.selectionSpec && processSelection(selection || [], this.selectionSpec);
+			this.handler(options);
+		};
+
+		Command.prototype.withSelection = function (selectionSpec) {
+			'use strict';
+			this.selectionSpec = selectionSpec;
+			return this;
+		};
+
+
+		Command.prototype.addCommand = function (cmdString, handler) {
+			'use strict';
+			return this.root.addCommand(cmdString, handler);
+		};
+
+		Command.prototype.end = function () {
+			'use strict';
+			return this.root;
+		};
+
+
+		function processSelection(selection, constraints) {
+			'use strict';
+			return _.reduce(constraints, function (result, constraintDetails, type) {
+
+				var objects = _.chain(selection)
+				.where({_type: type === 'character' ? 'graphic' : type})
+				.map(function (selected) {
+					return roll20.getObj(selected._type, selected._id);
+				})
+				.map(function (object) {
+					if (type === 'character' && object) {
+						var represents = object.get('represents');
+						if (represents) {
+							return roll20.getObj('character', represents);
+						}
+					}
+					return object;
+				})
+				.compact()
+				.value();
+				if (_.size(objects) < constraintDetails.min || _.size(objects) > constraintDetails.max) {
+					throw 'Wrong number of objects of type [' + type + '] selected, should be between ' + constraintDetails.min + ' and ' + constraintDetails.max;
+				}
+				switch (_.size(objects)) {
+					case 0:
+						break;
+					case 1:
+						if (constraintDetails.max === 1) {
+							result[type] = objects[0];
+						}
+						else {
+							result[type] = objects;
+						}
+						break;
+					default:
+						result[type] = objects;
+				}
+				return result;
+			}, {});
+		}
+
+		module.exports = function (rootCommand) {
+			'use strict';
+
+			var commands = {};
+			return {
+				addCommand: function (cmdString, handler) {
+					var command = new Command(this, handler);
+					commands[cmdString] = command;
+					return command;
+				},
+
+				processCommand: function (msg) {
+					var prefix = '!' + rootCommand + '-';
+					if (msg.type === 'api' && msg.content.indexOf(prefix) === 0) {
+						var cmdString = msg.content.slice(prefix.length);
+						var parts = cmdString.split(/\s+--/);
+						var cmdName = parts.shift();
+						var cmd = commands[cmdName];
+						if (!cmd) {
+							throw new Error('Unrecognised command ' + prefix + cmdName);
+						}
+						cmd.handle(parts, msg.selected);
+					}
+				}
+
+			};
+
+
+		};
+
+
+		/***/
+	},
+	/* 10 */
 	/***/ function (module, exports) {
 
 		function sanitise(statblock, logger) {
@@ -2093,7 +2220,7 @@
 			.replace(/’/gi, '\'');
 
 
-			statblock      = statblock.replace(/(\d+)\s*?plus\s*?((?:\d+d\d+)|(?:\d+))/gi, '$2 + $1');
+			statblock = statblock.replace(/(\d+)\s*?plus\s*?((?:\d+d\d+)|(?:\d+))/gi, '$2 + $1');
 			var replaceObj = {
 				'jday': '/day',
 				'abol eth': 'aboleth',
@@ -2151,8 +2278,8 @@
 				'unti l': 'until',
 				'withi n': 'within'
 			};
-			var re         = new RegExp(Object.keys(replaceObj).join('|'), 'g');
-			statblock      = statblock.replace(re, function (matched) {
+			var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
+			statblock = statblock.replace(re, function (matched) {
 				return replaceObj[matched];
 			});
 

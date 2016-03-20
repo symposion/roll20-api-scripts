@@ -7,7 +7,7 @@ var Promise = require('bluebird'); // jshint ignore:line
 var fs = require('fs');
 Promise.promisifyAll(fs);
 var glob = require('glob');
-var getParser = require('../lib/parser');
+var parseModule = require('../lib/parser');
 var logger = require('../lib/logger')({logLevel: 'WARN'});
 var sanitise = require('../lib/sanitise');
 
@@ -31,7 +31,7 @@ describe('Monster Manual tests', function () {
         return fs.readFileAsync('./resources/mmFormatSpec.json', 'utf-8')
             .then(function (specText) {
             var parsed = JSON.parse(specText);
-            parser = getParser(parsed, logger);
+                parser = parseModule.getParser(parsed, logger);
         });
     });
 

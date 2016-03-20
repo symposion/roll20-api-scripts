@@ -35,6 +35,7 @@ var _ = require('underscore');
 function getParser(formatSpec, logger) {
     'use strict';
 
+
     //noinspection JSUnusedGlobalSymbols
     var parserModule = {
 
@@ -115,7 +116,7 @@ function getParser(formatSpec, logger) {
                 complete: function (parseState, finalText) {
                     var missingContent = _.filter(parseState.subParsers, 'required');
                     if (!_.isEmpty(missingContent)) {
-                        throw 'Incomplete content model error for parser ' + JSON.stringify(this) + '. Missing content: ' + JSON.stringify(missingContent);
+                        throw new MissingContentError(missingContent);
                     }
                 }
             };
@@ -252,7 +253,7 @@ function getParser(formatSpec, logger) {
                 }
 
                 if (_.isNaN(intVal)) {
-                    throw 'Invalid integer value for field ' + fieldSpec.name + ' [' + textValue + ']';
+                    throw new BadValueError(fieldSpec.name, textValue, '[Integer]');
                 }
                 return intVal;
             };
@@ -329,7 +330,7 @@ function getParser(formatSpec, logger) {
                             return match[matchGroup];
                         }
                         else {
-                            throw 'Invalid value [' + text + '] against pattern ' + regExp + ' for field [' + this.name + '] ';
+                            throw new BadValueError(this.name, text, regExp);
                         }
                     }
                     else {
@@ -403,7 +404,7 @@ function getParser(formatSpec, logger) {
                             outputTo[prop.name] = newValue;
                         }
                         else if (segments.length === 0) {
-                            throw 'Simple value property somehow already had value when we came to set it';
+                            throw new Error('Simple value property somehow already had value when we came to set it');
                         }
                         else {
                             newValue = currentValue;
@@ -418,7 +419,6 @@ function getParser(formatSpec, logger) {
                 }
             };
         },
-
 
         makeParseStateManager: function () {
             var incompleteParserStack = [];
@@ -477,7 +477,7 @@ function getParser(formatSpec, logger) {
             logger.debug('Making parser for field $$$', fieldSpec);
             var parserBuilder = this[fieldSpec.type];
             if (!parserBuilder) {
-                throw 'Can\'t make parser for type ' + fieldSpec.type;
+                throw new Error('Can\'t make parser for type ' + fieldSpec.type);
             }
             var parser = parserBuilder.call(this, fieldSpec);
             parser.required = _.isUndefined(fieldSpec.minOccurs) ? 1 : fieldSpec.minOccurs;
@@ -537,4 +537,42 @@ function getParser(formatSpec, logger) {
 
 }
 
-module.exports = getParser;
+/**
+ * @constructor
+ */
+function ParserError(message) {
+    'use strict';
+    this.message = message;
+}
+ParserError.prototype = new Error();
+
+/**
+ * @constructor
+ */
+function MissingContentError(missingFieldParsers) {
+    'use strict';
+    this.missingFieldParsers = missingFieldParsers;
+    this.message = _.map(this.missingFieldParsers, function (parser) {
+        return 'Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times';
+    }).join('\n');
+}
+MissingContentError.prototype = new ParserError();
+
+/**
+ * @constructor
+ */
+function BadValueError(name, value, pattern) {
+    'use strict';
+    this.name = name;
+    this.value = value;
+    this.pattern = pattern;
+    this.message = 'Bad value [' + this.value + '] for field [' + this.name + ']. Should have matched pattern: ' + this.pattern;
+}
+BadValueError.prototype = new ParserError();
+
+module.exports = {
+    getParser: getParser,
+    MissingContentError: MissingContentError,
+    BadValueError: BadValueError,
+    ParserError: ParserError
+};

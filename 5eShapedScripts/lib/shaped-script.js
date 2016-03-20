@@ -1,19 +1,20 @@
-var _            = require('underscore');
+var _ = require('underscore');
 var srdConverter = require('./srd-converter');
+var parseModule = require('./parser');
+var cp = require('./command-parser');
 
-var version          = '0.1',
-    schemaVersion    = 0.1,
-    hpBar            = 'bar1',
+var version       = '0.1',
+    schemaVersion = 0.1,
+    hpBar         = 'bar1';
 
-    booleanValidator = function (value) {
-        'use strict';
-        var converted = value === 'true' || (value === 'false' ? false : value);
-        return {
-            valid: typeof value === 'boolean' || value === 'true' || value === 'false',
-            converted: converted
-        };
+var booleanValidator = function (value) {
+    'use strict';
+    var converted = value === 'true' || (value === 'false' ? false : value);
+    return {
+        valid: typeof value === 'boolean' || value === 'true' || value === 'false',
+        converted: converted
     };
-
+};
 
 /**
  * @typedef {Object} ChatMessage
@@ -42,9 +43,9 @@ var version          = '0.1',
  */
 module.exports = function (logger, myState, roll20, parser, entityLookup) {
     'use strict';
-    var sanitise      = logger.wrapFunction('sanitise', require('./sanitise'), '');
+    var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
     var addedTokenIds = [];
-    var report        = function (msg) {
+    var report = function (msg) {
         //Horrible bug with this at the moment - seems to generate spurious chat
         //messages when noarchive:true is set
         //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
@@ -52,48 +53,49 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
     };
 
     var shapedModule = {
+
         /**
          *
          * @param {ChatMessage} msg
          */
         handleInput: function (msg) {
+            var commandProcessor = cp('shaped')
+              .addCommand('config', this.configure.bind(this))
+              .options(this.configOptionsSpec)
+              .addCommand('import-statblock', this.importStatblock.bind(this))
+              .option('overwrite', booleanValidator)
+              .withSelection({
+                  graphic: {
+                      min: 1,
+                      max: Infinity
+                  }
+              })
+              .addCommand('import-monster', this.importMonstersFromJson.bind(this))
+              .optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
+              .addCommand('import-spell', this.importSpellsFromJson.bind(this))
+              .optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spell'))
+              .withSelection({
+                  character: {
+                      min: 1,
+                      max: 1
+                  }
+              })
+              .end();
+
             try {
                 logger.debug(msg);
                 if (msg.type !== 'api') {
                     this.checkForAmmoUpdate(msg);
                     return;
                 }
-                var args    = msg.content.split(/\s+--/);
-                var command = args.shift();
-                switch (command) {
-                    case '!shaped-config':
-                        this.configure(this.options().addOpts(this.configOptionsSpec).parse(args));
-                        break;
-                    case '!shaped-import-statblock':
-                        this.importStatblock(this.processSelection(msg, {
-                            graphic: {
-                                min: 1,
-                                max: Infinity
-                            }
-                        }).graphic, this.options().addOpt('overwrite', booleanValidator).parse(args));
-                        break;
-                    case '!shaped-import-monster':
-                        this.importMonstersFromJson(_.values(this.options().addLookUp(entityLookup.findEntity.bind(entityLookup, 'monster')).parse(args)));
-                        break;
-                    case '!shaped-import-spell':
-                        this.importSpellsFromJson(this.processSelection(msg, {
-                            character: {
-                                min: 1,
-                                max: 1
-                            }
-                        }).character, _.values(this.options().addLookUp(entityLookup.findEntity.bind(entityLookup, 'spell')).parse(args)));
-                        break;
-                }
+
+                commandProcessor.processCommand(msg);
+
             }
             catch (e) {
-                if (typeof e === 'string') {
+                if (typeof e === 'string' || e instanceof parseModule.ParserError) {
                     report('An error occurred: ' + e);
-                    logger.error('Error: $$$', e);
+                    logger.error('Error: $$$', e.toString());
                 }
                 else {
                     logger.error('Error: ' + e.toString());
@@ -114,115 +116,6 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             updateAmmo: booleanValidator
         },
 
-        options: function () {
-            var parsers = [];
-            return {
-                parse: function (args) {
-                    return _.reduce(args, function (options, arg) {
-                        var errors = [];
-                        var parser = _.find(parsers, function (parser) {
-                            return parser(arg, errors, options);
-                        });
-                        if (!parser) {
-                            logger.error('Unrecognised or poorly formed option [$$$]', arg);
-                            report('ERROR: unrecognised or poorly formed option --' + arg + '');
-                        }
-                        _.each(errors, report);
-                        return options;
-                    }, {});
-                },
-                addOpts: function (optsSpec) {
-                    var self = this;
-                    _.each(optsSpec, function (validator, key) {
-                        self.addOpt(key, validator);
-                    });
-                    return this;
-                },
-                addOpt: function (optionString, validator) {
-                    parsers.push(function (arg, errors, options) {
-                        var argParts = arg.split(/\s+/);
-                        if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
-                            if (argParts.length <= 2) {
-                                //Allow for bare switches
-                                var value  = argParts.length === 2 ? argParts[1] : true;
-                                var result = validator(value);
-                                if (result.valid) {
-                                    options[argParts[0]] = result.converted;
-                                    return options;
-                                }
-                                else {
-                                    errors.push('Invalid value [' + value + '] for option [' + argParts[0] + ']');
-                                }
-                            }
-                            return true;
-                        }
-                        return false;
-                    });
-                    return this;
-                },
-                addLookUp: function (lookupFunction) {
-                    parsers.push(function (arg, errors, options) {
-                        var name     = arg.toLowerCase();
-                        var resolved = lookupFunction(name);
-                        if (resolved) {
-                            options[arg] = resolved;
-                            return true;
-                        }
-                        return false;
-                    });
-                    return this;
-                },
-                logWrap: 'options'
-            };
-        },
-
-
-        /**
-         *
-         * @param {ChatMessage} msg
-         * @param constraints
-         * @returns {*}
-         */
-        processSelection: function (msg, constraints) {
-            var selection = msg.selected ? msg.selected : [];
-            return _.reduce(constraints, function (result, constraintDetails, type) {
-
-                var objects = _.chain(selection)
-                  .where({_type: type === 'character' ? 'graphic' : type})
-                  .map(function (selected) {
-                      return roll20.getObj(selected._type, selected._id);
-                  })
-                  .map(function (object) {
-                      if (type === 'character' && object) {
-                          var represents = object.get('represents');
-                          if (represents) {
-                              return roll20.getObj('character', represents);
-                          }
-                      }
-                  })
-                  .compact()
-                  .value();
-                if (_.size(objects) < constraintDetails.min || _.size(objects) > constraintDetails.max) {
-                    throw 'Wrong number of objects of type [' + type + '] selected, should be between ' + constraintDetails.min + ' and ' + constraintDetails.max;
-                }
-                switch (_.size(objects)) {
-                    case 0:
-                        break;
-                    case 1:
-                        if (constraintDetails.max === 1) {
-                            result[type] = objects[0];
-                        }
-                        else {
-                            result[type] = objects;
-                        }
-                        break;
-                    default:
-                        result[type] = objects;
-                }
-                return result;
-            }, {});
-        },
-
         /////////////////////////////////////////
         // Command handlers
         /////////////////////////////////////////
@@ -235,35 +128,38 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             report('Configuration is now: ' + JSON.stringify(myState.config));
         },
 
-        importStatblock: function (graphics, overwrite) {
-            logger.info('Importing statblocks for tokens $$$', graphics);
-            _.each(graphics, function (token) {
+        importStatblock: function (options) {
+
+            logger.info('Importing statblocks for tokens $$$', options.selected.graphic);
+            var self = this;
+            _.each(options.selected.graphic, function (token) {
                 var text = token.get('gmnotes');
                 if (text) {
                     text = sanitise(_.unescape(decodeURIComponent(text)), logger);
                     //noinspection JSUnresolvedVariable
-                    this.createNewCharacter(parser.parse(text), token, overwrite);
+                    self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
                 }
             });
         },
 
-        //TODO: Monster JSON format needs adjusting
-        importMonstersFromJson: function (monsters) {
-            _.each(monsters, function (monsterData) {
-                this.createNewCharacter(monsterData);
+        //TODO: Monster JSON format needs adjustingxx
+        importMonstersFromJson: function (options) {
+            var self = this;
+            _.each(options.monsters, function (monsterData) {
+                self.createNewCharacter(monsterData);
             });
-            report('Added the following monsters: ' + _.reduce(monsters, function (memo, spell) {
+            report('Added the following monsters: ' + _.reduce(options.monsters, function (memo, spell) {
                   memo += spell.name;
                   return memo;
               }, ''));
 
         },
 
-        importSpellsFromJson: function (character, spells) {
+        importSpellsFromJson: function (options) {
             var importData = {
-                spells: srdConverter.convertSpells(spells)
+                spells: srdConverter.convertSpells(options.spells)
             };
-            this.getImportDataWrapper(character).mergeImportData(importData);
+            this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
             report('Added the following spells: ' + _.reduce(importData.spells, function (memo, spell) {
                   memo += spell.name;
                   return memo;
@@ -285,18 +181,19 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 }
             }
 
+            logger.debug('Converted monster data: $$$', converted);
             var character = roll20.createObj('character', {
-                name: monsterData.character_name, // jshint ignore:line
+                name: converted.character_name, // jshint ignore:line
                 avatar: token ? token.get('imgsrc') : undefined
             });
 
 
             if (!character) {
-                logger.error('Failed to create character for monsterData $$$', monsterData);
+                logger.error('Failed to create character for converted monsterData $$$', converted);
                 throw 'Failed to create new character';
             }
 
-            this.getImportDataWrapper(character).setNewImportData(converted);
+            this.getImportDataWrapper(character).setNewImportData({npc: converted});
             return character;
 
         },
@@ -308,19 +205,19 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     name: name,
                     characterid: character.id
                 };
-                    var attrs = roll20.findObjs(attribute);
-                    if (attrs && attrs.length === 1) {
-                        return attrs[0];
+                var attrs = roll20.findObjs(attribute);
+                if (attrs && attrs.length === 1) {
+                    return attrs[0];
+                }
+                else {
+                    var attr = roll20.createObj('attribute', attribute);
+                    if (!attr) {
+                        logger.error('Failed to create attribute $$$ on character $$$', name, character.get('name'));
+                        throw 'Failed to set import data on character';
                     }
-                    else {
-                        var attr = roll20.createObj('attribute', attribute);
-                        if (!attr) {
-                            logger.error('Failed to create attribute $$$ on character $$$', name, character.get('name'));
-                            throw 'Failed to set import data on character';
-                        }
-                        return attr;
-                    }
-                };
+                    return attr;
+                }
+            };
 
 
             return {
@@ -335,7 +232,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     if (_.isEmpty(importData)) {
                         return;
                     }
-                    var attr            = getOrCreateAttribute('import_data');
+                    var attr = getOrCreateAttribute('import_data');
                     var dataPresentAttr = getOrCreateAttribute('import_data_present');
                     var current = {};
                     try {
@@ -413,7 +310,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
                 if (results && results.length === 1) {
                     var message = that.processInlinerolls(results[0]);
-                    var total   = results[0].inlinerolls[0].results.total;
+                    var total = results[0].inlinerolls[0].results.total;
                     roll20.sendChat('HP Roller', '/w GM &{template:5e-shaped} ' + message);
                     token.set(hpBar + '_value', total);
                     token.set(hpBar + '_max', total);
