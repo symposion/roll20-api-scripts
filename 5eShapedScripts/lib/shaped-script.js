@@ -247,10 +247,16 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             });
         },
 
+        //TODO: Monster JSON format needs adjusting
         importMonstersFromJson: function (monsters) {
             _.each(monsters, function (monsterData) {
                 this.createNewCharacter(monsterData);
             });
+            report('Added the following monsters: ' + _.reduce(monsters, function (memo, spell) {
+                  memo += spell.name;
+                  return memo;
+              }, ''));
+
         },
 
         importSpellsFromJson: function (character, spells) {
@@ -258,6 +264,10 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 spells: srdConverter.convertSpells(spells)
             };
             this.getImportDataWrapper(character).mergeImportData(importData);
+            report('Added the following spells: ' + _.reduce(importData.spells, function (memo, spell) {
+                  memo += spell.name;
+                  return memo;
+              }, ''));
         },
 
         createNewCharacter: function (monsterData, token, overwrite) {
