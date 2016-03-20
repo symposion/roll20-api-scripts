@@ -190,6 +190,8 @@ module.exports = {
             spellMapper(null, spellObject, converted);
             return converted;
         });
+
+        //TODO: turn on the toggles.
     }
     /* jshint camelcase : true */
 };

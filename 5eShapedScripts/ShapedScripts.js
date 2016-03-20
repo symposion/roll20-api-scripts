@@ -1176,6 +1176,7 @@
 							return stringify(args.shift());
 						});
 					}
+					//noinspection NodeModulesDependencies
 					roll20.log('ShapedScripts ' + Date.now() + ' ' + logger.getLabel(level) + ' : ' +
 					(shouldLog(logger.TRACE) ? logger.prefixString : '') +
 					message);
@@ -1400,7 +1401,7 @@
 							return _.reduce(args, function (options, arg) {
 								var errors = [];
 								var parser = _.find(parsers, function (parser) {
-									return parser(arg.split(/\s+/), errors, options);
+									return parser(arg, errors, options);
 								});
 								if (!parser) {
 									logger.error('Unrecognised or poorly formed option [$$$]', arg);
@@ -1418,7 +1419,8 @@
 							return this;
 						},
 						addOpt: function (optionString, validator) {
-							parsers.push(function (argParts, errors, options) {
+							parsers.push(function (arg, errors, options) {
+								var argParts = arg.split(/\s+/);
 								if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
 									if (argParts.length <= 2) {
 										//Allow for bare switches
@@ -1439,11 +1441,11 @@
 							return this;
 						},
 						addLookUp: function (lookupFunction) {
-							parsers.push(function (argParts, errors, options) {
-								var name     = argParts[0].toLowerCase();
+							parsers.push(function (arg, errors, options) {
+								var name     = arg.toLowerCase();
 								var resolved = lookupFunction(name);
 								if (resolved) {
-									options[argParts[0]] = resolved;
+									options[arg] = resolved;
 									return true;
 								}
 								return false;
@@ -1570,35 +1572,42 @@
 				},
 
 				getImportDataWrapper: function (character) {
-					var attribute          = {
+					var getOrCreateAttribute = function (name) {
+						var attribute = {
 							type: 'attribute',
-							name: 'import_data',
+							name: name,
 							characterid: character.id
-						},
-
-						getImportAttribute = function () {
-							var attrs = roll20.findObjs(attribute);
-							if (attrs && attrs.length === 1) {
-								return attrs[0];
-							}
-							else {
-								var attr = roll20.createObj('attribute', attribute);
-								if (!attr) {
-									logger.error('Failed to set character import data on new character object.');
-									throw 'Failed to set import data on character';
-								}
-								return attr;
-							}
 						};
+						var attrs     = roll20.findObjs(attribute);
+						if (attrs && attrs.length === 1) {
+							return attrs[0];
+						}
+						else {
+							var attr = roll20.createObj('attribute', attribute);
+							if (!attr) {
+								logger.error('Failed to create attribute $$$ on character $$$', name, character.get('name'));
+								throw 'Failed to set import data on character';
+							}
+							return attr;
+						}
+					};
 
 
 					return {
 						setNewImportData: function (importData) {
-							getImportAttribute().set('current', JSON.stringify(importData));
+							if (_.isEmpty(importData)) {
+								return;
+							}
+							getOrCreateAttribute('import_data').set('current', JSON.stringify(importData));
+							getOrCreateAttribute('import_data_present').set('current', 'on');
 						},
 						mergeImportData: function (importData) {
-							var attr    = getImportAttribute();
-							var current = {};
+							if (_.isEmpty(importData)) {
+								return;
+							}
+							var attr            = getOrCreateAttribute('import_data');
+							var dataPresentAttr = getOrCreateAttribute('import_data_present');
+							var current         = {};
 							try {
 								if (!_.isEmpty(attr.get('current').trim())) {
 									current = JSON.parse(attr.get('current'));
@@ -1613,7 +1622,7 @@
 									if (!_.isArray(currentVal)) {
 										current[key] = [currentVal];
 									}
-									currentVal.push(value);
+									current[key] = current[key].concat(value);
 								}
 								else {
 									current[key] = value;
@@ -1622,6 +1631,7 @@
 							});
 							logger.debug('Setting import data to $$$', current);
 							attr.set('current', JSON.stringify(current));
+							dataPresentAttr.set('current', 'on');
 							return current;
 						},
 
@@ -1995,6 +2005,8 @@
 					spellMapper(null, spellObject, converted);
 					return converted;
 				});
+
+				//TODO: turn on the toggles.
 			}
 			/* jshint camelcase : true */
 		};
@@ -2147,7 +2159,7 @@
 			logger.debug('Final stage cleaned statblock: $$$', statblock);
 			return statblock;
 
-		}
+	}
 
 		module.exports = sanitise;
 
