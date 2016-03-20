@@ -12,14 +12,6 @@ var version = '0.1',
           valid: typeof value === 'boolean' || value === 'true' || value === 'false',
           converted: converted
       };
-  },
-
-  report = function (msg) {
-      'use strict';
-      //Horrible bug with this at the moment - seems to generate spurious chat
-      //messages when noarchive:true is set
-      //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
-      roll20.sendChat('ShapedScripts', '/w gm ' + msg);
   };
 
 /**
@@ -44,11 +36,20 @@ var version = '0.1',
  * @param myState
  * @param roll20
  * @param parser
+ * @param entityLookup
  * @returns {{handleInput: function, configOptionsSpec: {Object}, makeOpts: function, processSelection: function, configure: function, importStatblock: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
  */
-module.exports = function (logger, myState, roll20, parser) {
+module.exports = function (logger, myState, roll20, parser, entityLookup) {
     var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
     var addedTokenIds = [];
+    var report = function (msg) {
+        'use strict';
+        //Horrible bug with this at the moment - seems to generate spurious chat
+        //messages when noarchive:true is set
+        //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
+        roll20.sendChat('ShapedScripts', '/w gm ' + msg);
+    };
+
     'use strict';
     var shapedModule = {
         /**
@@ -176,50 +177,76 @@ module.exports = function (logger, myState, roll20, parser) {
             _.each(graphics, function (token) {
                 var text = token.get('gmnotes');
                 if (text) {
-                    try {
-                        text = sanitise(_.unescape(decodeURIComponent(text)), logger);
-                        //noinspection JSUnresolvedVariable
-                        var jsonObject = srdConverter(parser.parse(text).npc);
-
-                        var represents = token.get('represents');
-                        var character;
-                        if (!represents) {
-                            //noinspection JSUnresolvedVariable
-                            character = roll20.createObj('character', {
-                                name: jsonObject.character_name,
-                                avatar: token.get('imgsrc')
-                            });
-                            represents = character.id;
-                        }
-                        else {
-                            character = roll20.getObj('character', represents);
-                        }
-
-                        if (character) {
-
-                            var attribute = {
-                                type: 'attribute',
-                                name: 'import_data',
-                                characterid: represents
-                            };
-                            var attrs = roll20.findObjs(attribute);
-                            if (attrs.length === 1) {
-                                attrs[0].set('current', JSON.stringify(jsonObject));
-                            }
-                            else {
-                                roll20.createObj('attribute', _.extend(attribute, {current: JSON.stringify(jsonObject)}));
-                            }
-                        }
-                        else {
-                            //ToDO handle error better
-                            roll20.log('Couldn\'t make character for new npc');
-                        }
-                    }
-                    catch (e) {
-                        logger.error(e.toString());
-                    }
+                    text = sanitise(_.unescape(decodeURIComponent(text)), logger);
+                    //noinspection JSUnresolvedVariable
+                    this.createNewCharacter(parser.parse(text).npc, token);
                 }
             });
+        },
+
+        importMonsterJson: function (name) {
+            if (!entityLookup.monsters[name]) {
+                report('No information found for monster "' + name + '"');
+                return;
+            }
+
+            this.createNewCharacter(entityLookup.monsters[name]);
+        },
+
+        importSpellJson: function (name) {
+            if (!entityLookup.spells[name]) {
+                report('No information found for spell "' + name + '"');
+                return;
+            }
+
+            var spell = srdConverter.convertSpell(entityLookup.spells[name]);
+            //TODO: check for selected token, find character, check the import item to see if it has a value, add the spell
+            //TODO: change monster import to check for existing import_data
+        },
+
+        createNewCharacter: function (monsterData, token) {
+            var data = entityLookup.monsters[name];
+            var converted = srdConverter.convertMonster(data);
+            var character;
+            if (token) {
+                var represents = token.get('represents');
+                if (represents) {
+                    character = roll20.getObj('character', represents);
+                }
+            }
+
+            if (!character) {
+                //noinspection JSUnresolvedVariable
+                character = roll20.createObj('character', {
+                    name: monsterData.character_name,
+                    avatar: token.get('imgsrc')
+                });
+                represents = character.id;
+            }
+
+            if (!character) {
+                logger.error('Failed to create character for monsterData $$$', monsterData);
+                throw "Failed to create new character";
+            }
+
+            var attribute = {
+                type: 'attribute',
+                name: 'import_data',
+                characterid: represents
+            };
+            var attrs = roll20.findObjs(attribute);
+            if (attrs.length === 1) {
+                attrs[0].set('current', JSON.stringify(converted));
+            }
+            else {
+                var attr = roll20.createObj('attribute', _.extend(attribute, {current: JSON.stringify(converted)}));
+                if (!attr) {
+                    logger.error('Failed to set character import data on new character object.');
+                    throw "Failed to create new character";
+                }
+            }
+            return character;
+
         },
 
 
