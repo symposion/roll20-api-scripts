@@ -53,6 +53,7 @@ module.exports = function (config) {
                     return stringify(args.shift());
                 });
             }
+            //noinspection NodeModulesDependencies
             roll20.log('ShapedScripts ' + Date.now() + ' ' + logger.getLabel(level) + ' : ' +
                 (shouldLog(logger.TRACE) ? logger.prefixString : '') +
                 message);
@@ -83,7 +84,7 @@ module.exports = function (config) {
 
     logger.wrapFunction = function (name, func, moduleName) {
         if (shouldLog(logger.TRACE)) {
-            if (name === 'toJSON') {
+            if (name === 'toJSON' || moduleName === 'roll20' && name === 'log') {
                 return func;
             }
             return function () {

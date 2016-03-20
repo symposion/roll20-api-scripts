@@ -1,9 +1,9 @@
 /* globals describe: false, it:false */
 require('chai').should();
-const _ = require('underscore');
-const roll20 = require('../lib/roll20');
-const getShaped = require('../lib/shaped-script');
-const sinon = require('sinon');
+var _         = require('underscore');
+var roll20    = require('../lib/roll20');
+var getShaped = require('../lib/shaped-script');
+var sinon     = require('sinon');
 
 
 describe('shaped-script', function () {

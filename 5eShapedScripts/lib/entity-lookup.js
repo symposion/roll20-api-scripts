@@ -1,22 +1,37 @@
 var _ = require('underscore');
 
+var entities = {
+    monster: {},
+    spell: {}
+};
+
 module.exports = {
-    monsters: {},
-    spells: {},
-    addMonsters: function (monsterArray, overwrite) {
-        "use strict";
-        _.each(monsterArray, function (monster) {
-            if (!this.monsters[monster.name] || overwrite) {
-                this.monsters[monster.name] = monster;
+
+    addEntities: function (logger, type, entityArray, overwrite) {
+        'use strict';
+        if (!entities[type]) {
+            throw 'Unrecognised entity type ' + type;
+        }
+        var addedCount = 0;
+        _.each(entityArray, function (entity) {
+            if (!entities[type][entity.name.toLowerCase()] || overwrite) {
+                entities[type][entity.name.toLowerCase()] = entity;
+                addedCount++;
             }
         });
+        logger.info('Added $$$ entities of type $$$ to the lookup', addedCount, type);
+        logger.info(this);
     },
-    addSpells: function (spellArray, overwrite) {
-        "use strict";
-        _.each(spellArray, function (spell) {
-            if (!this.spells[spell.name] || overwrite) {
-                this.spells[spell.name] = spell;
-            }
-        });
+    findEntity: function (type, name) {
+        'use strict';
+        if (!entities[type]) {
+            throw 'Unrecognised entity type ' + type;
+        }
+        return entities[type][name.toLowerCase()];
+    },
+    logWrap: 'entityLookup',
+    toJSON: function () {
+        'use strict';
+        return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
     }
 };

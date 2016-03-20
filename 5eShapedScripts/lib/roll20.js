@@ -43,5 +43,7 @@ module.exports = {
     log: function (msg) {
         'use strict';
         return log(msg);
-    }
+    },
+
+    logWrap: 'roll20'
 };

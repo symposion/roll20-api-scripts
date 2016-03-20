@@ -1,15 +1,137 @@
 var _ = require('underscore');
 
+/* jshint camelcase : false */
+function getRenameMapper(newName) {
+    'use strict';
+    return function (key, value, output) {
+        output[newName] = value;
+    };
+}
+
+var identityMapper     = function (key, value, output) {
+        'use strict';
+        output[key] = value;
+    },
+    booleanMapper      = function (key, value, output) {
+        'use strict';
+        if (value) {
+            output[key] = 'Yes';
+        }
+    },
+    camelCaseFixMapper = function (key, value, output) {
+        'use strict';
+        var newKey     = key.replace(/([A-Z])/g, function (letter) {
+            return '_' + letter.toLowerCase();
+        });
+        output[newKey] = value;
+    },
+    castingStatMapper  = function (key, value, output) {
+        'use strict';
+        if (value) {
+            output.add_casting_modifier = 'Yes';
+        }
+    },
+    componentMapper    = function (key, value, output) {
+        'use strict';
+        output.components = _.chain(value)
+          .map(function (value, key) {
+              if (key !== 'materialMaterial') {
+                  return key.toUpperCase().slice(0, 1);
+              }
+              else {
+                  output.materials = value;
+              }
+
+          })
+          .compact()
+          .value()
+          .join(' ');
+    },
+    saveAttackMappings = {
+        ability: getRenameMapper('save'),
+        damage: identityMapper,
+        damageBonus: camelCaseFixMapper,
+        damageType: camelCaseFixMapper,
+        saveSuccess: getRenameMapper('saving_throw_success'),
+        saveFailure: getRenameMapper('saving_throw_failure'),
+        higherLevelDice: camelCaseFixMapper,
+        higherLevelDie: camelCaseFixMapper,
+        secondaryDamage: getRenameMapper('second_damage'),
+        secondaryDamageBonus: getRenameMapper('second_damage_bonus'),
+        secondaryDamageType: getRenameMapper('second_damage_type'),
+        higherLevelSecondaryDice: getRenameMapper('second_higher_level_dice'),
+        higherLevelSecondaryDie: getRenameMapper('second_higher_level_die'),
+        condition: getRenameMapper('saving_throw_condition'),
+        castingStat: castingStatMapper
+    }
+  ;
+
+function getObjectMapper(mappings) {
+    'use strict';
+    return function (key, value, output) {
+        _.each(value, function (propVal, propName) {
+            var mapper = mappings[propName];
+            if (!mapper) {
+                throw 'Unrecognised property when attempting to convert to srd format: [' + propName + '] ' + JSON.stringify(output);
+            }
+            mapper(propName, propVal, output);
+        });
+    };
+}
+
+var spellMapper = getObjectMapper({
+    name: identityMapper,
+    duration: identityMapper,
+    level: getRenameMapper('spell_level'),
+    school: identityMapper,
+    emote: identityMapper,
+    range: identityMapper,
+    castingTime: camelCaseFixMapper,
+    target: identityMapper,
+    description: function (key, value, output) {
+        'use strict';
+        output.content = value + (output.content ? '\n' + output.content : '');
+    },
+    higherLevel: function (key, value, output) {
+        'use strict';
+        //TODO make this configurable
+        output.content = (output.content ? output.content + '\n' : '') + value;
+    },
+    ritual: booleanMapper,
+    concentration: booleanMapper,
+    save: getObjectMapper(saveAttackMappings),
+    attack: getObjectMapper(saveAttackMappings),
+    damage: getObjectMapper(saveAttackMappings),
+    heal: getObjectMapper({
+        amount: getRenameMapper('heal'),
+        castingStat: castingStatMapper,
+        higherLevelDice: camelCaseFixMapper,
+        higherLevelDie: camelCaseFixMapper,
+        higherLevelAmount: getRenameMapper('higher_level_heal'),
+        bonus: getRenameMapper('heal_bonus')
+    }),
+    components: componentMapper,
+    classes: _.noop,
+    aoe: _.noop,
+    source: _.noop,
+    effects: _.noop,
+    domains: _.noop,
+    oaths: _.noop,
+    circles: _.noop,
+    patrons: _.noop
+});
+
 module.exports = {
+
     convertMonster: function (npcObject) {
         'use strict';
 
         var output = _.clone(npcObject);
 
         var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', {variable: 'data'});
-        var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
+        var legendaryTemplate   = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
 
-        var simpleSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
+        var simpleSectionTemplate    = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
         var legendarySectionTemplate = _.template('<%=data.title%>\nThe <%=data.name%> can take <%=data.legendaryPoints%> legendary actions, ' +
           'choosing from the options below. It can take only one legendary action at a time and only at the end of another creature\'s turn.' +
           ' The <%=data.name%> regains spent legendary actions at the start of its turn.\n<% print(data.items.join("\\n")) %>', {variable: 'data'});
@@ -32,7 +154,7 @@ module.exports = {
             };
         };
 
-        output.is_npc = 1;
+        output.is_npc    = 1;
         output.edit_mode = 'off';
 
         output.content_srd = _.chain(srdContentSections)
@@ -59,73 +181,15 @@ module.exports = {
 
     },
 
-    /**
-     *
-     * @param spellObject
-     * @returns {{}}
-     */
-    convertSpell: function (spellObject) {
-        "use strict";
 
-        //ToDO: replace this with a pick
-        var converted = {};
-        _.clone(spellObject);
-        converted.content = spellObject.description;
+    convertSpells: function (spellObjects) {
+        'use strict';
 
-        if (spellObject.higherLevel) {
-            //TODO: make this behaviour configurable
-            converted.content += '\nAt Higher Levels: ' + spellObject.higherLevel;
-        }
-        if (spellObject.save) {
-            converted.save = spellObject.save.ability;
-            converted.damage = spellObject.save.damage;
-            converted.damage_type = spellObject.save.damageType;
-            converted.saving_throw_success = spellObject.save.saveSuccess;
-            converted.saving_throw_failure = spellObject.save.saveFailure;
-            converted.higher_level_dice = spellObject.save.higherLevelDice;
-            converted.higher_level_die = spellObject.save.higherLevelDie;
-            converted.second_damage = spellObject.save.secondaryDamage;
-            converted.second_damage_type = spellObject.save.secondaryDamageType;
-            converted.second_higher_level_dice = spellObject.save.higherLevelSecondaryDice;
-            converted.second_higher_level_die = spellObject.save.higherLevelSecondaryDie;
-            converted.saving_throw_condition = spellObject.save.condition;
-        }
-        if (converted.attack) {
-            converted.damage = spellObject.attack.damage;
-            converted.damage_type = spellObject.attack.damageType;
-            converted.higher_level_dice = spellObject.attack.higherLevelDice;
-            converted.higher_level_die = spellObject.attack.higherLevelDie;
-            converted.second_damage = spellObject.attack.secondaryDamage;
-            converted.second_damage_type = spellObject.attack.secondaryDamageType;
-            converted.second_higher_level_dice = spellObject.attack.higherLevelSecondaryDice;
-            converted.second_higher_level_die = spellObject.attack.higherLevelSecondaryDie;
-        }
-
-        converted.components = _.chain(spellObject.components)
-          .map(function (value, key) {
-              if (key !== 'materialMaterial') {
-                  return key.toUpperCase().slice(0, 1);
-              }
-              else {
-                  converted.materials = value;
-              }
-
-          })
-          .compact()
-          .value()
-          .join(' ');
-
-        if (spellObject.ritual) {
-            converted.ritual = 'Yes';
-        }
-        if (spellObject.concentration) {
-            converted.concentration = 'Yes';
-        }
-
-        var copyAttrs = ['duration', 'level', 'school', 'emote', 'range', 'castingTime', 'target'];
-
-        _.extend(converted, _.pick(spellObject, copyAttrs));
-
-        return converted;
+        return _.map(spellObjects, function (spellObject) {
+            var converted = {};
+            spellMapper(null, spellObject, converted);
+            return converted;
+        });
     }
+    /* jshint camelcase : true */
 };
