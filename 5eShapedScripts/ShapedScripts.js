@@ -1433,8 +1433,7 @@
 					logLevel: function (value) {
 						var converted = value.toUpperCase();
 						return {valid: _.has(logger, converted), converted: converted};
-					},
-					updateAmmo: booleanValidator
+					}
 				},
 
 				/////////////////////////////////////////
@@ -1645,7 +1644,8 @@
 				 * @param {ChatMessage} msg
 				 */
 				checkForAmmoUpdate: function (msg) {
-					if (myState.config.updateAmmo && msg.rolltemplate === '5e-shaped' && msg.content.indexOf('{{ammo_name=') !== -1) {
+					//TODO check for auto ammo attribute
+					if (msg.rolltemplate === '5e-shaped' && msg.content.indexOf('{{ammo_name=') !== -1) {
 						var match;
 						var characterName;
 						var ammoName;
@@ -1721,8 +1721,7 @@
 									_.defaults(myState, {
 										version: schemaVersion,
 										config: {
-											logLevel: 'INFO',
-											updateAmmo: false
+											logLevel: 'INFO'
 										}
 									});
 									logger.info('Making new state object $$$', myState);
