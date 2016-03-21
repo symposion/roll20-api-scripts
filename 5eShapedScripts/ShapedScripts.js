@@ -1670,18 +1670,18 @@
 
 							var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
 							.filter(function (attribute) {
-								return attribute.get('name').startsWith('repeating_ammo');
+								return attribute.get('name').indexOf('repeating_ammo') === 0;
 							})
 							.groupBy(function (attribute) {
 								return attribute.get('name').replace(/(repeating_ammo_[^_]+).*/, '$1');
 							})
 							.find(function (attributes) {
 								return _.find(attributes, function (attribute) {
-									return attribute.get('name').endsWith('name') && attribute.get('current') === ammoName;
+									return attribute.get('name').match(/.*name$/) && attribute.get('current') === ammoName;
 								});
 							})
 							.find(function (attribute) {
-								return attribute.get('name').endsWith('qty');
+								return attribute.get('name').match(/.*qty$/);
 							})
 							.value();
 
