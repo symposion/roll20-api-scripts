@@ -20,7 +20,7 @@ var identityMapper     = function (key, value, output) {
     },
     camelCaseFixMapper = function (key, value, output) {
         'use strict';
-        var newKey     = key.replace(/([A-Z])/g, function (letter) {
+        var newKey = key.replace(/[A-Z]/g, function (letter) {
             return '_' + letter.toLowerCase();
         });
         output[newKey] = value;

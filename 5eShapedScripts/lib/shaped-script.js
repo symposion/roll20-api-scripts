@@ -39,7 +39,7 @@ var booleanValidator = function (value) {
  * @param roll20
  * @param parser
  * @param entityLookup
- * @returns {{handleInput: function, configOptionsSpec: {Object}, options: function, processSelection: function, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
+ * @returns {{handleInput: function, configOptionsSpec: {Object}, options: function, processSelection: function, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, getRollTemplateOptions:function, checkForDeathSave:function, logWrap: string}}
  */
 module.exports = function (logger, myState, roll20, parser, entityLookup) {
     'use strict';
@@ -86,6 +86,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 logger.debug(msg);
                 if (msg.type !== 'api') {
                     this.checkForAmmoUpdate(msg);
+                    this.checkForDeathSave(msg);
                     return;
                 }
 
@@ -324,53 +325,77 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
          */
         checkForAmmoUpdate: function (msg) {
             //TODO check for auto ammo attribute
-            if (msg.rolltemplate === '5e-shaped' && msg.content.indexOf('{{ammo_name=') !== -1) {
-                var match;
-                var characterName;
-                var ammoName;
-                var regex = /\{\{(.*?)\}\}/g;
 
-                while (!!(match = regex.exec(msg.content))) {
-                    if (match[1]) {
-                        var splitAttr = match[1].split('=');
-                        if (splitAttr[0] === 'character_name') {
-                            characterName = splitAttr[1];
-                        }
-                        if (splitAttr[0] === 'ammo_name') {
-                            ammoName = splitAttr[1];
-                        }
-                    }
+            var options = this.getRollTemplateOptions(msg);
+            if (options.ammoName && options.characterName) {
+                var character = roll20.findObjs({
+                    _type: 'character',
+                    name: options.characterName
+                })[0];
+
+                var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
+                  .filter(function (attribute) {
+                      return attribute.get('name').indexOf('repeating_ammo') === 0;
+                  })
+                  .groupBy(function (attribute) {
+                      return attribute.get('name').replace(/(repeating_ammo_[^_]+).*/, '$1');
+                  })
+                  .find(function (attributes) {
+                      return _.find(attributes, function (attribute) {
+                          return attribute.get('name').match(/.*name$/) && attribute.get('current') === options.ammoName;
+                      });
+                  })
+                  .find(function (attribute) {
+                      return attribute.get('name').match(/.*qty$/);
+                  })
+                  .value();
+
+                var val = parseInt(ammoAttr.get('current'), 10) || 0;
+                ammoAttr.set('current', Math.max(0, val - 1));
+            }
+
+        },
+
+        checkForDeathSave: function (msg) {
+            var options = this.getRollTemplateOptions(msg);
+            if (options.deathSavingThrow && options.characterName && options.roll1) {
+                var character = roll20.findObjs({
+                    _type: 'character',
+                    name: options.characterName
+                })[0];
+
+                //TODO: Could we output a chat button maybe in the roll_2 case?
+                //TODO: Do we want to output text on death/recovery?
+                var increment = function (val) {
+                    return ++val;
+                };
+                if (roll20.getAttrByName(character.id, 'roll_setting') !== '@{roll_2}') {
+                    var rollIndex = options.roll1.match(/\$\[\[(\d+)\]\]/)[1];
+                    var result = msg.inlinerolls[rollIndex].results.total;
+                    var attributeToIncrement = result >= 10 ? 'death_saving_throw_successes' : 'death_saving_throw_failures';
+                    roll20.processAttrValue(character.id, attributeToIncrement, increment);
                 }
-                if (ammoName && characterName) {
-                    var character = roll20.findObjs({
-                        _type: 'character',
-                        name: characterName
-                    })[0];
-
-                    var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
-                      .filter(function (attribute) {
-                          return attribute.get('name').indexOf('repeating_ammo') === 0;
-                      })
-                      .groupBy(function (attribute) {
-                          return attribute.get('name').replace(/(repeating_ammo_[^_]+).*/, '$1');
-                      })
-                      .find(function (attributes) {
-                          return _.find(attributes, function (attribute) {
-                              return attribute.get('name').match(/.*name$/) && attribute.get('current') === ammoName;
-                          });
-                      })
-                      .find(function (attribute) {
-                          return attribute.get('name').match(/.*qty$/);
-                      })
-                      .value();
-
-                    var val = parseInt(ammoAttr.get('current'), 10) || 0;
-                    ammoAttr.set('current', Math.max(0, val - 1));
-                }
-
             }
         },
 
+        getRollTemplateOptions: function (msg) {
+            if (msg.rolltemplate === '5e-shaped') {
+                var regex = /\{\{(.*?)\}\}/g;
+                var match;
+                var options = {};
+                while (!!(match = regex.exec(msg.content))) {
+                    if (match[1]) {
+                        var splitAttr = match[1].split('=');
+                        var propertyName = splitAttr[0].replace(/_([a-z])/g, function (match, letter) {
+                            return letter.toUpperCase();
+                        });
+                        options[propertyName] = splitAttr.length === 2 ? splitAttr[1] : '';
+                    }
+                }
+                return options;
+            }
+            return {};
+        },
 
         processInlinerolls: function (msg) {
             if (_.has(msg, 'inlinerolls')) {

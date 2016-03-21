@@ -30,6 +30,31 @@ module.exports = {
         return getAttrByName(character, attrName);
     },
 
+    getOrCreateAttr: function (characterId, attrName) {
+        'use strict';
+        var attrSpec = {type: 'attribute', characterid: characterId, name: attrName};
+        var attribute = this.findObjs(attrSpec);
+        switch (attribute.length) {
+            case 0:
+                return this.createObj('attribute', attrSpec);
+            case 1:
+                return attribute[0];
+            default:
+                throw new Error('Asked for a single attribute [' + attrName + '] for character [' + characterId + '] but more than one found');
+        }
+    },
+
+    setAttrByName: function (characterId, attrName, value) {
+        'use strict';
+        this.getOrCreateAttr(characterId, attrName).set('current', value);
+    },
+
+    processAttrValue: function (characterId, attrName, cb) {
+        'use strict';
+        var attribute = this.getOrCreateAttr(characterId, attrName);
+        attribute.set('current', cb(attribute.get('current')));
+    },
+
     sendChat: function (sendAs, message, callback, options) {
         'use strict';
         return sendChat(sendAs, message, callback, options);
