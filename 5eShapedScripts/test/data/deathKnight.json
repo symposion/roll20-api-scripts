@@ -40,7 +40,7 @@
       },
       {
         "name": "Longsword",
-        "text": "Melee Weapon Attack:+11 tohit,reach5ft, one target. Hit:9 (1d8 + 5) slashing damage, or 10 (1d10 + 5) slashing damage if used with two hands, plus 18 (4d8) necrotic damage."
+        "text": "Melee Weapon Attack:+11 to hit,reach5ft, one target. Hit:9 (1d8 + 5) slashing damage, or 10 (1d10 + 5) slashing damage if used with two hands, plus 18 (4d8) necrotic damage."
       },
       {
         "name": "Hellfire Orb",

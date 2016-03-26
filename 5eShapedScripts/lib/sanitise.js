@@ -131,7 +131,8 @@ function sanitise(statblock, logger) {
         ' Th e ': ' The ',
         't_urns': 'turns',
         'unti l': 'until',
-        'withi n': 'within'
+        'withi n': 'within',
+        'tohit': 'to hit'
     };
     var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
     statblock = statblock.replace(re, function (matched) {

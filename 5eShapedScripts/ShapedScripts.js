@@ -1313,7 +1313,7 @@
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 
-		var version       = '0.1.2',
+		var version       = '0.1.3',
 			schemaVersion = 0.1,
 			hpBar         = 'bar1';
 
@@ -2375,7 +2375,8 @@
 				' Th e ': ' The ',
 				't_urns': 'turns',
 				'unti l': 'until',
-				'withi n': 'within'
+				'withi n': 'within',
+				'tohit': 'to hit'
 			};
 			var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
 			statblock = statblock.replace(re, function (matched) {
