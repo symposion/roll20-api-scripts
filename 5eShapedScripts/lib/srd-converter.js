@@ -121,17 +121,76 @@ var spellMapper = getObjectMapper({
     patrons: _.noop
 });
 
+
+var monsterMapper = getObjectMapper({
+    name: getRenameMapper('character_name'),
+    size: identityMapper,
+    type: identityMapper,
+    alignment: identityMapper,
+    AC: getRenameMapper('ac_srd'),
+    HP: getRenameMapper('hp_srd'),
+    speed: getRenameMapper('npc_speed'),
+    strength: identityMapper,
+    dexterity: identityMapper,
+    constitution: identityMapper,
+    intelligence: identityMapper,
+    wisdom: identityMapper,
+    charisma: identityMapper,
+    skills: getRenameMapper('skills_srd'),
+    spells: getRenameMapper('spells_srd'),
+    savingThrows: getRenameMapper('saving_throws_srd'),
+    damageResistances: getRenameMapper('damage_resistances'),
+    damageImmunities: getRenameMapper('damage_immunities'),
+    conditionImmunities: getRenameMapper('condition_immunities'),
+    damageVulnerabilities: getRenameMapper('damage_vulnerabilities'),
+    senses: identityMapper,
+    languages: identityMapper,
+    challenge: identityMapper,
+    traits: identityMapper,
+    actions: identityMapper,
+    reactions: identityMapper,
+    regionalEffects: _.noop,
+    regionalEffectsFade: _.noop,
+    legendaryPoints: identityMapper,
+    legendaryActions: identityMapper,
+    lairActions: _.noop
+});
+
+var pronounLookup = {
+        male: {
+            nominative: 'he',
+            accusative: 'him',
+            possessive: 'his',
+            reflexive: 'himself'
+        },
+        female: {
+            nominative: 'she',
+            accusative: 'her',
+            possessive: 'her',
+            reflexive: 'herself'
+        }
+    },
+
+    pronounTokens = {
+        '{{GENDER_PRONOUN_HE_SHE}}': 'nominative',
+        '{{GENDER_PRONOUN_HIM_HER}}': 'accusative',
+        '{{GENDER_PRONOUN_HIS_HER}}': 'possessive',
+        '{{GENDER_PRONOUN_HIMSELF_HERSELF}}': 'reflexive'
+    };
+
+
 module.exports = {
 
     convertMonster: function (npcObject) {
         'use strict';
 
-        var output = _.clone(npcObject);
+        var output = {};
+        monsterMapper(null, npcObject, output);
 
         var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', {variable: 'data'});
-        var legendaryTemplate   = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
+        var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
 
-        var simpleSectionTemplate    = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
+        var simpleSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
         var legendarySectionTemplate = _.template('<%=data.title%>\nThe <%=data.name%> can take <%=data.legendaryPoints%> legendary actions, ' +
           'choosing from the options below. It can take only one legendary action at a time and only at the end of another creature\'s turn.' +
           ' The <%=data.name%> regains spent legendary actions at the start of its turn.\n<% print(data.items.join("\\n")) %>', {variable: 'data'});
@@ -154,7 +213,7 @@ module.exports = {
             };
         };
 
-        output.is_npc    = 1;
+        output.is_npc = 1;
         output.edit_mode = 'off';
 
         output.content_srd = _.chain(srdContentSections)
@@ -182,12 +241,19 @@ module.exports = {
     },
 
 
-    convertSpells: function (spellObjects) {
+    convertSpells: function (spellObjects, gender) {
         'use strict';
+
 
         return _.map(spellObjects, function (spellObject) {
             var converted = {};
             spellMapper(null, spellObject, converted);
+            if (converted.emote) {
+                _.each(pronounTokens, function (pronounType, token) {
+                    var replacement = pronounLookup[gender][pronounType];
+                    converted.emote = converted.emote.replace(token, replacement);
+                });
+            }
             return converted;
         });
 

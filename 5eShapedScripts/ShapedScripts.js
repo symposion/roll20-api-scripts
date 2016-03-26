@@ -59,7 +59,7 @@
 	/* 0 */
 	/***/ function (module, exports, __webpack_require__) {
 
-		/* globals FifthSpells, FifthMonsters */
+		/* globals fifthSpells, fifthMonsters */
 		var roll20 = __webpack_require__(1);
 		var parseModule = __webpack_require__(2);
 		var mmFormat = __webpack_require__(4);
@@ -74,11 +74,22 @@
 
 		roll20.on('ready', function () {
 			'use strict';
-			if (typeof FifthMonsters !== 'undefined') {
-				entityLookup.addEntities(logger, 'monster', FifthMonsters);
+			if (typeof fifthMonsters !== 'undefined') {
+				logger.debug(fifthMonsters.version);
+				if (fifthMonsters.version === '0.1.0') {
+					entityLookup.addEntities(logger, 'monster', fifthMonsters.monsters);
+				}
+				else {
+					roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of monster data file used, please upgrade to the latest version');
+				}
 			}
-			if (typeof FifthSpells !== 'undefined') {
-				entityLookup.addEntities(logger, 'spell', FifthSpells);
+			if (typeof fifthSpells !== 'undefined') {
+				if (fifthSpells.version === '0.1.0') {
+					entityLookup.addEntities(logger, 'spell', fifthSpells.spells);
+				}
+				else {
+					roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of spell data file used, please upgrade to the latest version');
+				}
 			}
 			shaped.checkInstall();
 			shaped.registerEventHandlers();
@@ -778,7 +789,6 @@
 					"contentModel": [
 						{
 							"name": "name",
-							"attribute": "character_name",
 							"type": "string",
 							"bare": "true"
 						},
@@ -823,7 +833,7 @@
 								"any chaotic alignment"
 							],
 							"bare": true
-						}
+					}
 					]
 				},
 				{
@@ -832,23 +842,20 @@
 					"flatten": true,
 					"contentModel": [
 						{
-							"name": "ac",
-							"attribute": "ac_srd",
+							"name": "AC",
 							"parseToken": "armor class",
 							"pattern": "\\d+\\s*(?:\\([^)]*\\))?",
 							"type": "string"
 						},
 						{
-							"name": "hp",
+							"name": "HP",
 							"parseToken": "hit points",
-							"attribute": "hp_srd",
 							"type": "string",
 							"pattern": "\\d+(?:\\s?\\(\\s?\\d+d\\d+(?:\\s?[-+]\\s?\\d+)?\\s?\\))?"
 						},
 						{
 							"name": "speed",
 							"minOccurs": 0,
-							"attribute": "npc_speed",
 							"type": "string",
 							"pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\(hover\\))?$"
 						},
@@ -885,7 +892,6 @@
 						{
 							"name": "savingThrows",
 							"minOccurs": 0,
-							"attribute": "saving_throws_srd",
 							"parseToken": "saving throws",
 							"type": "string",
 							"pattern": "(?:(?:^|,\\s*)(?:Str|Dex|Con|Int|Wis|Cha)\\s+[\\-\\+]\\d+)+"
@@ -893,33 +899,28 @@
 						{
 							"name": "skills",
 							"minOccurs": 0,
-							"attribute": "skills_srd",
 							"type": "string",
 							"pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Slight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
 						},
 						{
-							"attribute": "damage_vulnerabilities",
 							"minOccurs": 0,
 							"type": "string",
-							"name": "vulnerabilties",
+							"name": "damageVulnerabilties",
 							"parseToken": "damage vulnerabilities"
 						},
 						{
-							"attribute": "damage_resistances",
 							"minOccurs": 0,
 							"type": "string",
-							"name": "resistances",
+							"name": "damageResistances",
 							"parseToken": "damage resistances"
 						},
 						{
-							"attribute": "damage_immunities",
 							"minOccurs": 0,
 							"type": "string",
-							"name": "immunities",
+							"name": "damageImmunities",
 							"parseToken": "damage immunities"
 						},
 						{
-							"attribute": "condition_immunities",
 							"minOccurs": 0,
 							"type": "string",
 							"name": "conditionImmunities",
@@ -953,7 +954,6 @@
 				},
 				{
 					"name": "spellBook",
-					"attribute": "spells_srd",
 					"type": "string",
 					"minOccurs": 0
 				},
@@ -1141,43 +1141,6 @@
 							]
 						}
 					]
-				},
-				{
-					"name": "lairActions",
-					"type": "orderedContent",
-					"minOccurs": 0,
-					"maxOccurs": 1,
-					"flatten": true,
-					"contentModel": [
-						{
-							"name": "actionHeader",
-							"type": "heading",
-							"bare": true,
-							"pattern": "^Lair Actions$"
-						},
-						{
-							"name": "lairActions",
-							"type": "orderedContent",
-							"minOccurs": 1,
-							"maxOccurs": "Infinity",
-							"contentModel": [
-								{
-									"name": "name",
-									"type": "string",
-									"bare": true,
-									"pattern": "^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?\\.(?!$)",
-									"matchGroup": 2,
-									"forPreviousMatchGroup": 1,
-									"caseSensitive": true
-								},
-								{
-									"name": "text",
-									"bare": true,
-									"type": "string"
-								}
-							]
-						}
-					]
 				}
 			]
 		};
@@ -1349,7 +1312,7 @@
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 
-		var version       = '0.1',
+		var version       = '0.1.1',
 			schemaVersion = 0.1,
 			hpBar         = 'bar1';
 
@@ -1385,7 +1348,7 @@
 		 * @param roll20
 		 * @param parser
 		 * @param entityLookup
-		 * @returns {{handleInput: function, configOptionsSpec: {Object}, options: function, processSelection: function, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
+		 * @returns {{handleInput: function, configOptionsSpec: {Object}, options: function, processSelection: function, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, getRollTemplateOptions:function, checkForDeathSave:function, logWrap: string}}
 		 */
 		module.exports = function (logger, myState, roll20, parser, entityLookup) {
 			'use strict';
@@ -1502,8 +1465,15 @@
 				},
 
 				importSpellsFromJson: function (options) {
+
+					var gender = roll20.getAttrByName(options.selected.character.id, 'gender');
+
+					//TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
+					gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';
+
+
 					var importData = {
-						spells: srdConverter.convertSpells(options.spells)
+						spells: srdConverter.convertSpells(options.spells, gender)
 					};
 					this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
 					report('Added the following spells:\n' + _.map(importData.spells, function (spell) {
@@ -1529,7 +1499,7 @@
 					logger.debug('Converted monster data: $$$', converted);
 					var character = roll20.createObj('character', {
 						name: converted.character_name, // jshint ignore:line
-						avatar: token ? token.get('imgsrc') : undefined
+						avatar: token ? token.get('imgsrc') : ''
 					});
 
 
@@ -1538,7 +1508,9 @@
 						throw 'Failed to create new character';
 					}
 
-					token.set('represents', character.id);
+					if (token) {
+						token.set('represents', character.id);
+					}
 					this.getImportDataWrapper(character).setNewImportData({npc: converted});
 					report('Character [' + converted.character_name + '] successfully created.'); // jshint ignore:line
 					return character;
@@ -1930,12 +1902,71 @@
 			patrons: _.noop
 		});
 
+
+		var monsterMapper = getObjectMapper({
+			name: getRenameMapper('character_name'),
+			size: identityMapper,
+			type: identityMapper,
+			alignment: identityMapper,
+			AC: getRenameMapper('ac_srd'),
+			HP: getRenameMapper('hp_srd'),
+			speed: getRenameMapper('npc_speed'),
+			strength: identityMapper,
+			dexterity: identityMapper,
+			constitution: identityMapper,
+			intelligence: identityMapper,
+			wisdom: identityMapper,
+			charisma: identityMapper,
+			skills: getRenameMapper('skills_srd'),
+			spells: getRenameMapper('spells_srd'),
+			savingThrows: getRenameMapper('saving_throws_srd'),
+			damageResistances: getRenameMapper('damage_resistances'),
+			damageImmunities: getRenameMapper('damage_immunities'),
+			conditionImmunities: getRenameMapper('condition_immunities'),
+			damageVulnerabilities: getRenameMapper('damage_vulnerabilities'),
+			senses: identityMapper,
+			languages: identityMapper,
+			challenge: identityMapper,
+			traits: identityMapper,
+			actions: identityMapper,
+			reactions: identityMapper,
+			regionalEffects: _.noop,
+			regionalEffectsFade: _.noop,
+			legendaryPoints: identityMapper,
+			legendaryActions: identityMapper,
+			lairActions: _.noop
+		});
+
+		var pronounLookup = {
+				male: {
+					nominative: 'he',
+					accusative: 'him',
+					possessive: 'his',
+					reflexive: 'himself'
+				},
+				female: {
+					nominative: 'she',
+					accusative: 'her',
+					possessive: 'her',
+					reflexive: 'herself'
+				}
+			},
+
+			pronounTokens = {
+				'{{GENDER_PRONOUN_HE_SHE}}': 'nominative',
+				'{{GENDER_PRONOUN_HIM_HER}}': 'accusative',
+				'{{GENDER_PRONOUN_HIS_HER}}': 'possessive',
+				'{{GENDER_PRONOUN_HIMSELF_HERSELF}}': 'reflexive'
+			};
+
+
 		module.exports = {
 
 			convertMonster: function (npcObject) {
 				'use strict';
 
-				var output = _.clone(npcObject);
+				var output = {};
+				monsterMapper(null, npcObject, output);
 
 				var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', {variable: 'data'});
 				var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
@@ -1995,12 +2026,19 @@
 			},
 
 
-			convertSpells: function (spellObjects) {
+			convertSpells: function (spellObjects, gender) {
 				'use strict';
+
 
 				return _.map(spellObjects, function (spellObject) {
 					var converted = {};
 					spellMapper(null, spellObject, converted);
+					if (converted.emote) {
+						_.each(pronounTokens, function (pronounType, token) {
+							var replacement = pronounLookup[gender][pronounType];
+							converted.emote = converted.emote.replace(token, replacement);
+						});
+					}
 					return converted;
 				});
 

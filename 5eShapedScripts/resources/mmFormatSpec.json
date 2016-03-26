@@ -10,7 +10,6 @@
       "contentModel": [
         {
           "name": "name",
-          "attribute": "character_name",
           "type": "string",
           "bare": "true"
         },
@@ -64,23 +63,20 @@
       "flatten": true,
       "contentModel": [
         {
-          "name": "ac",
-          "attribute": "ac_srd",
+          "name": "AC",
           "parseToken": "armor class",
           "pattern": "\\d+\\s*(?:\\([^)]*\\))?",
           "type": "string"
         },
         {
-          "name": "hp",
+          "name": "HP",
           "parseToken": "hit points",
-          "attribute": "hp_srd",
           "type": "string",
           "pattern": "\\d+(?:\\s?\\(\\s?\\d+d\\d+(?:\\s?[-+]\\s?\\d+)?\\s?\\))?"
         },
         {
           "name": "speed",
           "minOccurs": 0,
-          "attribute": "npc_speed",
           "type": "string",
           "pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\(hover\\))?$"
         },
@@ -117,7 +113,6 @@
         {
           "name": "savingThrows",
           "minOccurs": 0,
-          "attribute": "saving_throws_srd",
           "parseToken": "saving throws",
           "type": "string",
           "pattern": "(?:(?:^|,\\s*)(?:Str|Dex|Con|Int|Wis|Cha)\\s+[\\-\\+]\\d+)+"
@@ -125,33 +120,28 @@
         {
           "name": "skills",
           "minOccurs": 0,
-          "attribute": "skills_srd",
           "type": "string",
           "pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Slight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
         },
         {
-          "attribute": "damage_vulnerabilities",
           "minOccurs": 0,
           "type": "string",
-          "name": "vulnerabilties",
+          "name": "damageVulnerabilties",
           "parseToken": "damage vulnerabilities"
         },
         {
-          "attribute": "damage_resistances",
           "minOccurs": 0,
           "type": "string",
-          "name": "resistances",
+          "name": "damageResistances",
           "parseToken": "damage resistances"
         },
         {
-          "attribute": "damage_immunities",
           "minOccurs": 0,
           "type": "string",
-          "name": "immunities",
+          "name": "damageImmunities",
           "parseToken": "damage immunities"
         },
         {
-          "attribute": "condition_immunities",
           "minOccurs": 0,
           "type": "string",
           "name": "conditionImmunities",
@@ -185,7 +175,6 @@
     },
     {
       "name": "spellBook",
-      "attribute": "spells_srd",
       "type": "string",
       "minOccurs": 0
     },
@@ -364,43 +353,6 @@
               "pattern": "^\\s*\\(\\s*costs (\\d+) actions\\s*\\)",
               "matchGroup": 1,
               "minOccurs": 0
-            },
-            {
-              "name": "text",
-              "bare": true,
-              "type": "string"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "lairActions",
-      "type": "orderedContent",
-      "minOccurs": 0,
-      "maxOccurs": 1,
-      "flatten": true,
-      "contentModel": [
-        {
-          "name": "actionHeader",
-          "type": "heading",
-          "bare": true,
-          "pattern": "^Lair Actions$"
-        },
-        {
-          "name": "lairActions",
-          "type": "orderedContent",
-          "minOccurs": 1,
-          "maxOccurs": "Infinity",
-          "contentModel": [
-            {
-              "name": "name",
-              "type": "string",
-              "bare": true,
-              "pattern": "^([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)\\s?\\.(?!$)",
-              "matchGroup": 2,
-              "forPreviousMatchGroup": 1,
-              "caseSensitive": true
             },
             {
               "name": "text",

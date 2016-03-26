@@ -8,7 +8,7 @@ describe('srd-converter', function () {
 
     describe('#convertMonster', function () {
         var fullObject = {
-            character_name: 'Wobbler',
+            name: 'Wobbler',
             traits: [
                 {name: 'Trait One', recharge: '1/day', text: 'trait text blah blah\nblah'},
                 {name: 'Trait Two', text: 'trait 2 text blah blah\nblah'}
@@ -29,11 +29,11 @@ describe('srd-converter', function () {
         };
 
         var emptyObject = {
-            character_name: 'Wobbler'
+            name: 'Wobbler'
         };
 
         var emptyArrayObject = {
-            character_name: 'Wobbler',
+            name: 'Wobbler',
             traits: [],
             actions: [],
             reactions: [],
@@ -41,7 +41,7 @@ describe('srd-converter', function () {
         };
 
         var someMissing = {
-            character_name: 'Wobbler',
+            name: 'Wobbler',
             traits: [
                 {name: 'Trait Two', text: 'trait 2 text blah blah\nblah'}
             ],
@@ -111,11 +111,12 @@ describe('srd-converter', function () {
     });
 
     describe('#convertSpell', function () {
-        var spells = JSON.parse(fs.readFileSync('resources/5eSpells.json', 'utf-8'));
+        var spells = JSON.parse(fs.readFileSync('../../roll20/data/spells/spellData.json', 'utf-8'));
 
         it('should parse spell correctly', function () {
-            srdConverter.convertSpells(spells);
+            srdConverter.convertSpells(spells, 'female');
         });
     });
+
 
 });

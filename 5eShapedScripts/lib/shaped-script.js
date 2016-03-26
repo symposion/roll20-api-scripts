@@ -3,7 +3,7 @@ var srdConverter = require('./srd-converter');
 var parseModule = require('./parser');
 var cp = require('./command-parser');
 
-var version       = '0.1',
+var version       = '0.1.1',
     schemaVersion = 0.1,
     hpBar         = 'bar1';
 
@@ -156,8 +156,15 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         importSpellsFromJson: function (options) {
+
+            var gender = roll20.getAttrByName(options.selected.character.id, 'gender');
+
+            //TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
+            gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';
+            
+
             var importData = {
-                spells: srdConverter.convertSpells(options.spells)
+                spells: srdConverter.convertSpells(options.spells, gender)
             };
             this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
             report('Added the following spells:\n' + _.map(importData.spells, function (spell) {
@@ -183,7 +190,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             logger.debug('Converted monster data: $$$', converted);
             var character = roll20.createObj('character', {
                 name: converted.character_name, // jshint ignore:line
-                avatar: token ? token.get('imgsrc') : undefined
+                avatar: token ? token.get('imgsrc') : ''
             });
 
 
@@ -192,7 +199,9 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 throw 'Failed to create new character';
             }
 
-            token.set('represents', character.id);
+            if (token) {
+                token.set('represents', character.id);
+            }
             this.getImportDataWrapper(character).setNewImportData({npc: converted});
             report('Character [' + converted.character_name + '] successfully created.'); // jshint ignore:line
             return character;
