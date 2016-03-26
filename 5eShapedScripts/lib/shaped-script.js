@@ -3,7 +3,7 @@ var srdConverter = require('./srd-converter');
 var parseModule = require('./parser');
 var cp = require('./command-parser');
 
-var version       = '0.1.1',
+var version       = '0.1.2',
     schemaVersion = 0.1,
     hpBar         = 'bar1';
 
@@ -161,7 +161,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
 
             //TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
             gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';
-            
+
 
             var importData = {
                 spells: srdConverter.convertSpells(options.spells, gender)
@@ -342,7 +342,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     name: options.characterName
                 })[0];
 
-                var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
+                var ammoAttrGroup = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
                   .filter(function (attribute) {
                       return attribute.get('name').indexOf('repeating_ammo') === 0;
                   })
@@ -354,13 +354,22 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                           return attribute.get('name').match(/.*name$/) && attribute.get('current') === options.ammoName;
                       });
                   })
-                  .find(function (attribute) {
-                      return attribute.get('name').match(/.*qty$/);
-                  })
                   .value();
 
+                logger.debug('Ammo attributes: $$$', ammoAttrGroup);
+
+                var ammoAttr = _.find(ammoAttrGroup, function (attribute) {
+                    return attribute.get('name').match(/.*qty$/);
+                });
+
+                var ammoUsedAttr = _.find(ammoAttrGroup, function (attribute) {
+                    return attribute.get('name').match(/.*used$/);
+                });
+
+                var ammoUsed = ammoUsedAttr ? ammoUsedAttr.get('current') : 1;
+
                 var val = parseInt(ammoAttr.get('current'), 10) || 0;
-                ammoAttr.set('current', Math.max(0, val - 1));
+                ammoAttr.set('current', Math.max(0, val - ammoUsed));
             }
 
         },

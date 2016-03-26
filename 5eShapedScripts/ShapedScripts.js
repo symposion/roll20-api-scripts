@@ -77,6 +77,7 @@
 			if (typeof fifthMonsters !== 'undefined') {
 				logger.debug(fifthMonsters.version);
 				if (fifthMonsters.version === '0.1.0') {
+					//noinspection JSUnresolvedVariable
 					entityLookup.addEntities(logger, 'monster', fifthMonsters.monsters);
 				}
 				else {
@@ -833,7 +834,7 @@
 								"any chaotic alignment"
 							],
 							"bare": true
-					}
+						}
 					]
 				},
 				{
@@ -1312,7 +1313,7 @@
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 
-		var version       = '0.1.1',
+		var version       = '0.1.2',
 			schemaVersion = 0.1,
 			hpBar         = 'bar1';
 
@@ -1651,7 +1652,7 @@
 							name: options.characterName
 						})[0];
 
-						var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
+						var ammoAttrGroup = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
 						.filter(function (attribute) {
 							return attribute.get('name').indexOf('repeating_ammo') === 0;
 						})
@@ -1663,13 +1664,22 @@
 								return attribute.get('name').match(/.*name$/) && attribute.get('current') === options.ammoName;
 							});
 						})
-						.find(function (attribute) {
-							return attribute.get('name').match(/.*qty$/);
-						})
 						.value();
 
+						logger.debug('Ammo attributes: $$$', ammoAttrGroup);
+
+						var ammoAttr = _.find(ammoAttrGroup, function (attribute) {
+							return attribute.get('name').match(/.*qty$/);
+						});
+
+						var ammoUsedAttr = _.find(ammoAttrGroup, function (attribute) {
+							return attribute.get('name').match(/.*used$/);
+						});
+
+						var ammoUsed = ammoUsedAttr ? ammoUsedAttr.get('current') : 1;
+
 						var val = parseInt(ammoAttr.get('current'), 10) || 0;
-						ammoAttr.set('current', Math.max(0, val - 1));
+						ammoAttr.set('current', Math.max(0, val - ammoUsed));
 					}
 
 				},
@@ -2292,6 +2302,7 @@
 			.replace(/dl2/gi, 'd12')
 			.replace(/S(\d+)d(\d+)/gi, '5$1d$2')
 			.replace(/l(\d+)d(\d+)/gi, '1$1d$2')
+			.replace(/ld(\d+)/gi, '1d$1')
 			.replace(/l(\d+)d\s+(\d+)/gi, '1$1d$2')
 			.replace(/(\d+)d\s+(\d+)/gi, '$1d$2')
 			.replace(/(\d+)\s+d(\d+)/gi, '$1d$2')
