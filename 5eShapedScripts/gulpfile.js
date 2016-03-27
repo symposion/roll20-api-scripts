@@ -23,6 +23,6 @@ gulp.task('make-roll20-js', ['test', 'lint'], function () {
 
 gulp.task('test', function () {
     'use strict';
-    return gulp.src('test/suite.js', {read: false})
+    return gulp.src('test/*.js', {read: false})
       .pipe(mocha());
 });

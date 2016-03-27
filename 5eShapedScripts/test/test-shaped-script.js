@@ -59,13 +59,15 @@ describe('shaped-script', function () {
 
     roll20Mock.findObjs.withArgs({_type: 'character', name: 'Bob'}).returns([characterStub]);
     roll20Mock.findObjs.withArgs({type: 'attribute', characterid: characterStub.id}).returns(attributeArray);
+    roll20Mock.getAttrByName.withArgs(characterStub.id, 'ammo_auto_use').returns('1');
 
     var shapedScript = getShaped(logger, {config: {updateAmmo: true}}, roll20Mock, null);
 
     describe('checkForAmmoUpdate', function () {
         var msg = {
             rolltemplate: '5e-shaped',
-            content: '{{ammo_name=arrows}}{{character_name=Bob}}'
+            content: '{{ammo_name=arrows}}{{character_name=Bob}}{{ammo=$[[0]]}}',
+            inlinerolls: [{expression: '50-2'}]
         };
 
         var setVals = {};
@@ -78,7 +80,7 @@ describe('shaped-script', function () {
 
         it('should decrement ammo correctly', function () {
             //noinspection JSUnresolvedVariable
-            return setVals.should.deep.equal({current: 49});
+            return setVals.should.deep.equal({current: 48});
         });
     });
 

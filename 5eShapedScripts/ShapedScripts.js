@@ -2001,7 +2001,8 @@
 						prop: 'legendaryActions',
 						itemTemplate: legendaryTemplate,
 						sectionTemplate: legendarySectionTemplate
-					}
+					},
+					{prop: 'lairActions', itemTemplate: _.identity, sectionTemplate: simpleSectionTemplate}
 				];
 
 				var makeDataObject = function (propertyName, itemList) {
