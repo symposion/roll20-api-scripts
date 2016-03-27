@@ -153,7 +153,7 @@ var monsterMapper = getObjectMapper({
     regionalEffectsFade: _.noop,
     legendaryPoints: identityMapper,
     legendaryActions: identityMapper,
-    lairActions: _.noop
+    lairActions: identityMapper
 });
 
 var pronounLookup = {

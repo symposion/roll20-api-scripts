@@ -3,7 +3,7 @@ var srdConverter = require('./srd-converter');
 var parseModule = require('./parser');
 var cp = require('./command-parser');
 
-var version       = '0.1.5',
+var version       = '0.1.6',
     schemaVersion = 0.1,
     hpBar         = 'bar1';
 
@@ -156,7 +156,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
 
         importSpellsFromJson: function (options) {
 
-            var gender = roll20.getAttrByName(options.selected.character.id, 'gender');
+            var gender = roll20.getAttrByName(options.selected.character.id, 'gender') || 'male';
 
             //TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
             gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';

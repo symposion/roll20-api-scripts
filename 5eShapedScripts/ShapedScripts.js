@@ -1313,7 +1313,7 @@
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 
-		var version       = '0.1.5',
+		var version       = '0.1.6',
 			schemaVersion = 0.1,
 			hpBar         = 'bar1';
 
@@ -1466,7 +1466,7 @@
 
 				importSpellsFromJson: function (options) {
 
-					var gender = roll20.getAttrByName(options.selected.character.id, 'gender');
+					var gender = roll20.getAttrByName(options.selected.character.id, 'gender') || 'male';
 
 					//TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
 					gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';
@@ -1951,7 +1951,7 @@
 			regionalEffectsFade: _.noop,
 			legendaryPoints: identityMapper,
 			legendaryActions: identityMapper,
-			lairActions: _.noop
+			lairActions: identityMapper
 		});
 
 		var pronounLookup = {
