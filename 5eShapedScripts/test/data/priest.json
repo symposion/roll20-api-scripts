@@ -1,6 +1,6 @@
 {
   "npc": {
-    "name": "PRIEST",
+    "name": "Priest",
     "size": "Medium",
     "type": "humanoid (any race)",
     "alignment": "any alignment",

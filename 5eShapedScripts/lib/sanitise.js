@@ -45,6 +45,12 @@ function sanitise(statblock, logger) {
         return match.replace(/\s/g, '');
     });
 
+    statblock = statblock.replace(/^[A-Z ]+$/m, function (match) {
+        return match.replace(/([A-Z])([A-Z]+)(?=\s|$)/g, function (match, p1, p2) {
+            return p1 + p2.toLowerCase();
+        });
+    });
+
     statblock = statblock
       .replace(/,\./gi, ',')
       .replace(/(^| )l /gm, '$11 ')
