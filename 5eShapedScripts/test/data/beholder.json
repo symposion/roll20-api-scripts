@@ -18,7 +18,7 @@
     "conditionImmunities": "prone",
     "senses": "darkvision 120 ft",
     "languages": "Deep Speech, Undercommon",
-    "challenge": 13,
+    "challenge": "13",
     "traits": [
       {
         "name": "Antimagic Cone",

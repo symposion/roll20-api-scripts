@@ -3,7 +3,7 @@ var srdConverter = require('./srd-converter');
 var parseModule = require('./parser');
 var cp = require('./command-parser');
 
-var version       = '0.1.3',
+var version       = '0.1.4',
     schemaVersion = 0.1,
     hpBar         = 'bar1';
 

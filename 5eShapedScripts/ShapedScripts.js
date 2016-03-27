@@ -949,7 +949,7 @@
 				},
 				{
 					"name": "challenge",
-					"type": "number",
+					"type": "string",
 					"pattern": "^\\s*(\\d+(?:\\s*\\/\\s*\\d)?)\\s*(?:\\(\\s*[\\d,]+\\s*XP\\s*\\)\\s*)?$",
 					"matchGroup": 1
 				},
@@ -1313,7 +1313,7 @@
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 
-		var version       = '0.1.3',
+		var version       = '0.1.4',
 			schemaVersion = 0.1,
 			hpBar         = 'bar1';
 

@@ -169,7 +169,7 @@
     },
     {
       "name": "challenge",
-      "type": "number",
+      "type": "string",
       "pattern": "^\\s*(\\d+(?:\\s*\\/\\s*\\d)?)\\s*(?:\\(\\s*[\\d,]+\\s*XP\\s*\\)\\s*)?$",
       "matchGroup": 1
     },

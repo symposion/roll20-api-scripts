@@ -20,7 +20,7 @@
     "conditionImmunities": "charmed, exhaustion, frightened, paralyzed, poisoned",
     "senses": "truesight 120 ft",
     "languages": "Common plus up to five other languages",
-    "challenge": 21,
+    "challenge": "21",
     "traits": [
       {
         "name": "Legendary Resistance",

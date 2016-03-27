@@ -14,10 +14,10 @@
 "charisma": 28,
 "savingThrows": "Dex +9, Con +16, Wis +10, Cha +16",
 "skills": "Insight +10, Perception +17, Persuasion +16, Stealth +9",
-"immunities": "fire, cold",
+  "damageImmunities": "fire, cold",
 "senses": "blindsight 60ft., darkvision 120ft.",
 "languages": "Common, Draconic",
-"challenge": 24,
+  "challenge": "24",
 "traits": [
 {
 "name": "Amphibious",
