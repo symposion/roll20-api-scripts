@@ -447,7 +447,7 @@ function getParser(formatSpec, logger) {
                 },
                 enterChildParser: function (parser, resume) {
                     currentPropertyPath.push({
-                        name: parser.attribute,
+                        name: parser.name,
                         allowed: parser.allowed,
                         flatten: parser.flatten
                     });
@@ -470,7 +470,7 @@ function getParser(formatSpec, logger) {
         },
 
         parserId: 0,
-        parserAttributes: ['attribute', 'forPreviousMatchGroup', 'forNextMatchGroup',
+        parserAttributes: ['forPreviousMatchGroup', 'forNextMatchGroup',
             'parseToken', 'flatten', 'pattern', 'matchGroup', 'bare', 'caseSensitive',
             'name', 'skipOutput'],
         getParserFor: function (fieldSpec) {
@@ -484,7 +484,6 @@ function getParser(formatSpec, logger) {
             parser.allowed = _.isUndefined(fieldSpec.maxOccurs) ? 1 : fieldSpec.maxOccurs;
             _.extend(parser, _.pick(fieldSpec, this.parserAttributes));
             _.defaults(parser, {
-                attribute: parser.name,
                 parseToken: parser.name
             });
             parser.id = this.parserId++;
