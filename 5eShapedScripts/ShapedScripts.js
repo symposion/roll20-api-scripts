@@ -667,7 +667,7 @@
 						},
 						enterChildParser: function (parser, resume) {
 							currentPropertyPath.push({
-								name: parser.attribute,
+								name: parser.name,
 								allowed: parser.allowed,
 								flatten: parser.flatten
 							});
@@ -690,7 +690,7 @@
 				},
 
 				parserId: 0,
-				parserAttributes: ['attribute', 'forPreviousMatchGroup', 'forNextMatchGroup',
+				parserAttributes: ['forPreviousMatchGroup', 'forNextMatchGroup',
 					'parseToken', 'flatten', 'pattern', 'matchGroup', 'bare', 'caseSensitive',
 					'name', 'skipOutput'],
 				getParserFor: function (fieldSpec) {
@@ -704,7 +704,6 @@
 					parser.allowed = _.isUndefined(fieldSpec.maxOccurs) ? 1 : fieldSpec.maxOccurs;
 					_.extend(parser, _.pick(fieldSpec, this.parserAttributes));
 					_.defaults(parser, {
-						attribute: parser.name,
 						parseToken: parser.name
 					});
 					parser.id = this.parserId++;
@@ -869,7 +868,7 @@
 								"any chaotic alignment"
 							],
 							"bare": true
-					}
+						}
 					]
 				},
 				{
@@ -1343,12 +1342,13 @@
 	/* 7 */
 	/***/ function (module, exports, __webpack_require__) {
 
+		/* globals unescape */
 		var _ = __webpack_require__(3);
 		var srdConverter = __webpack_require__(8);
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 
-		var version       = '0.1.7',
+		var version       = '0.1.8',
 			schemaVersion = 0.1,
 			hpBar         = 'bar1';
 
@@ -1384,7 +1384,7 @@
 		 * @param roll20
 		 * @param parser
 		 * @param entityLookup
-		 * @returns {{handleInput: function, configOptionsSpec: {Object}, options: function, processSelection: function, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, getRollTemplateOptions:function, checkForDeathSave:function, logWrap: string}}
+		 * @returns {{handleInput: function, configOptionsSpec: object, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, checkForDeathSave: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
 		 */
 		module.exports = function (logger, myState, roll20, parser, entityLookup) {
 			'use strict';
@@ -1480,7 +1480,7 @@
 					_.each(options.selected.graphic, function (token) {
 						var text = token.get('gmnotes');
 						if (text) {
-							text = sanitise(_.unescape(decodeURIComponent(text)), logger);
+							text = sanitise(unescape(text), logger);
 							//noinspection JSUnresolvedVariable
 							self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
 						}
@@ -1748,6 +1748,10 @@
 					}
 				},
 
+				/**
+				 *
+				 * @returns {*}
+				 */
 				getRollTemplateOptions: function (msg) {
 					if (msg.rolltemplate === '5e-shaped') {
 						var regex = /\{\{(.*?)\}\}/g;
@@ -2269,7 +2273,7 @@
 						var cmdName = parts.shift();
 						var cmd = commands[cmdName];
 						if (!cmd) {
-							throw new Error('Unrecognised command ' + prefix + cmdName);
+							throw 'Unrecognised command ' + prefix + cmdName;
 						}
 						cmd.handle(parts, msg.selected);
 					}
