@@ -160,7 +160,7 @@ module.exports = function (rootCommand) {
                 var cmdName = parts.shift();
                 var cmd = commands[cmdName];
                 if (!cmd) {
-                    throw new Error('Unrecognised command ' + prefix + cmdName);
+                    throw 'Unrecognised command ' + prefix + cmdName;
                 }
                 cmd.handle(parts, msg.selected);
             }
