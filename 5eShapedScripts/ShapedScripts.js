@@ -67,16 +67,51 @@
 		var logger = __webpack_require__(5)(myState.config);
 		var entityLookup = __webpack_require__(6);
 		var shaped = __webpack_require__(7)(logger, myState, roll20, parseModule.getParser(mmFormat, logger), entityLookup);
-
+		var _ = __webpack_require__(3);
 
 		logger.wrapModule(entityLookup);
 		logger.wrapModule(roll20);
 
+		var versionCompare = function (v1, v2) {
+			'use strict';
+
+			var v1parts = v1.split('.');
+			var v2parts = v2.split('.');
+
+			var isValidPart = function (x) {
+				return /^\d+$/.test(x);
+			};
+
+			if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
+				return NaN;
+			}
+
+			v1parts = _.map(v1parts, Number);
+			v2parts = _.map(v2parts, Number);
+
+			for (var i = 0; i < v1parts.length; ++i) {
+				if (v2parts.length === i) {
+					return 1;
+				}
+
+				if (v1parts[i] > v2parts[i]) {
+					return 1;
+				} else if (v1parts[i] < v2parts[i]) {
+					return -1;
+				}
+			}
+
+			if (v1parts.length !== v2parts.length) {
+				return -1;
+			}
+
+			return 0;
+		};
+
 		roll20.on('ready', function () {
 			'use strict';
 			if (typeof fifthMonsters !== 'undefined') {
-				logger.debug(fifthMonsters.version);
-				if (fifthMonsters.version === '0.1.0') {
+				if (versionCompare(fifthMonsters.version, '0.1') >= 0) {
 					//noinspection JSUnresolvedVariable
 					entityLookup.addEntities(logger, 'monster', fifthMonsters.monsters);
 				}
@@ -85,7 +120,7 @@
 				}
 			}
 			if (typeof fifthSpells !== 'undefined') {
-				if (fifthSpells.version === '0.1.0') {
+				if (versionCompare(fifthSpells.version, '0.1') >= 0) {
 					entityLookup.addEntities(logger, 'spell', fifthSpells.spells);
 				}
 				else {
@@ -834,7 +869,7 @@
 								"any chaotic alignment"
 							],
 							"bare": true
-						}
+					}
 					]
 				},
 				{
@@ -1313,7 +1348,7 @@
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 
-		var version       = '0.1.6',
+		var version       = '0.1.7',
 			schemaVersion = 0.1,
 			hpBar         = 'bar1';
 
@@ -1846,7 +1881,8 @@
 				.join(' ');
 			},
 			saveAttackMappings = {
-				ability: getRenameMapper('save'),
+				ability: getRenameMapper('saving_throw_vs_ability'),
+				type: identityMapper,
 				damage: identityMapper,
 				damageBonus: camelCaseFixMapper,
 				damageType: camelCaseFixMapper,

@@ -1,21 +1,56 @@
 /* globals fifthSpells, fifthMonsters */
-var roll20       = require('./roll20.js');
+var roll20 = require('./roll20.js');
 var parseModule = require('./parser');
-var mmFormat     = require('../resources/mmFormatSpec.json');
-var myState      = roll20.getState('ShapedScripts');
-var logger       = require('./logger')(myState.config);
+var mmFormat = require('../resources/mmFormatSpec.json');
+var myState = roll20.getState('ShapedScripts');
+var logger = require('./logger')(myState.config);
 var entityLookup = require('./entity-lookup');
 var shaped = require('./shaped-script')(logger, myState, roll20, parseModule.getParser(mmFormat, logger), entityLookup);
-
+var _ = require('underscore');
 
 logger.wrapModule(entityLookup);
 logger.wrapModule(roll20);
 
+var versionCompare = function (v1, v2) {
+    'use strict';
+
+    var v1parts = v1.split('.');
+    var v2parts = v2.split('.');
+
+    var isValidPart = function (x) {
+        return /^\d+$/.test(x);
+    };
+
+    if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
+        return NaN;
+    }
+
+    v1parts = _.map(v1parts, Number);
+    v2parts = _.map(v2parts, Number);
+
+    for (var i = 0; i < v1parts.length; ++i) {
+        if (v2parts.length === i) {
+            return 1;
+        }
+        
+        if (v1parts[i] > v2parts[i]) {
+            return 1;
+        } else if (v1parts[i] < v2parts[i]) {
+            return -1;
+        }
+    }
+
+    if (v1parts.length !== v2parts.length) {
+        return -1;
+    }
+
+    return 0;
+};
+
 roll20.on('ready', function () {
     'use strict';
     if (typeof fifthMonsters !== 'undefined') {
-        logger.debug(fifthMonsters.version);
-        if (fifthMonsters.version === '0.1.0') {
+        if (versionCompare(fifthMonsters.version, '0.1') >= 0) {
             //noinspection JSUnresolvedVariable
             entityLookup.addEntities(logger, 'monster', fifthMonsters.monsters);
         }
@@ -24,7 +59,7 @@ roll20.on('ready', function () {
         }
     }
     if (typeof fifthSpells !== 'undefined') {
-        if (fifthSpells.version === '0.1.0') {
+        if (versionCompare(fifthSpells.version, '0.1') >= 0) {
             entityLookup.addEntities(logger, 'spell', fifthSpells.spells);
         }
         else {

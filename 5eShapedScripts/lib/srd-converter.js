@@ -48,7 +48,8 @@ var identityMapper     = function (key, value, output) {
           .join(' ');
     },
     saveAttackMappings = {
-        ability: getRenameMapper('save'),
+        ability: getRenameMapper('saving_throw_vs_ability'),
+        type: identityMapper,
         damage: identityMapper,
         damageBonus: camelCaseFixMapper,
         damageType: camelCaseFixMapper,
