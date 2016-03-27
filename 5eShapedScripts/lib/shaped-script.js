@@ -3,7 +3,7 @@ var srdConverter = require('./srd-converter');
 var parseModule = require('./parser');
 var cp = require('./command-parser');
 
-var version       = '0.1.4',
+var version       = '0.1.5',
     schemaVersion = 0.1,
     hpBar         = 'bar1';
 
@@ -142,7 +142,6 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             });
         },
 
-        //TODO: Monster JSON format needs adjustingxx
         importMonstersFromJson: function (options) {
             var self = this;
             _.each(options.monsters, function (monsterData) {
@@ -333,7 +332,6 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
          * @param {ChatMessage} msg
          */
         checkForAmmoUpdate: function (msg) {
-            //TODO check for auto ammo attribute
 
             var options = this.getRollTemplateOptions(msg);
             if (options.ammoName && options.characterName) {
@@ -342,7 +340,11 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     name: options.characterName
                 })[0];
 
-                var ammoAttrGroup = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
+                if (!roll20.getAttrByName(character.id, 'ammo_auto_use')) {
+                    return;
+                }
+
+                var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
                   .filter(function (attribute) {
                       return attribute.get('name').indexOf('repeating_ammo') === 0;
                   })
@@ -354,19 +356,24 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                           return attribute.get('name').match(/.*name$/) && attribute.get('current') === options.ammoName;
                       });
                   })
+                  .find(function (attribute) {
+                      return attribute.get('name').match(/.*qty$/);
+                  })
                   .value();
 
-                logger.debug('Ammo attributes: $$$', ammoAttrGroup);
 
-                var ammoAttr = _.find(ammoAttrGroup, function (attribute) {
-                    return attribute.get('name').match(/.*qty$/);
-                });
+                var ammoUsed = 1;
+                if (options.ammo) {
+                    var rollRef = options.ammo.match(/\$\[\[(\d+)\]\]/);
+                    if (rollRef) {
+                        var rollExpr = msg.inlinerolls[rollRef[1]].expression;
+                        var match = rollExpr.match(/\d+-(\d+)/);
+                        if (match) {
+                            ammoUsed = match[1];
+                        }
+                    }
 
-                var ammoUsedAttr = _.find(ammoAttrGroup, function (attribute) {
-                    return attribute.get('name').match(/.*used$/);
-                });
-
-                var ammoUsed = ammoUsedAttr ? ammoUsedAttr.get('current') : 1;
+                }
 
                 var val = parseInt(ammoAttr.get('current'), 10) || 0;
                 ammoAttr.set('current', Math.max(0, val - ammoUsed));
