@@ -14,6 +14,16 @@ logger.wrapModule(roll20);
 var versionCompare = function (v1, v2) {
     'use strict';
 
+    if (v1 === v2) {
+        return 0;
+    }
+    else if (v1 === undefined || v1 === null) {
+        return -1;
+    }
+    else if (v2 === undefined || v2 === null) {
+        return 1;
+    }
+
     var v1parts = v1.split('.');
     var v2parts = v2.split('.');
 
@@ -32,7 +42,7 @@ var versionCompare = function (v1, v2) {
         if (v2parts.length === i) {
             return 1;
         }
-        
+
         if (v1parts[i] > v2parts[i]) {
             return 1;
         } else if (v1parts[i] < v2parts[i]) {
