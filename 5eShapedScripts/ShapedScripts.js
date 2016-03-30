@@ -1365,7 +1365,7 @@
 		var cp = __webpack_require__(9);
 		var utils = __webpack_require__(10);
 
-		var version        = '0.1.9',
+		var version        = '0.2',
 			schemaVersion  = 0.2,
 			configDefaults = {
 				logLevel: 'INFO',
@@ -1508,6 +1508,13 @@
 							max: 1
 						}
 					})
+					.addCommand('token-defaults', this.applyTokenDefaults.bind(this))
+					.withSelection({
+						graphic: {
+							min: 1,
+							max: Infinity
+						}
+					})
 					.end();
 
 					try {
@@ -1605,6 +1612,17 @@
 					report('Configuration is now: ' + JSON.stringify(myState.config));
 				},
 
+				applyTokenDefaults: function (options) {
+					var self = this;
+					_.each(options.selected.graphic, function (token) {
+						var represents = token.get('represents');
+						var character = roll20.getObj('character', represents);
+						if (character) {
+							self.setTokenDefaults(token, character);
+						}
+					});
+				},
+
 				importStatblock: function (options) {
 
 					logger.info('Importing statblocks for tokens $$$', options.selected.graphic);
@@ -1614,7 +1632,9 @@
 						if (text) {
 							text = sanitise(unescape(text), logger);
 							//noinspection JSUnresolvedVariable
-							self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
+							var character = self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
+							logger.debug('gmnotes: $$$', text);
+							character.set('gmnotes', text.replace(/\n/g, '<br>'));
 						}
 					});
 				},

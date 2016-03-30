@@ -259,7 +259,6 @@ module.exports = {
             return converted;
         });
 
-        //TODO: turn on the toggles.
     }
     /* jshint camelcase : true */
 };

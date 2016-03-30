@@ -272,7 +272,9 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 if (text) {
                     text = sanitise(unescape(text), logger);
                     //noinspection JSUnresolvedVariable
-                    self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
+                    var character = self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
+                    logger.debug('gmnotes: $$$', text);
+                    character.set('gmnotes', text.replace(/\n/g, '<br>'));
                 }
             });
         },
