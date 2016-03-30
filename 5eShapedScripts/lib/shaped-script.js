@@ -5,7 +5,7 @@ var parseModule = require('./parser');
 var cp = require('./command-parser');
 var utils = require('./utils');
 
-var version        = '0.1.9',
+var version        = '0.2',
     schemaVersion  = 0.2,
     configDefaults = {
         logLevel: 'INFO',
@@ -148,6 +148,13 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                       max: 1
                   }
               })
+              .addCommand('token-defaults', this.applyTokenDefaults.bind(this))
+              .withSelection({
+                  graphic: {
+                      min: 1,
+                      max: Infinity
+                  }
+              })
               .end();
 
             try {
@@ -243,6 +250,17 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         configure: function (options) {
             utils.deepExtend(myState.config, options);
             report('Configuration is now: ' + JSON.stringify(myState.config));
+        },
+
+        applyTokenDefaults: function (options) {
+            var self = this;
+            _.each(options.selected.graphic, function (token) {
+                var represents = token.get('represents');
+                var character = roll20.getObj('character', represents);
+                if (character) {
+                    self.setTokenDefaults(token, character);
+                }
+            });
         },
 
         importStatblock: function (options) {
