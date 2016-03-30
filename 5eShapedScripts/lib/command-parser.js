@@ -1,6 +1,67 @@
 var _ = require('underscore');
 var roll20 = require('./roll20');
+var utils = require('./utils');
 
+
+var getParser = function (optionString, validator) {
+    'use strict';
+    return function (arg, errors, options) {
+        var argParts = arg.split(/\s+/);
+        if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
+            if (argParts.length <= 2) {
+                //Allow for bare switches
+                var value = argParts.length === 2 ? argParts[1] : true;
+                var result = validator(value);
+                if (result.valid) {
+                    options[argParts[0]] = result.converted;
+                }
+                else {
+                    errors.push('Invalid value [' + value + '] for option [' + argParts[0] + ']');
+                }
+            }
+            return true;
+        }
+        return false;
+    };
+};
+
+var getObjectParser = function (specObject) {
+    'use strict';
+    return function (arg, errors, options) {
+        var argParts = arg.split(/\s+/);
+        var newObject = utils.createObjectFromPath(argParts[0], argParts.slice(1).join(' '));
+
+        var comparison = {spec: specObject, actual: newObject};
+        while (comparison.spec) {
+            var key = _.keys(comparison.actual)[0];
+            var spec = comparison.spec[key];
+            if (!spec) {
+                return false;
+            }
+            if (_.isFunction(comparison.spec[key])) {
+                var result = comparison.spec[key](comparison.actual[key]);
+                if (result.valid) {
+                    comparison.actual[key] = result.converted;
+                    utils.deepExtend(options, newObject);
+                }
+                else {
+                    errors.push('Invalid value [' + comparison.actual[key] + '] for option [' + argParts[0] + ']');
+                }
+                return true;
+            }
+            else if (_.isArray(comparison.actual[key])) {
+                var newVal = [];
+                newVal[comparison.actual[key].length - 1] = comparison.spec[key][0];
+                comparison.spec = newVal;
+                comparison.actual = comparison.actual[key];
+            }
+            else {
+                comparison.spec = comparison.spec[key];
+                comparison.actual = comparison.actual[key];
+            }
+        }
+    };
+};
 
 /**
  * @constructor
@@ -15,25 +76,18 @@ function Command(root, handler) {
 
 Command.prototype.option = function (optionString, validator) {
     'use strict';
-    this.parsers.push(function (arg, errors, options) {
-        var argParts = arg.split(/\s+/);
-        if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
-            if (argParts.length <= 2) {
-                //Allow for bare switches
-                var value = argParts.length === 2 ? argParts[1] : true;
-                var result = validator(value);
-                if (result.valid) {
-                    options[argParts[0]] = result.converted;
-                    return options;
-                }
-                else {
-                    errors.push('Invalid value [' + value + '] for option [' + argParts[0] + ']');
-                }
-            }
-            return true;
-        }
-        return false;
-    });
+    if (_.isFunction(validator)) {
+        this.parsers.push(getParser(optionString, validator));
+    }
+    else if (_.isObject(validator)) {
+        var dummy = {};
+        dummy[optionString] = validator;
+        this.parsers.push(getObjectParser(dummy));
+    }
+    else {
+        throw new Error('Bad validator [' + validator + '] specified for option ' + optionString);
+    }
+
     return this;
 };
 
@@ -69,7 +123,7 @@ Command.prototype.handle = function (args, selection) {
             return parser(arg, options.errors, options);
         });
         if (!parser) {
-            options.errors.push('Unrecognised or poorly formed option [$$$]', arg);
+            options.errors.push('Unrecognised or poorly formed option ' + arg);
         }
 
         return options;

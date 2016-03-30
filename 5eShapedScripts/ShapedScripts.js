@@ -75,6 +75,16 @@
 		var versionCompare = function (v1, v2) {
 			'use strict';
 
+			if (v1 === v2) {
+				return 0;
+			}
+			else if (v1 === undefined || v1 === null) {
+				return -1;
+			}
+			else if (v2 === undefined || v2 === null) {
+				return 1;
+			}
+
 			var v1parts = v1.split('.');
 			var v2parts = v2.split('.');
 
@@ -167,6 +177,12 @@
 			getAttrByName: function (character, attrName) {
 				'use strict';
 				return getAttrByName(character, attrName);
+			},
+
+			getAttrObjectByName: function (character, attrName) {
+				'use strict';
+				var attr = this.findObjs({type: 'attribute', characterid: character, name: attrName});
+				return attr && attr.length > 0 ? attr[0] : null;
 			},
 
 			getOrCreateAttr: function (characterId, attrName) {
@@ -1347,19 +1363,86 @@
 		var srdConverter = __webpack_require__(8);
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
+		var utils = __webpack_require__(10);
 
-		var version       = '0.1.8',
-			schemaVersion = 0.1,
-			hpBar         = 'bar1';
-
-		var booleanValidator = function (value) {
-			'use strict';
-			var converted = value === 'true' || (value === 'false' ? false : value);
-			return {
-				valid: typeof value === 'boolean' || value === 'true' || value === 'false',
-				converted: converted
+		var version        = '0.1.9',
+			schemaVersion  = 0.2,
+			configDefaults = {
+				logLevel: 'INFO',
+				tokenSettings: {
+					number: false,
+					bars: [
+						{
+							attribute: 'HP',
+							max: true,
+							link: false,
+							showPlayers: false
+						}
+					],
+					showName: true,
+					showNameToPlayers: false
+				},
+				newCharSettings: {
+					sheetOutput: '@{output_to_all}',
+					deathSaveOutput: '@{output_to_all}',
+					initiativeOutput: '@{output_to_all}',
+					showNameOnRollTemplate: '@{show_character_name_yes}',
+					rollOptions: '@{roll_2}',
+					initiativeRoll: '@{normal_initiative}',
+					initiativeToTracker: '@{initiative_to_tracker_yes}',
+					breakInitiativeTies: '@{initiative_tie_breaker_var}',
+					showTargetAC: '@{attacks_vs_target_ac_yes}',
+					showTargetName: '@{attacks_vs_target_name_yes}',
+					autoAmmo: '@{ammo_auto_use_var}'
+				},
+				rollHPOnDrop: true
 			};
+
+		var configToAttributeLookup = {
+			sheetOutput: 'output_option',
+			deathSaveOutput: 'death_save_output_option',
+			initiativeOutput: 'initiative_output_option',
+			showNameOnRollTemplate: 'show_character_name',
+			rollOptions: 'roll_setting',
+			initiativeRoll: 'initiative_roll',
+			initiativeToTracker: 'initiative_to_tracker',
+			breakInitiativeTies: 'initiative_tie_breaker',
+			showTargetAC: 'attacks_vs_target_ac',
+			showTargetName: 'attacks_vs_target_name',
+			autoAmmo: 'ammo_auto_use'
 		};
+
+		var booleanValidator     = function (value) {
+				'use strict';
+				var converted = value === 'true' || (value === 'false' ? false : value);
+				return {
+					valid: typeof value === 'boolean' || value === 'true' || value === 'false',
+					converted: converted
+				};
+			},
+
+			stringValidator      = function (value) {
+				'use strict';
+				return {
+					valid: true,
+					converted: value
+				};
+			},
+
+			getOptionList        = function (options) {
+				'use strict';
+				return function (value) {
+					return {
+						converted: options[value],
+						valid: !!options[value]
+					};
+				};
+			},
+
+			sheetOutputValidator = getOptionList({
+				public: '@{output_to_all}',
+				whisper: '@{output_to_gm}'
+			});
 
 		/**
 		 * @typedef {Object} ChatMessage
@@ -1388,7 +1471,7 @@
 		 */
 		module.exports = function (logger, myState, roll20, parser, entityLookup) {
 			'use strict';
-			var sanitise = logger.wrapFunction('sanitise', __webpack_require__(10), '');
+			var sanitise = logger.wrapFunction('sanitise', __webpack_require__(11), '');
 			var addedTokenIds = [];
 			var report = function (msg) {
 				//Horrible bug with this at the moment - seems to generate spurious chat
@@ -1458,6 +1541,59 @@
 					logLevel: function (value) {
 						var converted = value.toUpperCase();
 						return {valid: _.has(logger, converted), converted: converted};
+					},
+					tokenSettings: {
+						number: booleanValidator,
+						bars: [
+							{
+								attribute: stringValidator,
+								max: booleanValidator,
+								link: booleanValidator,
+								showPlayers: booleanValidator
+							}
+						],
+						showName: booleanValidator,
+						showNameToPlayers: booleanValidator
+					},
+					newCharSettings: {
+						sheetOutput: sheetOutputValidator,
+						deathSaveOutput: sheetOutputValidator,
+						initiativeOutput: sheetOutputValidator,
+						showNameOnRollTemplate: getOptionList({
+							true: '@{show_character_name_yes}',
+							false: '@{show_character_name_no}'
+						}),
+						rollOptions: getOptionList({
+							normal: '@{roll_1}',
+							advantage: '@{roll_advantage}',
+							disadvantage: '@{roll_disadvantage}',
+							two: '@{roll_2}'
+						}),
+						initiativeRoll: getOptionList({
+							normal: '@{normal_initiative}',
+							advantage: '@{advantage_on_initiative}',
+							disadvantage: '@{disadvantage_on_initiative}'
+						}),
+						initiativeToTracker: getOptionList({
+							true: '@{initiative_to_tracker_yes}',
+							false: '@{initiative_to_tracker_no}'
+						}),
+						breakInitiativeTies: getOptionList({
+							true: '@{initiative_tie_breaker_var}',
+							false: ''
+						}),
+						showTargetAC: getOptionList({
+							true: '@{attacks_vs_target_ac_yes}',
+							false: '@{attacks_vs_target_ac_no}'
+						}),
+						showTargetName: getOptionList({
+							true: '@{attacks_vs_target_name_yes}',
+							false: '@{attacks_vs_target_name_no}'
+						}),
+						autoAmmo: getOptionList({
+							true: '@{ammo_auto_use_var}',
+							false: ''
+						})
 					}
 				},
 
@@ -1465,11 +1601,7 @@
 				// Command handlers
 				/////////////////////////////////////////
 				configure: function (options) {
-					_.each(options, function (value, key) {
-						logger.info('Setting configuration option $$$ to $$$', key, value);
-						myState.config[key] = value;
-					});
-
+					utils.deepExtend(myState.config, options);
 					report('Configuration is now: ' + JSON.stringify(myState.config));
 				},
 
@@ -1544,12 +1676,53 @@
 					}
 
 					if (token) {
-						token.set('represents', character.id);
+						this.setTokenDefaults(token, character);
 					}
 					this.getImportDataWrapper(character).setNewImportData({npc: converted});
+					this.setCharacterDefaults(character);
 					report('Character [' + converted.character_name + '] successfully created.'); // jshint ignore:line
 					return character;
 
+				},
+
+				setCharacterDefaults: function (character) {
+					_.each(myState.config.newCharSettings, function (value, key) {
+						var attribute = {
+							name: configToAttributeLookup[key],
+							current: _.isBoolean(value) ? (value ? 1 : 0) : value,
+							characterid: character.id
+						};
+						roll20.createObj('attribute', attribute);
+					});
+				},
+
+				setTokenDefaults: function (token, character) {
+					token.set('represents', character.id);
+					token.set('name', character.get('name'));
+					var settings = myState.config.tokenSettings;
+					if (settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
+						token.set('name', token.get('name') + ' %%NUMBERED%%');
+					}
+
+					_.each(settings.bars, function (bar, index) {
+						var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
+						var barName = 'bar' + (index + 1);
+						if (attribute) {
+							token.set(barName + '_value', attribute.get('current'));
+							if (bar.max) {
+								token.set(barName + '_max', attribute.get('max'));
+							}
+							if (bar.showPlayers) {
+								token.set('showplayers_' + barName);
+							}
+							if (bar.link) {
+								token.set(barName + '_link', attribute.id);
+							}
+						}
+					});
+
+					token.set('showname', settings.showName);
+					token.set('showplayers_name', settings.showNameToPlayers);
 				},
 
 				getImportDataWrapper: function (character) {
@@ -1642,7 +1815,19 @@
 					}
 				},
 
+				getHPBar: function () {
+					var barIndex = _.findIndex(myState.config.tokenSettings.bars, function (bar) {
+						return bar.attribute === 'HP';
+					});
+					return barIndex === -1 ? null : 'bar' + (barIndex + 1);
+				},
+
 				rollHPForToken: function (token) {
+					var hpBar = this.getHPBar();
+					if (!hpBar || !myState.config.rollHPOnDrop) {
+						return;
+					}
+
 					var represents = token.get('represents');
 					if (!represents) {
 						return;
@@ -1794,13 +1979,17 @@
 						logger.info('  > Updating Schema to v$$$ from $$$<', schemaVersion, myState && myState.version);
 						logger.info('Preupgrade state: $$$', myState);
 						switch (myState && myState.version) {
+							case 0.1:
+								_.extend(myState, {
+									version: schemaVersion,
+									config: JSON.parse(JSON.stringify(configDefaults))
+								});
+								break;
 							default:
 								if (!myState.version) {
 									_.defaults(myState, {
 										version: schemaVersion,
-										config: {
-											logLevel: 'INFO'
-										}
+										config: JSON.parse(JSON.stringify(configDefaults))
 									});
 									logger.info('Making new state object $$$', myState);
 								}
@@ -2113,7 +2302,68 @@
 
 		var _ = __webpack_require__(3);
 		var roll20 = __webpack_require__(1);
+		var utils = __webpack_require__(10);
 
+
+		var getParser = function (optionString, validator) {
+			'use strict';
+			return function (arg, errors, options) {
+				var argParts = arg.split(/\s+/);
+				if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
+					if (argParts.length <= 2) {
+						//Allow for bare switches
+						var value = argParts.length === 2 ? argParts[1] : true;
+						var result = validator(value);
+						if (result.valid) {
+							options[argParts[0]] = result.converted;
+						}
+						else {
+							errors.push('Invalid value [' + value + '] for option [' + argParts[0] + ']');
+						}
+					}
+					return true;
+				}
+				return false;
+			};
+		};
+
+		var getObjectParser = function (specObject) {
+			'use strict';
+			return function (arg, errors, options) {
+				var argParts = arg.split(/\s+/);
+				var newObject = utils.createObjectFromPath(argParts[0], argParts.slice(1).join(' '));
+
+				var comparison = {spec: specObject, actual: newObject};
+				while (comparison.spec) {
+					var key = _.keys(comparison.actual)[0];
+					var spec = comparison.spec[key];
+					if (!spec) {
+						return false;
+					}
+					if (_.isFunction(comparison.spec[key])) {
+						var result = comparison.spec[key](comparison.actual[key]);
+						if (result.valid) {
+							comparison.actual[key] = result.converted;
+							utils.deepExtend(options, newObject);
+						}
+						else {
+							errors.push('Invalid value [' + comparison.actual[key] + '] for option [' + argParts[0] + ']');
+						}
+						return true;
+					}
+					else if (_.isArray(comparison.actual[key])) {
+						var newVal = [];
+						newVal[comparison.actual[key].length - 1] = comparison.spec[key][0];
+						comparison.spec = newVal;
+						comparison.actual = comparison.actual[key];
+					}
+					else {
+						comparison.spec = comparison.spec[key];
+						comparison.actual = comparison.actual[key];
+					}
+				}
+			};
+		};
 
 		/**
 		 * @constructor
@@ -2128,25 +2378,18 @@
 
 		Command.prototype.option = function (optionString, validator) {
 			'use strict';
-			this.parsers.push(function (arg, errors, options) {
-				var argParts = arg.split(/\s+/);
-				if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
-					if (argParts.length <= 2) {
-						//Allow for bare switches
-						var value = argParts.length === 2 ? argParts[1] : true;
-						var result = validator(value);
-						if (result.valid) {
-							options[argParts[0]] = result.converted;
-							return options;
-						}
-						else {
-							errors.push('Invalid value [' + value + '] for option [' + argParts[0] + ']');
-						}
-					}
-					return true;
-				}
-				return false;
-			});
+			if (_.isFunction(validator)) {
+				this.parsers.push(getParser(optionString, validator));
+			}
+			else if (_.isObject(validator)) {
+				var dummy = {};
+				dummy[optionString] = validator;
+				this.parsers.push(getObjectParser(dummy));
+			}
+			else {
+				throw new Error('Bad validator [' + validator + '] specified for option ' + optionString);
+			}
+
 			return this;
 		};
 
@@ -2182,7 +2425,7 @@
 					return parser(arg, options.errors, options);
 				});
 				if (!parser) {
-					options.errors.push('Unrecognised or poorly formed option [$$$]', arg);
+					options.errors.push('Unrecognised or poorly formed option ' + arg);
 				}
 
 				return options;
@@ -2288,6 +2531,69 @@
 		/***/
 	},
 	/* 10 */
+	/***/ function (module, exports, __webpack_require__) {
+
+		var _ = __webpack_require__(3);
+
+		module.exports = {
+			deepExtend: function (original, newValues) {
+				'use strict';
+				var self = this;
+				if (!original) {
+					original = _.isArray(newValues) ? [] : {};
+				}
+				_.each(newValues, function (value, key) {
+					if (_.isArray(original[key])) {
+						if (!_.isArray(value)) {
+							original[key].push(value);
+						}
+						else {
+							original[key] = _.map(value, function (item, index) {
+								if (_.isObject(item)) {
+									return self.deepExtend(original[key][index], item);
+								}
+								else {
+									return item;
+								}
+							});
+						}
+					}
+					else if (_.isObject(original[key])) {
+						original[key] = self.deepExtend(original[key], value);
+					}
+					else {
+						original[key] = value;
+					}
+
+				});
+				return original;
+			},
+
+			createObjectFromPath: function (pathString, value) {
+				'use strict';
+				var newObject = {};
+				_.reduce(pathString.split(/\./), function (object, pathPart, index, pathParts) {
+					var match = pathPart.match(/([^.\[]*)(?:\[(\d+)\])?/);
+					var newVal = index === pathParts.length - 1 ? value : {};
+
+					if (match[2]) {
+						object[match[1]] = [];
+						object[match[1]][match[2]] = newVal;
+					}
+					else {
+						object[match[1]] = newVal;
+					}
+					return newVal;
+
+				}, newObject);
+				return newObject;
+			}
+		};
+
+
+		/***/
+	},
+	/* 11 */
 	/***/ function (module, exports) {
 
 		function sanitise(statblock, logger) {

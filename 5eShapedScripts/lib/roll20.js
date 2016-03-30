@@ -30,6 +30,12 @@ module.exports = {
         return getAttrByName(character, attrName);
     },
 
+    getAttrObjectByName: function (character, attrName) {
+        'use strict';
+        var attr = this.findObjs({type: 'attribute', characterid: character, name: attrName});
+        return attr && attr.length > 0 ? attr[0] : null;
+    },
+
     getOrCreateAttr: function (characterId, attrName) {
         'use strict';
         var attrSpec = {type: 'attribute', characterid: characterId, name: attrName};
