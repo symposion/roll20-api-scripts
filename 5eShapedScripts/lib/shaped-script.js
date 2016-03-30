@@ -140,6 +140,13 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
               })
               .addCommand('import-monster', this.importMonstersFromJson.bind(this))
               .optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
+              .option('overwrite', booleanValidator)
+              .withSelection({
+                  graphic: {
+                      min: 0,
+                      max: 1
+                  }
+              })
               .addCommand('import-spell', this.importSpellsFromJson.bind(this))
               .optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spell'))
               .withSelection({
@@ -281,13 +288,11 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
 
         importMonstersFromJson: function (options) {
             var self = this;
+            var token = options.selected.graphic;
             _.each(options.monsters, function (monsterData) {
-                self.createNewCharacter(monsterData);
+                self.createNewCharacter(monsterData, token, options.overwrite);
             });
-            report('Added the following monsters: ' + _.reduce(options.monsters, function (memo, spell) {
-                  memo += spell.name;
-                  return memo;
-              }, ''));
+            report('Added the following monsters: ' + _.values(options.monsters).join(','));
 
         },
 
@@ -310,24 +315,28 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
 
         createNewCharacter: function (monsterData, token, overwrite) {
             var converted = srdConverter.convertMonster(monsterData);
+            var character;
             if (token && token.get('represents')) {
-                var oldCharacter = roll20.getObj('character', token.get('represents'));
-                if (oldCharacter) {
+                character = roll20.getObj('character', token.get('represents'));
+                if (character) {
                     if (!overwrite) {
-                        report('Found character "' + oldCharacter.get('name') + '" for token already but overwrite was not set. Try again with --overwrite if you wish to replace this character');
+                        report('Found character "' + character.get('name') + '" for token already but overwrite was not set. Try again with --overwrite if you wish to replace this character');
                         return;
                     }
                     else {
-                        oldCharacter.remove();
+                        var oldAttrs = roll20.findObjs({type: 'attribute', characterid: character.id});
+                        _.invoke(oldAttrs, 'remove');
                     }
                 }
             }
 
             logger.debug('Converted monster data: $$$', converted);
-            var character = roll20.createObj('character', {
-                name: converted.character_name, // jshint ignore:line
-                avatar: token ? token.get('imgsrc') : ''
-            });
+            if (!character) {
+                character = roll20.createObj('character', {
+                    name: converted.character_name, // jshint ignore:line
+                    avatar: token ? token.get('imgsrc') : ''
+                });
+            }
 
 
             if (!character) {
