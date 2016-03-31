@@ -113,11 +113,28 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
     'use strict';
     var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
     var addedTokenIds = [];
-    var report = function (msg) {
+    var report = function (heading, text) {
         //Horrible bug with this at the moment - seems to generate spurious chat
         //messages when noarchive:true is set
         //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
-        roll20.sendChat('ShapedScripts', '/w gm ' + msg);
+
+        roll20.sendChat('',
+          '/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
+          '<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;">' +
+          'Shaped Scripts ' + heading +
+          '</div>' +
+          text +
+          '</div>');
+    };
+
+    var reportError = function (text) {
+        roll20.sendChat('',
+          '/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
+          '<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;color:red;">' +
+          'Shaped Scripts Error' +
+          '</div>' +
+          text +
+          '</div>');
     };
 
     var shapedModule = {
@@ -177,13 +194,13 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             }
             catch (e) {
                 if (typeof e === 'string' || e instanceof parseModule.ParserError) {
-                    report('An error occurred: ' + e);
+                    reportError(e);
                     logger.error('Error: $$$', e.toString());
                 }
                 else {
-                    logger.error('Error: ' + e.toString());
+                    logger.error(e.toString());
                     logger.error(e.stack);
-                    report('An error occurred. Please see the log for more details.');
+                    reportError('An error occurred. Please see the log for more details.');
                 }
             }
             finally {
@@ -256,7 +273,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         /////////////////////////////////////////
         configure: function (options) {
             utils.deepExtend(myState.config, options);
-            report('Configuration is now: ' + JSON.stringify(myState.config));
+            report('Configuration', 'Configuration is now: ' + JSON.stringify(myState.config));
         },
 
         applyTokenDefaults: function (options) {
@@ -282,6 +299,8 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     var character = self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
                     logger.debug('gmnotes: $$$', text);
                     character.set('gmnotes', text.replace(/\n/g, '<br>'));
+                    report('Import Success', 'Character [' + character.get('name') + '] successfully created.'); // jshint ignore:line
+
                 }
             });
         },
@@ -292,7 +311,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             _.each(options.monsters, function (monsterData) {
                 self.createNewCharacter(monsterData, token, options.overwrite);
             });
-            report('Added the following monsters: ' + _.values(options.monsters).join(','));
+            report('Import Success', 'Added the following monsters: <ul><li>' + _.values(options.monsters).join('</li><li>') + '</li></ul>');
 
         },
 
@@ -308,9 +327,9 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 spells: srdConverter.convertSpells(options.spells, gender)
             };
             this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
-            report('Added the following spells:\n' + _.map(importData.spells, function (spell) {
+            report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
                   return spell.name;
-              }).join('\n'));
+              }).join('</li><li>') + '</li></ul>');
         },
 
         createNewCharacter: function (monsterData, token, overwrite) {
@@ -320,7 +339,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 character = roll20.getObj('character', token.get('represents'));
                 if (character) {
                     if (!overwrite) {
-                        report('Found character "' + character.get('name') + '" for token already but overwrite was not set. Try again with --overwrite if you wish to replace this character');
+                        reportError('Found character "' + character.get('name') + '" for token already but overwrite was not set. Try again with --overwrite if you wish to replace this character');
                         return;
                     }
                     else {
@@ -349,7 +368,6 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             }
             this.getImportDataWrapper(character).setNewImportData({npc: converted});
             this.setCharacterDefaults(character);
-            report('Character [' + converted.character_name + '] successfully created.'); // jshint ignore:line
             return character;
 
         },
@@ -664,7 +682,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                         }
                         else {
                             logger.error('Unknown schema version for state $$$', myState);
-                            report('Serious error attempting to upgrade your global state, please see log for details. ' +
+                            reportError('Serious error attempting to upgrade your global state, please see log for details. ' +
                               'ShapedScripts will not function correctly until this is fixed');
                             myState = undefined;
                         }

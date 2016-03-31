@@ -551,9 +551,9 @@ ParserError.prototype = new Error();
 function MissingContentError(missingFieldParsers) {
     'use strict';
     this.missingFieldParsers = missingFieldParsers;
-    this.message = _.map(this.missingFieldParsers, function (parser) {
-        return 'Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times';
-    }).join('\n');
+    this.message = _.reduce(this.missingFieldParsers, function (memo, parser) {
+          return memo + '<li>Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times</li>';
+      }, '<ul>') + '</ul>';
 }
 MissingContentError.prototype = new ParserError();
 

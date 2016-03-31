@@ -788,9 +788,9 @@
 		function MissingContentError(missingFieldParsers) {
 			'use strict';
 			this.missingFieldParsers = missingFieldParsers;
-			this.message = _.map(this.missingFieldParsers, function (parser) {
-				return 'Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times';
-			}).join('\n');
+			this.message = _.reduce(this.missingFieldParsers, function (memo, parser) {
+				return memo + '<li>Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times</li>';
+			}, '<ul>') + '</ul>';
 		}
 
 		MissingContentError.prototype = new ParserError();
@@ -1473,11 +1473,28 @@
 			'use strict';
 			var sanitise = logger.wrapFunction('sanitise', __webpack_require__(11), '');
 			var addedTokenIds = [];
-			var report = function (msg) {
+			var report = function (heading, text) {
 				//Horrible bug with this at the moment - seems to generate spurious chat
 				//messages when noarchive:true is set
 				//sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
-				roll20.sendChat('ShapedScripts', '/w gm ' + msg);
+
+				roll20.sendChat('',
+				'/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
+				'<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;">' +
+				'Shaped Scripts ' + heading +
+				'</div>' +
+				text +
+				'</div>');
+			};
+
+			var reportError = function (text) {
+				roll20.sendChat('',
+				'/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
+				'<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;color:red;">' +
+				'Shaped Scripts Error' +
+				'</div>' +
+				text +
+				'</div>');
 			};
 
 			var shapedModule = {
@@ -1500,6 +1517,13 @@
 					})
 					.addCommand('import-monster', this.importMonstersFromJson.bind(this))
 					.optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
+					.option('overwrite', booleanValidator)
+					.withSelection({
+						graphic: {
+							min: 0,
+							max: 1
+						}
+					})
 					.addCommand('import-spell', this.importSpellsFromJson.bind(this))
 					.optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spell'))
 					.withSelection({
@@ -1530,13 +1554,13 @@
 					}
 					catch (e) {
 						if (typeof e === 'string' || e instanceof parseModule.ParserError) {
-							report('An error occurred: ' + e);
+							reportError(e);
 							logger.error('Error: $$$', e.toString());
 						}
 						else {
-							logger.error('Error: ' + e.toString());
+							logger.error(e.toString());
 							logger.error(e.stack);
-							report('An error occurred. Please see the log for more details.');
+							reportError('An error occurred. Please see the log for more details.');
 						}
 					}
 					finally {
@@ -1609,7 +1633,7 @@
 				/////////////////////////////////////////
 				configure: function (options) {
 					utils.deepExtend(myState.config, options);
-					report('Configuration is now: ' + JSON.stringify(myState.config));
+					report('Configuration', 'Configuration is now: ' + JSON.stringify(myState.config));
 				},
 
 				applyTokenDefaults: function (options) {
@@ -1635,19 +1659,19 @@
 							var character = self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
 							logger.debug('gmnotes: $$$', text);
 							character.set('gmnotes', text.replace(/\n/g, '<br>'));
+							report('Import Success', 'Character [' + character.get('name') + '] successfully created.'); // jshint ignore:line
+
 						}
 					});
 				},
 
 				importMonstersFromJson: function (options) {
 					var self = this;
+					var token = options.selected.graphic;
 					_.each(options.monsters, function (monsterData) {
-						self.createNewCharacter(monsterData);
+						self.createNewCharacter(monsterData, token, options.overwrite);
 					});
-					report('Added the following monsters: ' + _.reduce(options.monsters, function (memo, spell) {
-						memo += spell.name;
-						return memo;
-					}, ''));
+					report('Import Success', 'Added the following monsters: <ul><li>' + _.values(options.monsters).join('</li><li>') + '</li></ul>');
 
 				},
 
@@ -1663,31 +1687,35 @@
 						spells: srdConverter.convertSpells(options.spells, gender)
 					};
 					this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
-					report('Added the following spells:\n' + _.map(importData.spells, function (spell) {
+					report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
 						return spell.name;
-					}).join('\n'));
+					}).join('</li><li>') + '</li></ul>');
 				},
 
 				createNewCharacter: function (monsterData, token, overwrite) {
 					var converted = srdConverter.convertMonster(monsterData);
+					var character;
 					if (token && token.get('represents')) {
-						var oldCharacter = roll20.getObj('character', token.get('represents'));
-						if (oldCharacter) {
+						character = roll20.getObj('character', token.get('represents'));
+						if (character) {
 							if (!overwrite) {
-								report('Found character "' + oldCharacter.get('name') + '" for token already but overwrite was not set. Try again with --overwrite if you wish to replace this character');
+								reportError('Found character "' + character.get('name') + '" for token already but overwrite was not set. Try again with --overwrite if you wish to replace this character');
 								return;
 							}
 							else {
-								oldCharacter.remove();
+								var oldAttrs = roll20.findObjs({type: 'attribute', characterid: character.id});
+								_.invoke(oldAttrs, 'remove');
 							}
 						}
 					}
 
 					logger.debug('Converted monster data: $$$', converted);
-					var character = roll20.createObj('character', {
-						name: converted.character_name, // jshint ignore:line
-						avatar: token ? token.get('imgsrc') : ''
-					});
+					if (!character) {
+						character = roll20.createObj('character', {
+							name: converted.character_name, // jshint ignore:line
+							avatar: token ? token.get('imgsrc') : ''
+						});
+					}
 
 
 					if (!character) {
@@ -1700,7 +1728,6 @@
 					}
 					this.getImportDataWrapper(character).setNewImportData({npc: converted});
 					this.setCharacterDefaults(character);
-					report('Character [' + converted.character_name + '] successfully created.'); // jshint ignore:line
 					return character;
 
 				},
@@ -2015,7 +2042,7 @@
 								}
 								else {
 									logger.error('Unknown schema version for state $$$', myState);
-									report('Serious error attempting to upgrade your global state, please see log for details. ' +
+									reportError('Serious error attempting to upgrade your global state, please see log for details. ' +
 									'ShapedScripts will not function correctly until this is fixed');
 									myState = undefined;
 								}
@@ -2309,7 +2336,6 @@
 					return converted;
 				});
 
-				//TODO: turn on the toggles.
 			}
 			/* jshint camelcase : true */
 		};
