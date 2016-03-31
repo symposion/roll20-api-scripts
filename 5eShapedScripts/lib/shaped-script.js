@@ -11,14 +11,24 @@ var version        = '0.2',
         logLevel: 'INFO',
         tokenSettings: {
             number: false,
-            bars: [
-                {
-                    attribute: 'HP',
-                    max: true,
-                    link: false,
-                    showPlayers: false
-                }
-            ],
+            bar1: {
+                attribute: 'HP',
+                max: true,
+                link: false,
+                showPlayers: false
+            },
+            bar2: {
+                attribute: '',
+                max: false,
+                link: false,
+                showPlayers: false
+            },
+            bar3: {
+                attribute: '',
+                max: false,
+                link: false,
+                showPlayers: false
+            },
             showName: true,
             showNameToPlayers: false
         },
@@ -82,7 +92,13 @@ var booleanValidator     = function (value) {
     sheetOutputValidator = getOptionList({
         public: '@{output_to_all}',
         whisper: '@{output_to_gm}'
-    });
+    }),
+    barValidator         = {
+        attribute: stringValidator,
+        max: booleanValidator,
+        link: booleanValidator,
+        showPlayers: booleanValidator
+    };
 
 /**
  * @typedef {Object} ChatMessage
@@ -215,14 +231,9 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             },
             tokenSettings: {
                 number: booleanValidator,
-                bars: [
-                    {
-                        attribute: stringValidator,
-                        max: booleanValidator,
-                        link: booleanValidator,
-                        showPlayers: booleanValidator
-                    }
-                ],
+                bar1: barValidator,
+                bar2: barValidator,
+                bar3: barValidator,
                 showName: booleanValidator,
                 showNameToPlayers: booleanValidator
             },
@@ -297,10 +308,10 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     text = sanitise(unescape(text), logger);
                     //noinspection JSUnresolvedVariable
                     var character = self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
-                    logger.debug('gmnotes: $$$', text);
-                    character.set('gmnotes', text.replace(/\n/g, '<br>'));
-                    report('Import Success', 'Character [' + character.get('name') + '] successfully created.'); // jshint ignore:line
-
+                    if (character) {
+                        character.set('gmnotes', text.replace(/\n/g, '<br>'));
+                        report('Import Success', 'Character [' + character.get('name') + '] successfully created.');
+                    }
                 }
             });
         },
@@ -308,13 +319,23 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         importMonstersFromJson: function (options) {
             var self = this;
             var token = options.selected.graphic;
-            _.each(options.monsters, function (monsterData) {
-                self.createNewCharacter(monsterData, token, options.overwrite);
-            });
+            if (token && _.size(options.monsters) > 1) {
+                reportError('Cannot have a token selected when importing more than one monster');
+                return;
+            }
+            var importedList = _.chain(options.monsters)
+              .map(function (monsterData) {
+                  var character = self.createNewCharacter(monsterData, token, options.overwrite);
+                  return character && character.get('name');
+              })
+              .compact()
+              .value();
 
-            var monsterList = _.pluck(options.monsters, 'name').join('</li><li>');
+            if (!_.isEmpty(importedList)) {
+                var monsterList = importedList.join('</li><li>');
+                report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
+            }
 
-            report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
 
         },
 
@@ -347,6 +368,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     }
                     else {
                         var oldAttrs = roll20.findObjs({type: 'attribute', characterid: character.id});
+                        character.set('name', converted.character_name);// jshint ignore:line
                         _.invoke(oldAttrs, 'remove');
                     }
                 }
@@ -394,22 +416,23 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 token.set('name', token.get('name') + ' %%NUMBERED%%');
             }
 
-            _.each(settings.bars, function (bar, index) {
-                var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
-                var barName = 'bar' + (index + 1);
-                if (attribute) {
-                    token.set(barName + '_value', attribute.get('current'));
-                    if (bar.max) {
-                        token.set(barName + '_max', attribute.get('max'));
-                    }
-                    if (bar.showPlayers) {
-                        token.set('showplayers_' + barName);
-                    }
-                    if (bar.link) {
-                        token.set(barName + '_link', attribute.id);
-                    }
-                }
-            });
+            _.chain(settings)
+              .pick(['bar1', 'bar2', 'bar3'])
+              .each(function (bar, barName) {
+                  var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
+                  if (attribute) {
+                      token.set(barName + '_value', attribute.get('current'));
+                      if (bar.max) {
+                          token.set(barName + '_max', attribute.get('max'));
+                      }
+                      if (bar.showPlayers) {
+                          token.set('showplayers_' + barName);
+                      }
+                      if (bar.link) {
+                          token.set(barName + '_link', attribute.id);
+                      }
+                  }
+              });
 
             token.set('showname', settings.showName);
             token.set('showplayers_name', settings.showNameToPlayers);
@@ -496,6 +519,16 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 return;
             }
             addedTokenIds.push(token.id);
+
+            //URGH. Thanks Roll20.
+            setTimeout((function (id, self) {
+                return function () {
+                    var token = roll20.getObj('graphic', id);
+                    if (token) {
+                        self.handleChangeToken(token);
+                    }
+                };
+            }(token.id, this)), 100);
         },
 
         handleChangeToken: function (token) {
