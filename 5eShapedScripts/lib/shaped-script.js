@@ -311,7 +311,10 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             _.each(options.monsters, function (monsterData) {
                 self.createNewCharacter(monsterData, token, options.overwrite);
             });
-            report('Import Success', 'Added the following monsters: <ul><li>' + _.values(options.monsters).join('</li><li>') + '</li></ul>');
+
+            var monsterList = _.pluck(options.monsters, 'name').join('</li><li>');
+
+            report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
 
         },
 

@@ -1671,7 +1671,10 @@
 					_.each(options.monsters, function (monsterData) {
 						self.createNewCharacter(monsterData, token, options.overwrite);
 					});
-					report('Import Success', 'Added the following monsters: <ul><li>' + _.values(options.monsters).join('</li><li>') + '</li></ul>');
+
+					var monsterList = _.pluck(options.monsters, 'name').join('</li><li>');
+
+					report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
 
 				},
 
@@ -2223,8 +2226,8 @@
 			traits: identityMapper,
 			actions: identityMapper,
 			reactions: identityMapper,
-			regionalEffects: _.noop,
-			regionalEffectsFade: _.noop,
+			regionalEffects: identityMapper,
+			regionalEffectsFade: identityMapper,
 			legendaryPoints: identityMapper,
 			legendaryActions: identityMapper,
 			lairActions: identityMapper
@@ -2263,11 +2266,15 @@
 
 				var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', {variable: 'data'});
 				var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
+				var lairRegionalTemplate = function (item) {
+					return '**' + item;
+				};
 
 				var simpleSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
 				var legendarySectionTemplate = _.template('<%=data.title%>\nThe <%=data.name%> can take <%=data.legendaryPoints%> legendary actions, ' +
 				'choosing from the options below. It can take only one legendary action at a time and only at the end of another creature\'s turn.' +
 				' The <%=data.name%> regains spent legendary actions at the start of its turn.\n<% print(data.items.join("\\n")) %>', {variable: 'data'});
+				var regionalSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>\n**<%=data.regionalEffectsFade%>', {variable: 'data'});
 
 				var srdContentSections = [
 					{prop: 'traits', itemTemplate: actionTraitTemplate, sectionTemplate: simpleSectionTemplate},
@@ -2278,7 +2285,12 @@
 						itemTemplate: legendaryTemplate,
 						sectionTemplate: legendarySectionTemplate
 					},
-					{prop: 'lairActions', itemTemplate: _.identity, sectionTemplate: simpleSectionTemplate}
+					{prop: 'lairActions', itemTemplate: lairRegionalTemplate, sectionTemplate: simpleSectionTemplate},
+					{
+						prop: 'regionalEffects',
+						itemTemplate: lairRegionalTemplate,
+						sectionTemplate: regionalSectionTemplate
+					}
 				];
 
 				var makeDataObject = function (propertyName, itemList) {
@@ -2288,6 +2300,7 @@
 						}),
 						name: output.character_name,
 						legendaryPoints: output.legendaryPoints,
+						regionalEffectsFade: output.regionalEffectsFade,
 						items: itemList
 					};
 				};
