@@ -5,7 +5,7 @@ var parseModule = require('./parser');
 var cp = require('./command-parser');
 var utils = require('./utils');
 
-var version        = '0.2.1',
+var version        = '0.2.2',
     schemaVersion  = 0.2,
     configDefaults = {
         logLevel: 'INFO',
@@ -84,7 +84,7 @@ var booleanValidator     = function (value) {
         return function (value) {
             return {
                 converted: options[value],
-                valid: !!options[value]
+                valid: options[value] !== undefined
             };
         };
     },
@@ -276,7 +276,8 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     true: '@{ammo_auto_use_var}',
                     false: ''
                 })
-            }
+            },
+            rollHPOnDrop: booleanValidator
         },
 
         /////////////////////////////////////////

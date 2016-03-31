@@ -1365,7 +1365,7 @@
 		var cp = __webpack_require__(9);
 		var utils = __webpack_require__(10);
 
-		var version        = '0.2.1',
+		var version        = '0.2.2',
 			schemaVersion  = 0.2,
 			configDefaults = {
 				logLevel: 'INFO',
@@ -1444,7 +1444,7 @@
 				return function (value) {
 					return {
 						converted: options[value],
-						valid: !!options[value]
+						valid: options[value] !== undefined
 					};
 				};
 			},
@@ -1636,7 +1636,8 @@
 							true: '@{ammo_auto_use_var}',
 							false: ''
 						})
-					}
+					},
+					rollHPOnDrop: booleanValidator
 				},
 
 				/////////////////////////////////////////
