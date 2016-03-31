@@ -5,7 +5,7 @@ var parseModule = require('./parser');
 var cp = require('./command-parser');
 var utils = require('./utils');
 
-var version        = '0.2',
+var version        = '0.2.1',
     schemaVersion  = 0.2,
     configDefaults = {
         logLevel: 'INFO',
@@ -539,14 +539,15 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         getHPBar: function () {
-            var barIndex = _.findIndex(myState.config.tokenSettings.bars, function (bar) {
-                return bar.attribute === 'HP';
-            });
-            return barIndex === -1 ? null : 'bar' + (barIndex + 1);
+            return _.chain(myState.config.tokenSettings)
+              .pick('bar1', 'bar2', 'bar3')
+              .findKey({attribute: 'HP'})
+              .value();
         },
 
         rollHPForToken: function (token) {
             var hpBar = this.getHPBar();
+            logger.debug('HP bar is $$$', hpBar);
             if (!hpBar || !myState.config.rollHPOnDrop) {
                 return;
             }
