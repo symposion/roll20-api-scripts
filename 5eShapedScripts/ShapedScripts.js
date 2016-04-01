@@ -1786,9 +1786,7 @@
 							if (bar.max) {
 								token.set(barName + '_max', attribute.get('max'));
 							}
-							if (bar.showPlayers) {
-								token.set('showplayers_' + barName);
-							}
+							token.set('showplayers_' + barName, bar.showPlayers);
 							if (bar.link) {
 								token.set(barName + '_link', attribute.id);
 							}
