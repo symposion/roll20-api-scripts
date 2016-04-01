@@ -6,7 +6,7 @@ var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 
-var version        = '0.3.0',
+var version        = '0.3.1',
     schemaVersion  = 0.2,
     configDefaults = {
         logLevel: 'INFO',

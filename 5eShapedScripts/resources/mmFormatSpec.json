@@ -240,7 +240,7 @@
             {
               "name": "name",
               "type": "string",
-              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "pattern": "(^|.*?[a-z]\\.\\s?)((?:\\d+\\.\\s?)?[A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
               "matchGroup": 2,
               "forPreviousMatchGroup": 1,
               "forNextMatchGroup": 3,

@@ -1070,7 +1070,7 @@
 								{
 									"name": "name",
 									"type": "string",
-									"pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+									"pattern": "(^|.*?[a-z]\\.\\s?)((?:\\d+\\.\\s?)?[A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
 									"matchGroup": 2,
 									"forPreviousMatchGroup": 1,
 									"forNextMatchGroup": 3,
@@ -1373,7 +1373,7 @@
 		var utils = __webpack_require__(10);
 		var mpp = __webpack_require__(11);
 
-		var version        = '0.3.0',
+		var version        = '0.3.1',
 			schemaVersion  = 0.2,
 			configDefaults = {
 				logLevel: 'INFO',
