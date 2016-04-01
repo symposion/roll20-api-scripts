@@ -1043,7 +1043,7 @@
 									"name": "text",
 									"bare": true,
 									"type": "string"
-								}
+							}
 							]
 						}
 					]
@@ -1089,7 +1089,7 @@
 									"name": "text",
 									"bare": true,
 									"type": "string"
-								}
+							}
 							]
 						}
 					]
@@ -1135,7 +1135,7 @@
 									"name": "text",
 									"bare": true,
 									"type": "string"
-								}
+							}
 							]
 						}
 					]
@@ -1330,20 +1330,27 @@
 				}
 				var addedCount = 0;
 				_.each(entityArray, function (entity) {
-					if (!entities[type][entity.name.toLowerCase()] || overwrite) {
-						entities[type][entity.name.toLowerCase()] = entity;
+					var key = entity.name.toLowerCase();
+					if (!entities[type][key] || overwrite) {
+						entities[type][key] = entity;
+						entities[type][key.replace(/\s+/g, '')] = entity;
 						addedCount++;
 					}
 				});
 				logger.info('Added $$$ entities of type $$$ to the lookup', addedCount, type);
 				logger.info(this);
 			},
-			findEntity: function (type, name) {
+			findEntity: function (type, name, tryWithoutWhitespace) {
 				'use strict';
+				var key = name.toLowerCase();
 				if (!entities[type]) {
 					throw 'Unrecognised entity type ' + type;
 				}
-				return entities[type][name.toLowerCase()];
+				var found = entities[type][key];
+				if (!found && tryWithoutWhitespace) {
+					found = entities[type][key.replace(/\s+/g, '')];
+				}
+				return found;
 			},
 			logWrap: 'entityLookup',
 			toJSON: function () {
@@ -1364,8 +1371,9 @@
 		var parseModule = __webpack_require__(2);
 		var cp = __webpack_require__(9);
 		var utils = __webpack_require__(10);
+		var mpp = __webpack_require__(11);
 
-		var version        = '0.2.2',
+		var version        = '0.3.0',
 			schemaVersion  = 0.2,
 			configDefaults = {
 				logLevel: 'INFO',
@@ -1487,7 +1495,7 @@
 		 */
 		module.exports = function (logger, myState, roll20, parser, entityLookup) {
 			'use strict';
-			var sanitise = logger.wrapFunction('sanitise', __webpack_require__(11), '');
+			var sanitise = logger.wrapFunction('sanitise', __webpack_require__(12), '');
 			var addedTokenIds = [];
 			var report = function (heading, text) {
 				//Horrible bug with this at the moment - seems to generate spurious chat
@@ -1667,8 +1675,9 @@
 						var text = token.get('gmnotes');
 						if (text) {
 							text = sanitise(unescape(text), logger);
+							var processedNpc = mpp(parser.parse(text).npc, entityLookup);
 							//noinspection JSUnresolvedVariable
-							var character = self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
+							var character = self.createNewCharacter(processedNpc, token, options.overwrite);
 							if (character) {
 								character.set('gmnotes', text.replace(/\n/g, '<br>'));
 								report('Import Success', 'Character [' + character.get('name') + '] successfully created.');
@@ -1686,6 +1695,7 @@
 					}
 					var importedList = _.chain(options.monsters)
 					.map(function (monsterData) {
+						this.hydrateSpellList(monsterData);
 						var character = self.createNewCharacter(monsterData, token, options.overwrite);
 						return character && character.get('name');
 					})
@@ -1701,24 +1711,38 @@
 				},
 
 				importSpellsFromJson: function (options) {
+					this.addSpellsToCharacter(options.selected.character, options.spells);
+				},
 
-					var gender = roll20.getAttrByName(options.selected.character.id, 'gender') || 'male';
+				addSpellsToCharacter: function (character, spells) {
+					var gender = roll20.getAttrByName(character.id, 'gender') || 'male';
 
 					//TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
 					gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';
 
 
 					var importData = {
-						spells: srdConverter.convertSpells(options.spells, gender)
+						spells: srdConverter.convertSpells(spells, gender)
 					};
-					this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
+					this.getImportDataWrapper(character).mergeImportData(importData);
 					report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
 						return spell.name;
 					}).join('</li><li>') + '</li></ul>');
 				},
 
+				hydrateSpellList: function (monster) {
+					if (!monster.spells) {
+						return;
+					}
+					monster.spells = _.map(monster.spells.split(', '), function (spellName) {
+						return entityLookup.findEntity('spell', spellName) || spellName;
+					});
+				},
+
 				createNewCharacter: function (monsterData, token, overwrite) {
+
 					var converted = srdConverter.convertMonster(monsterData);
+
 					var character;
 					if (token && token.get('represents')) {
 						character = roll20.getObj('character', token.get('represents'));
@@ -1752,7 +1776,14 @@
 					if (token) {
 						this.setTokenDefaults(token, character);
 					}
+
+					var expandedSpells = converted.spells;
+					delete converted.spells;
 					this.getImportDataWrapper(character).setNewImportData({npc: converted});
+					if (expandedSpells) {
+						this.addSpellsToCharacter(character, expandedSpells);
+					}
+
 					this.setCharacterDefaults(character);
 					return character;
 
@@ -2249,7 +2280,16 @@
 			wisdom: identityMapper,
 			charisma: identityMapper,
 			skills: getRenameMapper('skills_srd'),
-			spells: getRenameMapper('spells_srd'),
+			spells: function (key, value, output) {
+				'use strict';
+				var splitSpells = _.partition(value, _.isObject);
+				if (!_.isEmpty(splitSpells[1])) {
+					output.spells_srd = splitSpells[1].join(', ');
+				}
+				if (!_.isEmpty(splitSpells[0])) {
+					output.spells = splitSpells[0];
+				}
+			},
 			savingThrows: getRenameMapper('saving_throws_srd'),
 			damageResistances: getRenameMapper('damage_resistances'),
 			damageImmunities: getRenameMapper('damage_immunities'),
@@ -2280,6 +2320,12 @@
 					accusative: 'her',
 					possessive: 'her',
 					reflexive: 'herself'
+				},
+				neuter: {
+					nominative: 'it',
+					accusative: 'it',
+					possessive: 'its',
+					reflexive: 'itself'
 				}
 			},
 
@@ -2688,6 +2734,136 @@
 		/***/
 	},
 	/* 11 */
+	/***/ function (module, exports, __webpack_require__) {
+
+		'use strict';
+		var _ = __webpack_require__(3);
+
+		var levelStrings = ['Cantrips ', '1st level ', '2nd level ', '3rd level '];
+		_.each(_.range(4, 10), function (level) {
+			levelStrings[level] = level + 'th level ';
+		});
+
+		var spellcastingHandler = {
+			splitRegex: /(Cantrips|(?:1st|2nd|3rd|[4-9]th)\s*level)\s*\(([^\)]+)\)\s*:/i,
+
+			makeLevelDetailsObject: function (match) {
+				var levelMatch = match[1].match(/\d/);
+				return {
+					level: levelMatch ? parseInt(levelMatch[0]) : 0,
+					slots: match[2]
+				};
+			},
+
+			setLevelDetailsString: function (levelDetails) {
+				levelDetails.newText = levelStrings[levelDetails.level] + '(' + levelDetails.slots + '): ';
+				levelDetails.newText += levelDetails.spells.join(', ');
+			}
+
+		};
+
+		var innateHandler = {
+			splitRegex: /(At\s?will|\d\s?\/\s?day)(?:\s?each)?\s?:/i,
+
+			makeLevelDetailsObject: function (match) {
+				var usesMatch = match[1].match(/\d/);
+				return {
+					uses: usesMatch ? parseInt(usesMatch[0]) : 0,
+					slots: match[2]
+				};
+			},
+
+			setLevelDetailsString: function (levelDetails) {
+				levelDetails.newText = levelDetails.uses === 0 ? 'At will' : levelDetails.uses + '/day';
+				if (levelDetails.spells.length > 1) {
+					levelDetails.newText += ' each';
+				}
+				levelDetails.newText += ': ';
+				levelDetails.newText += levelDetails.spells.join(', ');
+			}
+
+		};
+
+
+		function processSpellcastingTrait(traits, traitName, traitHandler, entityLookup) {
+			var trait = _.findWhere(traits, {name: traitName});
+			if (trait) {
+				var spellList = trait.text.substring(trait.text.indexOf(':') + 1).replace('\n', ' ');
+				var castingDetails = trait.text.substring(0, trait.text.indexOf(':'));
+				var levelDetails = [];
+				var match;
+				while ((match = traitHandler.splitRegex.exec(spellList)) !== null) {
+					if (_.last(levelDetails)) {
+						_.last(levelDetails).spells = spellList.slice(0, match.index);
+					}
+					levelDetails.push(traitHandler.makeLevelDetailsObject(match));
+					spellList = spellList.slice(match.index + match[0].length);
+				}
+				if (_.last(levelDetails)) {
+					_.last(levelDetails).spells = spellList;
+				}
+
+				var spellDetailsByLevel = _.chain(levelDetails)
+				.each(function (levelDetails) {
+					levelDetails.spells = _.chain(levelDetails.spells.split(','))
+					.map(_.partial(_.result, _, 'trim'))
+					.map(function (spellName) {
+						var match = spellName.match(/([^\(]+)(?:\(([^\)]+)\))?/);
+						return {
+							name: match[1],
+							restriction: match[2],
+							toString: function () {
+								return this.name + (this.restriction ? ' (' + this.restriction + ')' : '');
+							},
+							toSpellArrayItem: function () {
+								return this.name;
+							}
+						};
+					})
+					.each(function (spell) {
+						spell.object = entityLookup.findEntity('spell', spell.name, true);
+						if (spell.object) {
+							spell.name = spell.object.name;
+							spell.toSpellArrayItem = function () {
+								return this.object;
+							};
+						}
+					})
+					.value();
+				})
+				.each(traitHandler.setLevelDetailsString)
+				.value();
+
+
+				trait.text = castingDetails + ':\n' + _.pluck(spellDetailsByLevel, 'newText').join('\n');
+				return _.chain(spellDetailsByLevel)
+				.pluck('spells')
+				.flatten()
+				.map(_.partial(_.result, _, 'toSpellArrayItem'))
+				.value();
+			}
+			return [];
+		}
+
+
+		module.exports = function (monster, entityLookup) {
+			var spells = processSpellcastingTrait(monster.traits, 'Spellcasting', spellcastingHandler, entityLookup);
+			var innateSpells = processSpellcastingTrait(monster.traits, 'Innate Spellcasting', innateHandler, entityLookup);
+			spells = _.chain(spells)
+			.union(innateSpells)
+			.sortBy('name')
+			.sortBy('level')
+			.value();
+			if (!_.isEmpty(spells)) {
+				monster.spells = spells;
+			}
+			return monster;
+		};
+
+
+		/***/
+	},
+	/* 12 */
 	/***/ function (module, exports) {
 
 		function sanitise(statblock, logger) {
@@ -2745,6 +2921,8 @@
 
 			statblock = statblock
 			.replace(/,\./gi, ',')
+			.replace(/([a-z\/])1/g, '$1l')
+			.replace(/([a-z])\/([a-z])/g, '$1l$2')
 			.replace(/(^| )l /gm, '$11 ')
 			.replace(/ft\s\./gi, 'ft.')
 			.replace(/ft\.\s,/gi, 'ft')
@@ -2830,7 +3008,9 @@
 				't_urns': 'turns',
 				'unti l': 'until',
 				'withi n': 'within',
-				'tohit': 'to hit'
+				'tohit': 'to hit',
+				'At wi ll': 'At will',
+				'per-son': 'person'
 			};
 			var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
 			statblock = statblock.replace(re, function (matched) {

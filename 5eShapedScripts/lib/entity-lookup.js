@@ -14,20 +14,27 @@ module.exports = {
         }
         var addedCount = 0;
         _.each(entityArray, function (entity) {
-            if (!entities[type][entity.name.toLowerCase()] || overwrite) {
-                entities[type][entity.name.toLowerCase()] = entity;
+            var key = entity.name.toLowerCase();
+            if (!entities[type][key] || overwrite) {
+                entities[type][key] = entity;
+                entities[type][key.replace(/\s+/g, '')] = entity;
                 addedCount++;
             }
         });
         logger.info('Added $$$ entities of type $$$ to the lookup', addedCount, type);
         logger.info(this);
     },
-    findEntity: function (type, name) {
+    findEntity: function (type, name, tryWithoutWhitespace) {
         'use strict';
+        var key = name.toLowerCase();
         if (!entities[type]) {
             throw 'Unrecognised entity type ' + type;
         }
-        return entities[type][name.toLowerCase()];
+        var found = entities[type][key];
+        if (!found && tryWithoutWhitespace) {
+            found = entities[type][key.replace(/\s+/g, '')];
+        }
+        return found;
     },
     logWrap: 'entityLookup',
     toJSON: function () {

@@ -4,6 +4,7 @@ var srdConverter = require('./srd-converter');
 var parseModule = require('./parser');
 var cp = require('./command-parser');
 var utils = require('./utils');
+var mpp = require('./monster-post-processor');
 
 var version        = '0.3.0',
     schemaVersion  = 0.2,
@@ -307,8 +308,9 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 var text = token.get('gmnotes');
                 if (text) {
                     text = sanitise(unescape(text), logger);
+                    var processedNpc = mpp(parser.parse(text).npc, entityLookup);
                     //noinspection JSUnresolvedVariable
-                    var character = self.createNewCharacter(parser.parse(text).npc, token, options.overwrite);
+                    var character = self.createNewCharacter(processedNpc, token, options.overwrite);
                     if (character) {
                         character.set('gmnotes', text.replace(/\n/g, '<br>'));
                         report('Import Success', 'Character [' + character.get('name') + '] successfully created.');
@@ -326,6 +328,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             }
             var importedList = _.chain(options.monsters)
               .map(function (monsterData) {
+                  this.hydrateSpellList(monsterData);
                   var character = self.createNewCharacter(monsterData, token, options.overwrite);
                   return character && character.get('name');
               })
@@ -362,22 +365,14 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
 
         hydrateSpellList: function (monster) {
             if (!monster.spells) {
-                return [];
+                return;
             }
-            var result = _.chain(monster.spells.split(', '))
-              .map(function (spellName) {
-                  var hydrated = entityLookup.findEntity('spell', spellName);
-                  return hydrated || spellName;
-              })
-              .partition(_.isObject)
-              .value();
-
-            monster.spells = result[1].join(', ');
-            return result[0];
+            monster.spells = _.map(monster.spells.split(', '), function (spellName) {
+                return entityLookup.findEntity('spell', spellName) || spellName;
+            });
         },
 
         createNewCharacter: function (monsterData, token, overwrite) {
-            var expandedSpells = this.hydrateSpellList(monsterData);
 
             var converted = srdConverter.convertMonster(monsterData);
 
@@ -415,9 +410,10 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 this.setTokenDefaults(token, character);
             }
 
-
+            var expandedSpells = converted.spells;
+            delete converted.spells;
             this.getImportDataWrapper(character).setNewImportData({npc: converted});
-            if (!_.isEmpty(expandedSpells)) {
+            if (expandedSpells) {
                 this.addSpellsToCharacter(character, expandedSpells);
             }
 

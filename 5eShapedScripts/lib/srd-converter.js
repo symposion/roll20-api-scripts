@@ -138,7 +138,16 @@ var monsterMapper = getObjectMapper({
     wisdom: identityMapper,
     charisma: identityMapper,
     skills: getRenameMapper('skills_srd'),
-    spells: getRenameMapper('spells_srd'),
+    spells: function (key, value, output) {
+        'use strict';
+        var splitSpells = _.partition(value, _.isObject);
+        if (!_.isEmpty(splitSpells[1])) {
+            output.spells_srd = splitSpells[1].join(', ');
+        }
+        if (!_.isEmpty(splitSpells[0])) {
+            output.spells = splitSpells[0];
+        }
+    },
     savingThrows: getRenameMapper('saving_throws_srd'),
     damageResistances: getRenameMapper('damage_resistances'),
     damageImmunities: getRenameMapper('damage_immunities'),
@@ -169,6 +178,12 @@ var pronounLookup = {
             accusative: 'her',
             possessive: 'her',
             reflexive: 'herself'
+        },
+        neuter: {
+            nominative: 'it',
+            accusative: 'it',
+            possessive: 'its',
+            reflexive: 'itself'
         }
     },
 

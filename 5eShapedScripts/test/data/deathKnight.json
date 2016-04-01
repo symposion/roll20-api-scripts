@@ -19,6 +19,48 @@
     "senses": "darkvision 120ft",
     "languages": "Abyssal, Common",
     "challenge": "17",
+    "spells": [
+      {
+        "level": 1,
+        "name": "Command"
+      },
+      {
+        "level": 1,
+        "name": "Compelled Duel"
+      },
+      {
+        "level": 1,
+        "name": "Searing Smite"
+      },
+      {
+        "level": 2,
+        "name": "Hold Person"
+      },
+      {
+        "level": 2,
+        "name": "Magic Weapon"
+      },
+      {
+        "level": 3,
+        "name": "Dispel Magic"
+      },
+      {
+        "level": 3,
+        "name": "Elemental Weapon"
+      },
+      {
+        "level": 4,
+        "name": "Banishment"
+      },
+      {
+        "level": 4,
+        "name": "Staggering Smite"
+      },
+      {
+        "level": 5,
+        "name": "Destructive Wave"
+      }
+    ],
     "traits": [
       {
         "name": "Magic Resistance",
@@ -30,7 +72,7 @@
       },
       {
         "name": "Spellcasting",
-        "text": "The death knight is a 19th-level spellcaster. Its spellcasting ability is Charisma (spell save DC 18, +10 to hit with spell attacks). It has the following paladin spells prepared:\n1st level (4 slots): command, compelled duel, searing smite 2nd level (3 slots): hold per-son, magic weapon\n3rd level (3 slots): dispel magic, elemental weapon\n4th level (3 slots): banishment, staggering smite\n5th level (2 slots): destructive wave (necrotic)"
+        "text": "The death knight is a 19th-level spellcaster. Its spellcasting ability is Charisma (spell save DC 18, +10 to hit with spell attacks). It has the following paladin spells prepared:\n1st level (4 slots): Command, Compelled Duel, Searing Smite\n2nd level (3 slots): Hold Person, Magic Weapon\n3rd level (3 slots): Dispel Magic, Elemental Weapon\n4th level (3 slots): Banishment, Staggering Smite\n5th level (2 slots): Destructive Wave (necrotic)"
       }
     ],
     "actions": [

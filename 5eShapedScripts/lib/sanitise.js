@@ -53,6 +53,8 @@ function sanitise(statblock, logger) {
 
     statblock = statblock
       .replace(/,\./gi, ',')
+      .replace(/([a-z\/])1/g, '$1l')
+      .replace(/([a-z])\/([a-z])/g, '$1l$2')
       .replace(/(^| )l /gm, '$11 ')
       .replace(/ft\s\./gi, 'ft.')
       .replace(/ft\.\s,/gi, 'ft')
@@ -138,7 +140,9 @@ function sanitise(statblock, logger) {
         't_urns': 'turns',
         'unti l': 'until',
         'withi n': 'within',
-        'tohit': 'to hit'
+        'tohit': 'to hit',
+        'At wi ll': 'At will',
+        'per-son': 'person'
     };
     var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
     statblock = statblock.replace(re, function (matched) {

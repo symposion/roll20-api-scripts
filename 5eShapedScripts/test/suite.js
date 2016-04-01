@@ -10,6 +10,8 @@ var glob = require('glob');
 var parseModule = require('../lib/parser');
 var logger = require('../lib/logger')({logLevel: 'WARN'});
 var sanitise = require('../lib/sanitise');
+var mpp = require('../lib/monster-post-processor');
+var el = require('./dummy-entity-lookup');
 
 /**
  * @name readFileAsync
@@ -74,7 +76,9 @@ function getExpectedOutputForFile(file) {
 function runParse(parser, statBlockText) {
     'use strict';
     try {
-        return parser.parse(sanitise(statBlockText, logger));
+        var parsed = parser.parse(sanitise(statBlockText, logger));
+        parsed.npc = mpp(parsed.npc, el.entityLookup);
+        return parsed;
     }
     catch (e) {
         //TODO: convert the errors
