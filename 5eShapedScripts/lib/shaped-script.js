@@ -5,7 +5,7 @@ var parseModule = require('./parser');
 var cp = require('./command-parser');
 var utils = require('./utils');
 
-var version        = '0.2.2',
+var version        = '0.3.0',
     schemaVersion  = 0.2,
     configDefaults = {
         logLevel: 'INFO',
@@ -341,24 +341,46 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         importSpellsFromJson: function (options) {
+            this.addSpellsToCharacter(options.selected.character, options.spells);
+        },
 
-            var gender = roll20.getAttrByName(options.selected.character.id, 'gender') || 'male';
+        addSpellsToCharacter: function (character, spells) {
+            var gender = roll20.getAttrByName(character.id, 'gender') || 'male';
 
             //TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
             gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';
 
 
             var importData = {
-                spells: srdConverter.convertSpells(options.spells, gender)
+                spells: srdConverter.convertSpells(spells, gender)
             };
-            this.getImportDataWrapper(options.selected.character).mergeImportData(importData);
+            this.getImportDataWrapper(character).mergeImportData(importData);
             report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
                   return spell.name;
               }).join('</li><li>') + '</li></ul>');
         },
 
+        hydrateSpellList: function (monster) {
+            if (!monster.spells) {
+                return [];
+            }
+            var result = _.chain(monster.spells.split(', '))
+              .map(function (spellName) {
+                  var hydrated = entityLookup.findEntity('spell', spellName);
+                  return hydrated || spellName;
+              })
+              .partition(_.isObject)
+              .value();
+
+            monster.spells = result[1].join(', ');
+            return result[0];
+        },
+
         createNewCharacter: function (monsterData, token, overwrite) {
+            var expandedSpells = this.hydrateSpellList(monsterData);
+
             var converted = srdConverter.convertMonster(monsterData);
+
             var character;
             if (token && token.get('represents')) {
                 character = roll20.getObj('character', token.get('represents'));
@@ -392,7 +414,13 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             if (token) {
                 this.setTokenDefaults(token, character);
             }
+
+
             this.getImportDataWrapper(character).setNewImportData({npc: converted});
+            if (!_.isEmpty(expandedSpells)) {
+                this.addSpellsToCharacter(character, expandedSpells);
+            }
+
             this.setCharacterDefaults(character);
             return character;
 
