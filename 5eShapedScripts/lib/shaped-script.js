@@ -106,6 +106,9 @@ var booleanValidator     = function (value) {
 
     getOptionList        = function (options) {
         return function (value) {
+            if (value === undefined) {
+                return options;
+            }
             return {
                 converted: options[value],
                 valid: options[value] !== undefined
@@ -337,13 +340,177 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         /////////////////////////////////////////
+        // Configuration UI
+        /////////////////////////////////////////      
+        configUI : {
+            getConfigOptions : function (options, optionsSpec) {
+                return this.getConfigOptionGroup_General(options, optionsSpec) + 
+                        this.getConfigOptionGroup_Tokens(options, optionsSpec) +
+                        this.getConfigOptionGroup_NewCharSettings(options, optionsSpec);
+            },        
+            
+            getConfigOptionGroup_General : function (options, optionsSpec) {
+                return '<div><h3>General Options:</h3><dl style="margin-top: 0;">' +
+                    this.getConfigOption_LogLevel(options, optionsSpec) + 
+                    '</dl></div>';
+            },
+            
+            getConfigOptionGroup_Tokens : function (options, optionsSpec) {
+                return '<div><h3>Token Options:</h3><dl style="margin-top: 0;">' +
+                    this.getConfigOption_Tokens_Numbered(options, optionsSpec) + 
+                    this.getConfigOption_Tokens_ShowName(options, optionsSpec) + 
+                    this.getConfigOption_Tokens_ShowNameToPlayers(options, optionsSpec) + 
+                    this.getConfigOption_Tokens_Bars(options, optionsSpec) + 
+                    '</dl></div>';
+            },
+            
+            getConfigOptionGroup_NewCharSettings : function (options, optionsSpec) {
+                return '<div><h3>New Characters:</h3><dl>' +
+                    this.getConfigOption_NewCharSettings_sheetOutput(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_deathSaveOutput(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_initiativeOutput(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_showNameOnRollTemplate(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_rollOptions(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_initiativeRoll(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_initiativeToTracker(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_breakInitiativeTies(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_showTargetAC(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_showTargetName(options, optionsSpec) +
+                    this.getConfigOption_NewCharSettings_autoAmmo(options, optionsSpec) +
+                    '</dl></div>';
+            },
+            
+            getConfigOption_LogLevel : function (options, optionsSpec) {
+                return '<dt>Log Level</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --logLevel ?{Logging Level? (use with care)?|INFO|ERROR|WARN|DEBUG|TRACE}">' + 
+                        options.logLevel + '</dd>';
+            },
+            
+            getConfigOption_Tokens_Numbered : function (options, optionsSpec) {
+                return '<dt>Numbered Tokens</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --tokenSettings.number ?{Make Numbered Tokens (for TNN script)?|Yes,true|No,false}">' +
+                         options.tokenSettings.number + '</a></dd>';
+            }, 
+            
+            getConfigOption_Tokens_ShowName : function (options, optionsSpec) {
+                return '<dt>Show Name Tag</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --tokenSettings.showName ?{Show Name Tag?|Yes,true|No,false}">' + 
+                        options.tokenSettings.showName + '</a></dd>';
+            },
+            
+            getConfigOption_Tokens_ShowNameToPlayers : function (options, optionsSpec) {
+                return '<dt>Show Name to Players</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --tokenSettings.showNameToPlayers ?{Show Name Tag To Players?|Yes,true|No,false}">' + 
+                        options.tokenSettings.showNameToPlayers + '</a></dd>';
+            },
+            
+            getConfigOption_Tokens_Bars : function (options, optionsSpec) {
+                var settings = options.tokenSettings;
+                var res = '';
+                
+                _.chain(settings).pick(['bar1', 'bar2', 'bar3']).each(function (bar, barName) {
+                    var attribute = bar.attribute;
+                    if (!bar.attribute) {
+                        attribute = '[not set]';
+                    }
+                    res += '<dt>Options for ' + barName + '</dt>' + 
+                            '<dd style="margin-bottom: 9px"><table style="font-size: 1em;">' + 
+                            '<tr><td>Attribute:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.attribute ?{Attribute for bar? (leave empty to clear)}">' + attribute + '</a></td></tr>' + 
+                            '<tr><td>Set Max:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.max ?{Set bar max value?|Yes,true|No,false}">' + bar.max + '</td></tr>' + 
+                            '<tr><td>Link Bar:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.link ?{Keep bar linked?|Yes,true|No,false}">' + bar.link + '</a></td></tr > ' + 
+                            '<tr><td>Show to Players:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.showPlayers ?{Show bar to players?|Yes,true|No,false}">' + bar.showPlayers + '</td></tr>' + 
+                            '</table></dd>';
+                });
+                
+                return res;
+            },
+            
+            getConfigOption_NewCharSettings_sheetOutput : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.sheetOutput())[options.newCharSettings.sheetOutput];
+                return '<dt>Sheet Output</dt><dd style="margin-bottom: 9px">' +
+                        '<a href="!shaped-config --newCharSettings.sheetOutput ?{Sheet Output?|Public,public|Whisper to GM,whisper}">' +
+                         optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_deathSaveOutput : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.deathSaveOutput())[options.newCharSettings.deathSaveOutput];
+                return '<dt>Death Save Output</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.deathSaveOutput ?{Death Save Output?|Public,public|Whisper to GM,whisper}">' +
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_initiativeOutput : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.initiativeOutput())[options.newCharSettings.initiativeOutput];
+                return '<dt>Initiative Output</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.initiativeOutput ?{Initiative Output?|Public,public|Whisper to GM,whisper}">' +
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_showNameOnRollTemplate : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.showNameOnRollTemplate())[options.newCharSettings.showNameOnRollTemplate];
+                return '<dt>Show Name on Roll Template</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.showNameOnRollTemplate ?{Show Name on Roll Template?|Yes,true|No,false}">' +
+                         optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_rollOptions : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.rollOptions())[options.newCharSettings.rollOptions];
+                return '<dt>Roll Option</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.rollOptions ?{Roll Option?|Normal,normal|Advantage,advantage|Disadvantage,disadvantage|Roll Two,two}">' +
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_initiativeRoll : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.initiativeRoll())[options.newCharSettings.initiativeRoll];
+                return '<dt>Init Roll</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.initiativeRoll ?{Initiative Roll?|Normal,normal|Advantage,advantage|Disadvantage,disadvantage}">' +
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_initiativeToTracker : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.initiativeToTracker())[options.newCharSettings.initiativeToTracker];
+                return '<dt>Init To Tracker</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.initiativeToTracker ?{Initiative Sent To Tracker?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_breakInitiativeTies : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.breakInitiativeTies())[options.newCharSettings.breakInitiativeTies];
+                return '<dt>Break Init Ties</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.breakInitiativeTies ?{Break Initiative Ties?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_showTargetAC : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.showTargetAC())[options.newCharSettings.showTargetAC];
+                return '<dt>Show Target AC</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.showTargetAC ?{Show Target AC?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_showTargetName : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.showTargetName())[options.newCharSettings.showTargetName];             
+                return '<dt>Show Target Name</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.showTargetName ?{Show Target Name?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+            },
+            
+            getConfigOption_NewCharSettings_autoAmmo : function (options, optionsSpec) {
+                var optVal = _.invert(optionsSpec.newCharSettings.autoAmmo())[options.newCharSettings.autoAmmo];
+                return '<dt>Auto Use Ammo</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.autoAmmo ?{Auto use Ammo?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+            },
+        },
+        
+        /////////////////////////////////////////
         // Command handlers
         /////////////////////////////////////////
         configure: function (options) {
-            utils.deepExtend(myState.config, options);
-            report('Configuration', 'Configuration is now: ' + JSON.stringify(myState.config));
+            utils.deepExtend(myState.config, options);            
+            report('Configuration', this.configUI.getConfigOptions(myState.config, this.configOptionsSpec));
         },
-
+        
         applyTokenDefaults: function (options) {
             var self = this;
             _.each(options.selected.graphic, function (token) {
