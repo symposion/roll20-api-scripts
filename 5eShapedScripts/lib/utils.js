@@ -52,5 +52,10 @@ module.exports = {
 
         }, newObject);
         return newObject;
+    },
+
+    deepClone: function (object) {
+        'use strict';
+        return JSON.parse(JSON.stringify(object));
     }
 };

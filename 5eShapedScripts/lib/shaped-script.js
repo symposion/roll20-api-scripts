@@ -7,8 +7,8 @@ var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 
-var version        = '0.3.2',
-    schemaVersion  = 0.3,
+var version        = '0.3.3',
+    schemaVersion  = 0.4,
     configDefaults = {
         logLevel: 'INFO',
         tokenSettings: {
@@ -50,28 +50,28 @@ var version        = '0.3.2',
         rollHPOnDrop: true,
         genderPronouns: [
             {
-                matchPattern: 'f|female|girl|woman|feminine',
+                matchPattern: '^f$|female|girl|woman|feminine',
                 nominative: 'she',
                 accusative: 'her',
                 possessive: 'her',
                 reflexive: 'herself'
             },
             {
-                matchPattern: 'm|male|boy|man|masculine',
+                matchPattern: '^m$|male|boy|man|masculine',
                 nominative: 'he',
                 accusative: 'him',
                 possessive: 'his',
                 reflexive: 'himself'
             },
             {
-                default: true,
-                matchPattern: 'n|neuter|none|construct|thing|object',
+                matchPattern: '^n$|neuter|none|construct|thing|object',
                 nominative: 'it',
                 accusative: 'it',
                 possessive: 'its',
                 reflexive: 'itself'
             }
-        ]
+        ],
+        defaultGenderIndex: 2
 
     };
 
@@ -110,6 +110,14 @@ var booleanValidator     = function (value) {
                 converted: options[value],
                 valid: options[value] !== undefined
             };
+        };
+    },
+
+    integerValidator     = function (value) {
+        var parsed = parseInt(value);
+        return {
+            converted: parsed,
+            valid: !isNaN(parsed)
         };
     },
 
@@ -324,7 +332,8 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     possessive: stringValidator,
                     reflexive: stringValidator
                 }
-            ]
+            ],
+            defaultGenderIndex: integerValidator
         },
 
         /////////////////////////////////////////
@@ -396,7 +405,8 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         addSpellsToCharacter: function (character, spells) {
             var gender = roll20.getAttrByName(character.id, 'gender');
 
-            var defaultPronounInfo = _.findWhere(myState.config.genderPronouns, {default: true});
+            var defaultIndex = Math.min(myState.config.defaultGenderIndex, myState.config.genderPronouns.length);
+            var defaultPronounInfo = myState.config.genderPronouns[defaultIndex];
             var pronounInfo = _.clone(_.find(myState.config.genderPronouns, function (pronounDetails) {
                   return new RegExp(pronounDetails.matchPattern, 'i').test(gender);
               }) || defaultPronounInfo);
@@ -778,14 +788,16 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 switch (myState && myState.version) {
                     case 0.1:
                     case 0.2:
-                        _.defaults(myState.config, JSON.parse(JSON.stringify(configDefaults)));
+                    case 0.3:
+                        _.extend(myState.config.genderPronouns, utils.deepClone(configDefaults.genderPronouns));
+                        _.defaults(myState.config, utils.deepClone(configDefaults));
                         myState.version = schemaVersion;
                         break;
                     default:
                         if (!myState.version) {
                             _.defaults(myState, {
                                 version: schemaVersion,
-                                config: JSON.parse(JSON.stringify(configDefaults))
+                                config: utils.deepClone(configDefaults)
                             });
                             logger.info('Making new state object $$$', myState);
                         }
