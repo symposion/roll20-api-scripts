@@ -18,7 +18,7 @@ module.exports = {
                             return self.deepExtend(original[key][index], item);
                         }
                         else {
-                            return item;
+                            return item !== undefined ? item : original[key][index];
                         }
                     });
                 }

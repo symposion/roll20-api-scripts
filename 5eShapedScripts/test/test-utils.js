@@ -7,15 +7,16 @@ describe('utils', function () {
 
     describe('#deepExtend', function () {
 
-        var result = utils.deepExtend({foo: 'bar', blort: ['wibble']}, {
-            foo: 'barprime',
-            blort: [undefined, 'bumble'],
-            newVal: {funky: 'raw'}
-        });
+
         it('parse options correctly', function () {
+            var result = utils.deepExtend({foo: 'bar', blort: ['wibble']}, {
+                foo: 'barprime',
+                blort: [undefined, 'bumble'],
+                newVal: {funky: 'raw'}
+            });
             expect(result).to.deep.equal({
                 blort: [
-                    undefined,
+                    'wibble',
                     'bumble'
                 ],
                 foo: 'barprime',
@@ -23,6 +24,12 @@ describe('utils', function () {
                     funky: 'raw'
                 }
             });
+        });
+
+
+        it('should extend arrays properly', function () {
+            var result = utils.deepExtend({foo: ['one', 'two']}, {foo: [undefined, undefined, 'three']});
+            expect(result).to.deep.equal({foo: ['one', 'two', 'three']});
         });
     });
 

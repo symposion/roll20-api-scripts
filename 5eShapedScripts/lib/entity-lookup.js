@@ -34,7 +34,7 @@ module.exports = {
         if (!found && tryWithoutWhitespace) {
             found = entities[type][key.replace(/\s+/g, '')];
         }
-        return found;
+        return found && JSON.parse(JSON.stringify(found));
     },
     logWrap: 'entityLookup',
     toJSON: function () {

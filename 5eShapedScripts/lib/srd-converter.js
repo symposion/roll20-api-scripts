@@ -95,7 +95,6 @@ var spellMapper = getObjectMapper({
     },
     higherLevel: function (key, value, output) {
         'use strict';
-        //TODO make this configurable
         output.content = (output.content ? output.content + '\n' : '') + value;
     },
     ritual: booleanMapper,
@@ -166,33 +165,12 @@ var monsterMapper = getObjectMapper({
     lairActions: identityMapper
 });
 
-var pronounLookup = {
-        male: {
-            nominative: 'he',
-            accusative: 'him',
-            possessive: 'his',
-            reflexive: 'himself'
-        },
-        female: {
-            nominative: 'she',
-            accusative: 'her',
-            possessive: 'her',
-            reflexive: 'herself'
-        },
-        neuter: {
-            nominative: 'it',
-            accusative: 'it',
-            possessive: 'its',
-            reflexive: 'itself'
-        }
-    },
-
-    pronounTokens = {
-        '{{GENDER_PRONOUN_HE_SHE}}': 'nominative',
-        '{{GENDER_PRONOUN_HIM_HER}}': 'accusative',
-        '{{GENDER_PRONOUN_HIS_HER}}': 'possessive',
-        '{{GENDER_PRONOUN_HIMSELF_HERSELF}}': 'reflexive'
-    };
+var pronounTokens = {
+    '{{GENDER_PRONOUN_HE_SHE}}': 'nominative',
+    '{{GENDER_PRONOUN_HIM_HER}}': 'accusative',
+    '{{GENDER_PRONOUN_HIS_HER}}': 'possessive',
+    '{{GENDER_PRONOUN_HIMSELF_HERSELF}}': 'reflexive'
+};
 
 
 module.exports = {
@@ -264,7 +242,7 @@ module.exports = {
     },
 
 
-    convertSpells: function (spellObjects, gender) {
+    convertSpells: function (spellObjects, pronounInfo) {
         'use strict';
 
 
@@ -273,7 +251,7 @@ module.exports = {
             spellMapper(null, spellObject, converted);
             if (converted.emote) {
                 _.each(pronounTokens, function (pronounType, token) {
-                    var replacement = pronounLookup[gender][pronounType];
+                    var replacement = pronounInfo[pronounType];
                     converted.emote = converted.emote.replace(token, replacement);
                 });
             }

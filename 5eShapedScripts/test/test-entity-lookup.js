@@ -16,7 +16,7 @@ describe('entity-lookup', function () {
     describe('#lookupEntity', function () {
         el.addEntities(logger, 'spell', [spell1, spell2]);
         it('finds entity by name', function () {
-            expect(el.findEntity('spell', 'SPell1')).to.equal(spell1);
+            expect(el.findEntity('spell', 'SPell1')).to.deep.equal(spell1);
         });
 
 
@@ -25,7 +25,7 @@ describe('entity-lookup', function () {
         });
 
         it('matches ignoring whitespace', function () {
-            expect(el.findEntity('spell', 'spel l2', true)).to.equal(spell2);
+            expect(el.findEntity('spell', 'spel l2', true)).to.deep.equal(spell2);
         });
 
     });

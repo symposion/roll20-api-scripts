@@ -1,4 +1,5 @@
 /* globals unescape */
+'use strict';
 var _ = require('underscore');
 var srdConverter = require('./srd-converter');
 var parseModule = require('./parser');
@@ -6,8 +7,8 @@ var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 
-var version        = '0.3.1',
-    schemaVersion  = 0.2,
+var version        = '0.3.2',
+    schemaVersion  = 0.3,
     configDefaults = {
         logLevel: 'INFO',
         tokenSettings: {
@@ -46,7 +47,32 @@ var version        = '0.3.1',
             showTargetName: '@{attacks_vs_target_name_yes}',
             autoAmmo: '@{ammo_auto_use_var}'
         },
-        rollHPOnDrop: true
+        rollHPOnDrop: true,
+        genderPronouns: [
+            {
+                matchPattern: 'f|female|girl|woman|feminine',
+                nominative: 'she',
+                accusative: 'her',
+                possessive: 'her',
+                reflexive: 'herself'
+            },
+            {
+                matchPattern: 'm|male|boy|man|masculine',
+                nominative: 'he',
+                accusative: 'him',
+                possessive: 'his',
+                reflexive: 'himself'
+            },
+            {
+                default: true,
+                matchPattern: 'n|neuter|none|construct|thing|object',
+                nominative: 'it',
+                accusative: 'it',
+                possessive: 'its',
+                reflexive: 'itself'
+            }
+        ]
+
     };
 
 var configToAttributeLookup = {
@@ -64,7 +90,6 @@ var configToAttributeLookup = {
 };
 
 var booleanValidator     = function (value) {
-        'use strict';
         var converted = value === 'true' || (value === 'false' ? false : value);
         return {
             valid: typeof value === 'boolean' || value === 'true' || value === 'false',
@@ -73,7 +98,6 @@ var booleanValidator     = function (value) {
     },
 
     stringValidator      = function (value) {
-        'use strict';
         return {
             valid: true,
             converted: value
@@ -81,7 +105,6 @@ var booleanValidator     = function (value) {
     },
 
     getOptionList        = function (options) {
-        'use strict';
         return function (value) {
             return {
                 converted: options[value],
@@ -99,6 +122,21 @@ var booleanValidator     = function (value) {
         max: booleanValidator,
         link: booleanValidator,
         showPlayers: booleanValidator
+    },
+    regExpValidator      = function (value) {
+        try {
+            new RegExp(value, 'i').test('');
+            return {
+                converted: value,
+                valid: true
+            };
+        }
+        catch (e) {
+        }
+        return {
+            converted: null,
+            valid: false
+        };
     };
 
 /**
@@ -127,7 +165,6 @@ var booleanValidator     = function (value) {
  * @returns {{handleInput: function, configOptionsSpec: object, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, checkForDeathSave: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
  */
 module.exports = function (logger, myState, roll20, parser, entityLookup) {
-    'use strict';
     var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
     var addedTokenIds = [];
     var report = function (heading, text) {
@@ -278,7 +315,16 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     false: ''
                 })
             },
-            rollHPOnDrop: booleanValidator
+            rollHPOnDrop: booleanValidator,
+            genderPronouns: [
+                {
+                    matchPattern: regExpValidator,
+                    nominative: stringValidator,
+                    accusative: stringValidator,
+                    possessive: stringValidator,
+                    reflexive: stringValidator
+                }
+            ]
         },
 
         /////////////////////////////////////////
@@ -328,7 +374,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             }
             var importedList = _.chain(options.monsters)
               .map(function (monsterData) {
-                  this.hydrateSpellList(monsterData);
+                  self.hydrateSpellList(monsterData);
                   var character = self.createNewCharacter(monsterData, token, options.overwrite);
                   return character && character.get('name');
               })
@@ -348,14 +394,18 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         addSpellsToCharacter: function (character, spells) {
-            var gender = roll20.getAttrByName(character.id, 'gender') || 'male';
+            var gender = roll20.getAttrByName(character.id, 'gender');
 
-            //TODO: not sure how comfortable I am with a) only supporting male/female and b) defaulting to male
-            gender = gender.match(/f|female|girl|woman|feminine/gi) ? 'female' : 'male';
+            var defaultPronounInfo = _.findWhere(myState.config.genderPronouns, {default: true});
+            var pronounInfo = _.clone(_.find(myState.config.genderPronouns, function (pronounDetails) {
+                  return new RegExp(pronounDetails.matchPattern, 'i').test(gender);
+              }) || defaultPronounInfo);
+
+            _.defaults(pronounInfo, defaultPronounInfo);
 
 
             var importData = {
-                spells: srdConverter.convertSpells(spells, gender)
+                spells: srdConverter.convertSpells(spells, pronounInfo)
             };
             this.getImportDataWrapper(character).mergeImportData(importData);
             report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
@@ -592,10 +642,10 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 return;
             }
 
-            var that = this;
+            var self = this;
             roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
                 if (results && results.length === 1) {
-                    var message = that.processInlinerolls(results[0]);
+                    var message = self.processInlinerolls(results[0]);
                     var total = results[0].inlinerolls[0].results.total;
                     roll20.sendChat('HP Roller', '/w GM &{template:5e-shaped} ' + message);
                     token.set(hpBar + '_value', total);
@@ -727,10 +777,9 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 logger.info('Preupgrade state: $$$', myState);
                 switch (myState && myState.version) {
                     case 0.1:
-                        _.extend(myState, {
-                            version: schemaVersion,
-                            config: JSON.parse(JSON.stringify(configDefaults))
-                        });
+                    case 0.2:
+                        _.defaults(myState.config, JSON.parse(JSON.stringify(configDefaults)));
+                        myState.version = schemaVersion;
                         break;
                     default:
                         if (!myState.version) {

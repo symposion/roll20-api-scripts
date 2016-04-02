@@ -81,7 +81,6 @@ function runParse(parser, statBlockText) {
         return parsed;
     }
     catch (e) {
-        //TODO: convert the errors
         console.log(e.stack);
         return e;
     }
