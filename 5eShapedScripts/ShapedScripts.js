@@ -1,3 +1,4 @@
+var ShapedScripts =
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -45,6 +46,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/* globals fifthSpells, fifthMonsters */
+		'use strict';
 	var roll20 = __webpack_require__(1);
 	var parseModule = __webpack_require__(2);
 	var mmFormat = __webpack_require__(4);
@@ -58,7 +60,6 @@
 	logger.wrapModule(roll20);
 
 	var versionCompare = function (v1, v2) {
-	    'use strict';
 
 	    if (v1 === v2) {
 	        return 0;
@@ -104,27 +105,39 @@
 	};
 
 	roll20.on('ready', function () {
-	    'use strict';
 	    if (typeof fifthMonsters !== 'undefined') {
-	        if (versionCompare(fifthMonsters.version, '0.1') >= 0) {
-	            //noinspection JSUnresolvedVariable
-	            entityLookup.addEntities(logger, 'monster', fifthMonsters.monsters);
-	        }
-	        else {
-	            roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of monster data file used, please upgrade to the latest version');
-	        }
+			module.exports.addMonsters(fifthMonsters);
 	    }
 	    if (typeof fifthSpells !== 'undefined') {
-	        if (versionCompare(fifthSpells.version, '0.1') >= 0) {
-	            entityLookup.addEntities(logger, 'spell', fifthSpells.spells);
-	        }
-	        else {
-	            roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of spell data file used, please upgrade to the latest version');
-	        }
+			module.exports.addSpells(fifthSpells);
 	    }
 	    shaped.checkInstall();
 	    shaped.registerEventHandlers();
 	});
+
+		module.exports = {
+			addMonsters: function (monsters) {
+				if (typeof monsters === 'string') {
+					monsters = JSON.parse(monsters);
+				}
+				if (versionCompare(monsters.version, '0.1') < 0) {
+					roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of monster data file used, please upgrade to the latest version');
+				}
+				//noinspection JSUnresolvedVariable
+				entityLookup.addEntities(logger, 'monster', monsters.monsters);
+			},
+
+			addSpells: function (spells) {
+				if (typeof spells === 'string') {
+					spells = JSON.parse(spells);
+				}
+				if (versionCompare(spells.version, '0.1') < 0) {
+					roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of spells data file used, please upgrade to the latest version');
+				}
+				//noinspection JSUnresolvedVariable
+				entityLookup.addEntities(logger, 'spell', spells.spells);
+			}
+		};
 
 
 /***/ },
@@ -1307,6 +1320,15 @@
 	    spell: {}
 	};
 
+		var entityProcessors = {
+			monster: [
+				spellHydrator
+			],
+			spell: [
+				monsterSpellUpdater
+			]
+		};
+
 	module.exports = {
 
 	    addEntities: function (logger, type, entityArray, overwrite) {
@@ -1317,8 +1339,9 @@
 	        _.each(entityArray, function (entity) {
 	            var key = entity.name.toLowerCase();
 	            if (!entities[type][key] || overwrite) {
-	                entities[type][key] = entity;
-	                noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = entity;
+					var processed = _.reduce(entityProcessors[type], utils.executor, entity);
+					entities[type][key] = processed;
+					noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = processed;
 	                addedCount++;
 	            }
 	        });
@@ -1339,11 +1362,41 @@
 	    getAll: function (type) {
 	        return utils.deepClone(_.values(entities[type]));
 	    },
+
 	    logWrap: 'entityLookup',
 	    toJSON: function () {
 	        return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
 	    }
 	};
+
+		function spellHydrator(monster) {
+			if (monster.spells) {
+				monster.spells = _.map(monster.spells.split(', '), function (spellName) {
+					return module.exports.findEntity('spell', spellName) || spellName;
+				});
+			}
+			return monster;
+		}
+
+		function monsterSpellUpdater(spell) {
+			_.chain(entities.monster)
+			.pluck('spells')
+			.compact()
+			.each(function (spellArray) {
+				var spellIndex = _.findIndex(spellArray, function (monsterSpell) {
+					if (typeof monsterSpell === 'string') {
+						return monsterSpell.toLowerCase() === spell.name.toLowerCase();
+					}
+					else {
+						return monsterSpell !== spell && monsterSpell.name.toLowerCase() === spell.name.toLowerCase();
+					}
+				});
+				if (spellIndex !== -1) {
+					spellArray[spellIndex] = spell;
+				}
+			});
+			return spell;
+		}
 
 
 /***/ },
@@ -1409,6 +1462,20 @@
 	    deepClone: function (object) {
 	        'use strict';
 	        return JSON.parse(JSON.stringify(object));
+		},
+
+		executor: function () {
+			'use strict';
+			switch (arguments.length) {
+				case 0:
+					return;
+				case 1:
+					return arguments[0]();
+				default:
+					var args = Array.apply(null, arguments).slice(2);
+					args.unshift(arguments[0]);
+					return arguments[1].apply(null, args);
+			}
 	    }
 	};
 
@@ -1966,15 +2033,13 @@
 	        },
 
 	        importMonstersFromJson: function (options) {
-	            var characterProcessors = [];
-	            characterProcessors.push(this.hydrateSpellList.bind(this));
 	            if (options.all) {
 	                options.monsters = entityLookup.getAll('monster');
 	                delete options.all;
 	            }
 
 
-	            this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, characterProcessors);
+				this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
 	            options.monsters = options.monsters.slice(20);
 	            var self = this;
 	            if (!_.isEmpty(options.monsters)) {
@@ -2064,15 +2129,6 @@
 	                      return spell.name;
 	                  }).join('</li><li>') + '</li></ul>');
 	            }
-	        },
-
-	        hydrateSpellList: function (character, monster) {
-	            if (!monster.spells) {
-	                return;
-	            }
-	            monster.spells = _.map(monster.spells.split(', '), function (spellName) {
-	                return entityLookup.findEntity('spell', spellName) || spellName;
-	            });
 	        },
 
 

@@ -547,15 +547,13 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         importMonstersFromJson: function (options) {
-            var characterProcessors = [];
-            characterProcessors.push(this.hydrateSpellList.bind(this));
             if (options.all) {
                 options.monsters = entityLookup.getAll('monster');
                 delete options.all;
             }
 
 
-            this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, characterProcessors);
+            this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
             options.monsters = options.monsters.slice(20);
             var self = this;
             if (!_.isEmpty(options.monsters)) {
@@ -645,15 +643,6 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                       return spell.name;
                   }).join('</li><li>') + '</li></ul>');
             }
-        },
-
-        hydrateSpellList: function (character, monster) {
-            if (!monster.spells) {
-                return;
-            }
-            monster.spells = _.map(monster.spells.split(', '), function (spellName) {
-                return entityLookup.findEntity('spell', spellName) || spellName;
-            });
         },
 
 

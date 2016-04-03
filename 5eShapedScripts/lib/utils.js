@@ -57,5 +57,19 @@ module.exports = {
     deepClone: function (object) {
         'use strict';
         return JSON.parse(JSON.stringify(object));
+    },
+
+    executor: function () {
+        'use strict';
+        switch (arguments.length) {
+            case 0:
+                return;
+            case 1:
+                return arguments[0]();
+            default:
+                var args = Array.apply(null, arguments).slice(2);
+                args.unshift(arguments[0]);
+                return arguments[1].apply(null, args);
+        }
     }
 };

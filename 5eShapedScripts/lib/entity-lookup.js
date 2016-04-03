@@ -12,6 +12,15 @@ var noWhiteSpaceEntities = {
     spell: {}
 };
 
+var entityProcessors = {
+    monster: [
+        spellHydrator
+    ],
+    spell: [
+        monsterSpellUpdater
+    ]
+};
+
 module.exports = {
 
     addEntities: function (logger, type, entityArray, overwrite) {
@@ -22,8 +31,9 @@ module.exports = {
         _.each(entityArray, function (entity) {
             var key = entity.name.toLowerCase();
             if (!entities[type][key] || overwrite) {
-                entities[type][key] = entity;
-                noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = entity;
+                var processed = _.reduce(entityProcessors[type], utils.executor, entity);
+                entities[type][key] = processed;
+                noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = processed;
                 addedCount++;
             }
         });
@@ -44,8 +54,38 @@ module.exports = {
     getAll: function (type) {
         return utils.deepClone(_.values(entities[type]));
     },
+
     logWrap: 'entityLookup',
     toJSON: function () {
         return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
     }
 };
+
+function spellHydrator(monster) {
+    if (monster.spells) {
+        monster.spells = _.map(monster.spells.split(', '), function (spellName) {
+            return module.exports.findEntity('spell', spellName) || spellName;
+        });
+    }
+    return monster;
+}
+
+function monsterSpellUpdater(spell) {
+    _.chain(entities.monster)
+      .pluck('spells')
+      .compact()
+      .each(function (spellArray) {
+          var spellIndex = _.findIndex(spellArray, function (monsterSpell) {
+              if (typeof monsterSpell === 'string') {
+                  return monsterSpell.toLowerCase() === spell.name.toLowerCase();
+              }
+              else {
+                  return monsterSpell !== spell && monsterSpell.name.toLowerCase() === spell.name.toLowerCase();
+              }
+          });
+          if (spellIndex !== -1) {
+              spellArray[spellIndex] = spell;
+          }
+      });
+    return spell;
+}
