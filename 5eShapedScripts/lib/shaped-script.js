@@ -203,7 +203,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
     };
 
     var shapedModule = {
-
+        
         /**
          *
          * @param {ChatMessage} msg
@@ -215,37 +215,37 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
               .addCommand('import-statblock', this.importStatblock.bind(this))
               .option('overwrite', booleanValidator)
               .withSelection({
-                  graphic: {
-                      min: 1,
-                      max: Infinity
-                  }
-              })
+                graphic: {
+                    min: 1,
+                    max: Infinity
+                }
+            })
               .addCommand('import-monster', this.importMonstersFromJson.bind(this))
               .optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
               .option('overwrite', booleanValidator)
               .withSelection({
-                  graphic: {
-                      min: 0,
-                      max: 1
-                  }
-              })
+                graphic: {
+                    min: 0,
+                    max: 1
+                }
+            })
               .addCommand('import-spell', this.importSpellsFromJson.bind(this))
               .optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spell'))
               .withSelection({
-                  character: {
-                      min: 1,
-                      max: 1
-                  }
-              })
+                character: {
+                    min: 1,
+                    max: 1
+                }
+            })
               .addCommand('token-defaults', this.applyTokenDefaults.bind(this))
               .withSelection({
-                  graphic: {
-                      min: 1,
-                      max: Infinity
-                  }
-              })
+                graphic: {
+                    min: 1,
+                    max: Infinity
+                }
+            })
               .end();
-
+            
             try {
                 logger.debug(msg);
                 if (msg.type !== 'api') {
@@ -253,7 +253,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     this.checkForDeathSave(msg);
                     return;
                 }
-
+                
                 commandProcessor.processCommand(msg);
 
             }
@@ -272,11 +272,11 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 logger.prefixString = '';
             }
         },
-
+        
         configOptionsSpec: {
             logLevel: function (value) {
                 var converted = value.toUpperCase();
-                return {valid: _.has(logger, converted), converted: converted};
+                return { valid: _.has(logger, converted), converted: converted };
             },
             tokenSettings: {
                 number: booleanValidator,
@@ -338,7 +338,177 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             ],
             defaultGenderIndex: integerValidator
         },
-
+        
+        /////////////////////////////////////////
+        // Configuration UI
+        /////////////////////////////////////////      
+        configUI : {
+            getConfigOptions : function (options, optionsSpec) {
+                return this.getConfigOptionGroupGeneral(options, optionsSpec) + 
+                        this.getConfigOptionGroupTokens(options, optionsSpec) +
+                        this.getConfigOptionGroupNewCharSettings(options, optionsSpec);
+            },
+            
+            getConfigOptionGroupGeneral : function (options, optionsSpec) {
+                return '<div><h3>General Options:</h3><dl style="margin-top: 0;">' +
+                    this.generalOptions.logLevel(options, optionsSpec) + 
+                    '</dl></div>';
+            },
+            
+            getConfigOptionGroupTokens : function (options, optionsSpec) {
+                return '<div><h3>Token Options:</h3><dl style="margin-top: 0;">' +
+                    this.tokenOptions.numbered(options, optionsSpec) + 
+                    this.tokenOptions.showName(options, optionsSpec) + 
+                    this.tokenOptions.showNameToPlayers(options, optionsSpec) + 
+                    this.tokenOptions.bars(options, optionsSpec) + 
+                    '</dl></div>';
+            },
+            
+            getConfigOptionGroupNewCharSettings : function (options, optionsSpec) {
+                return '<div><h3>New Characters:</h3><dl>' +
+                    this.newCharOptions.sheetOutput(options, optionsSpec) +
+                    this.newCharOptions.deathSaveOutput(options, optionsSpec) +
+                    this.newCharOptions.initiativeOutput(options, optionsSpec) +
+                    this.newCharOptions.showNameOnRollTemplate(options, optionsSpec) +
+                    this.newCharOptions.rollOptions(options, optionsSpec) +
+                    this.newCharOptions.initiativeRoll(options, optionsSpec) +
+                    this.newCharOptions.initiativeToTracker(options, optionsSpec) +
+                    this.newCharOptions.breakInitiativeTies(options, optionsSpec) +
+                    this.newCharOptions.showTargetAC(options, optionsSpec) +
+                    this.newCharOptions.showTargetName(options, optionsSpec) +
+                    this.newCharOptions.autoAmmo(options, optionsSpec) +
+                    '</dl></div>';
+            },
+            
+            generalOptions : {
+                logLevel : function (options, optionsSpec) {
+                    return '<dt>Log Level</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --logLevel ?{Logging Level? (use with care)?|INFO|ERROR|WARN|DEBUG|TRACE}">' + 
+                        options.logLevel + '</dd>';
+                }
+            },  
+            
+            tokenOptions : {
+                numbered : function (options, optionsSpec) {
+                    return '<dt>Numbered Tokens</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --tokenSettings.number ?{Make Numbered Tokens (for TNN script)?|Yes,true|No,false}">' +
+                         options.tokenSettings.number + '</a></dd>';
+                }, 
+                
+                showName : function (options, optionsSpec) {
+                    return '<dt>Show Name Tag</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --tokenSettings.showName ?{Show Name Tag?|Yes,true|No,false}">' + 
+                        options.tokenSettings.showName + '</a></dd>';
+                },
+                
+                showNameToPlayers : function (options, optionsSpec) {
+                    return '<dt>Show Name to Players</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --tokenSettings.showNameToPlayers ?{Show Name Tag To Players?|Yes,true|No,false}">' + 
+                        options.tokenSettings.showNameToPlayers + '</a></dd>';
+                },
+                
+                bars : function (options, optionsSpec) {
+                    var settings = options.tokenSettings;
+                    var res = '';
+                    
+                    _.chain(settings).pick(['bar1', 'bar2', 'bar3']).each(function (bar, barName) {
+                        var attribute = bar.attribute;
+                        if (!bar.attribute) {
+                            attribute = '[not set]';
+                        }
+                        res += '<dt>Options for ' + barName + '</dt>' + 
+                            '<dd style="margin-bottom: 9px"><table style="font-size: 1em;">' + 
+                            '<tr><td>Attribute:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.attribute ?{Attribute for bar? (leave empty to clear)}">' + attribute + '</a></td></tr>' + 
+                            '<tr><td>Set Max:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.max ?{Set bar max value?|Yes,true|No,false}">' + bar.max + '</td></tr>' + 
+                            '<tr><td>Link Bar:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.link ?{Keep bar linked?|Yes,true|No,false}">' + bar.link + '</a></td></tr > ' + 
+                            '<tr><td>Show to Players:</td><td><a href="!shaped-config --tokenSettings.' + barName + '.showPlayers ?{Show bar to players?|Yes,true|No,false}">' + bar.showPlayers + '</td></tr>' + 
+                            '</table></dd>';
+                    });
+                    
+                    return res;
+                }
+            },
+            
+            newCharOptions : {
+                sheetOutput : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.sheetOutput())[options.newCharSettings.sheetOutput];
+                    return '<dt>Sheet Output</dt><dd style="margin-bottom: 9px">' +
+                        '<a href="!shaped-config --newCharSettings.sheetOutput ?{Sheet Output?|Public,public|Whisper to GM,whisper}">' +
+                         optVal + '</a></dd>';
+                },
+                
+                deathSaveOutput : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.deathSaveOutput())[options.newCharSettings.deathSaveOutput];
+                    return '<dt>Death Save Output</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.deathSaveOutput ?{Death Save Output?|Public,public|Whisper to GM,whisper}">' +
+                        optVal + '</a></dd>';
+                },
+                
+                initiativeOutput : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.initiativeOutput())[options.newCharSettings.initiativeOutput];
+                    return '<dt>Initiative Output</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.initiativeOutput ?{Initiative Output?|Public,public|Whisper to GM,whisper}">' +
+                        optVal + '</a></dd>';
+                },
+                
+                showNameOnRollTemplate : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.showNameOnRollTemplate())[options.newCharSettings.showNameOnRollTemplate];
+                    return '<dt>Show Name on Roll Template</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.showNameOnRollTemplate ?{Show Name on Roll Template?|Yes,true|No,false}">' +
+                         optVal + '</a></dd>';
+                },
+                
+                rollOptions : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.rollOptions())[options.newCharSettings.rollOptions];
+                    return '<dt>Roll Option</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.rollOptions ?{Roll Option?|Normal,normal|Advantage,advantage|Disadvantage,disadvantage|Roll Two,two}">' +
+                        optVal + '</a></dd>';
+                },
+                
+                initiativeRoll : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.initiativeRoll())[options.newCharSettings.initiativeRoll];
+                    return '<dt>Init Roll</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.initiativeRoll ?{Initiative Roll?|Normal,normal|Advantage,advantage|Disadvantage,disadvantage}">' +
+                        optVal + '</a></dd>';
+                },
+                
+                initiativeToTracker : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.initiativeToTracker())[options.newCharSettings.initiativeToTracker];
+                    return '<dt>Init To Tracker</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.initiativeToTracker ?{Initiative Sent To Tracker?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+                },
+                
+                breakInitiativeTies : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.breakInitiativeTies())[options.newCharSettings.breakInitiativeTies];
+                    return '<dt>Break Init Ties</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.breakInitiativeTies ?{Break Initiative Ties?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+                },
+                
+                showTargetAC : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.showTargetAC())[options.newCharSettings.showTargetAC];
+                    return '<dt>Show Target AC</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.showTargetAC ?{Show Target AC?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+                },
+                
+                showTargetName : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.showTargetName())[options.newCharSettings.showTargetName];
+                    return '<dt>Show Target Name</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.showTargetName ?{Show Target Name?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+                },
+                
+                autoAmmo : function (options, optionsSpec) {
+                    var optVal = _.invert(optionsSpec.newCharSettings.autoAmmo())[options.newCharSettings.autoAmmo];
+                    return '<dt>Auto Use Ammo</dt><dd style="margin-bottom: 9px">' + 
+                        '<a href="!shaped-config --newCharSettings.autoAmmo ?{Auto use Ammo?|Yes,true|No,false}">' + 
+                        optVal + '</a></dd>';
+                }
+            },
+        },
+        
         /////////////////////////////////////////
         // Configuration UI
         /////////////////////////////////////////      
