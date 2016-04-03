@@ -54,6 +54,20 @@ module.exports = {
     getAll: function (type) {
         return utils.deepClone(_.values(entities[type]));
     },
+    
+    /**
+     * Gets all of the keys for the specified entity type
+     * @param {string} type - The entity type to retrieve keys for (either 'monster' or 'spell')
+     * @param {boolean} sort - True if the returned array should be sorted alphabetically; false otherwise
+     * @return {Array} An array containing all keys for the specified entity type
+     */
+    getKeys: function (type, sort) {
+        var keys = _.keys(entities[type]);
+        if (sort) {
+            keys.sort();
+        }
+        return keys;
+    },
 
     logWrap: 'entityLookup',
     toJSON: function () {

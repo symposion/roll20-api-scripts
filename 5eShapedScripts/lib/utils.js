@@ -71,5 +71,16 @@ module.exports = {
                 args.unshift(arguments[0]);
                 return arguments[1].apply(null, args);
         }
+    },
+
+    /**
+     * Gets a string as 'Title Case' capitalizing the first letter of each word (i.e. 'the grapes of wrath' -> 'The Grapes Of Wrath')
+     * @param {string} s - The string to be converted
+     * @return {string} the supplied string in title case
+     */
+    toTitleCase : function (s) {
+        'use strict';
+        var res = s.replace(/\w\S*/g, function (txt) { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(); });
+        return res;
     }
 };
