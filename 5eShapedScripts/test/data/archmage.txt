@@ -1,0 +1,27 @@
+ARCHMAGE
+Medium humanoid (any race), any alignment
+Armor Class 12 (1 5 with mage armor) Hit Points 99 (18d8 + 18)
+Speed 30ft.
+STR 10 (+0)
+DEX 14 (+2)
+CON 12 (+1)
+INT 20 (+5)
+WIS 15 (+2)
+CHA 16 (+3)
+Saving Throws lnt +9, Wis +6
+Skills Arcana +13, History +13
+Damage Resistance damage from spells; nonmagical
+bludgeoning, piercing, and slashing (from stoneskin) Senses passive Perception 12
+Languages any six languages
+Challenge 12 (8,400 XP)
+Magic Resistance. The archmage has advantage on saving throws against spells and other magical effects.
+Spellcasting. The archmage is an 18th-level spellcaster. Its spellcasting ab ility is Intelligence (spe ll save DC 17, +9 to hit with spell attacks). The archmage can cast disguise self and invisibility at will and has the following wizard spells prepared:
+Cantrips (at will):.fire bolt, light, mage hand, prestidigitation, shocking grasp
+1st level (4 slots): detect magic, identify, mage armor,1' magic missile
+2nd level (3 slots): detect thoughts , mirror image, misty step 3rd level (3 slots): counterspeii,Jly, lightning bolt
+4th level (3 slots): banishment, fire shield, stoneskin*
+5th level (3 slots): cone ofcold, scrying, wall offorce
+6th level .(1 slot): globe ofinvulnerability 7th level (l slot): teleport
+8th level (l slot): mind blank1<
+9th level (l slot): time stop
+1<The archmage casts these spells on itselfbefore combat.

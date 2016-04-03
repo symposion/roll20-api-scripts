@@ -51,40 +51,11 @@ function sanitise(statblock, logger) {
         });
     });
 
-    statblock = statblock
-      .replace(/,\./gi, ',')
-      .replace(/([a-z\/])1/g, '$1l')
-      .replace(/([a-z])\/([a-z])/g, '$1l$2')
-      .replace(/(^| )l /gm, '$11 ')
-      .replace(/ft\s\./gi, 'ft.')
-      .replace(/ft\.\s,/gi, 'ft')
-      .replace(/ft\./gi, 'ft')
-      .replace(/(\d+) ft\/(\d+) ft/gi, '$1/$2 ft')
-      .replace(/lOd/g, '10d')
-      .replace(/dl0/gi, 'd10')
-      .replace(/dlO/gi, 'd10')
-      .replace(/dl2/gi, 'd12')
-      .replace(/S(\d+)d(\d+)/gi, '5$1d$2')
-      .replace(/l(\d+)d(\d+)/gi, '1$1d$2')
-      .replace(/ld(\d+)/gi, '1d$1')
-      .replace(/l(\d+)d\s+(\d+)/gi, '1$1d$2')
-      .replace(/(\d+)d\s+(\d+)/gi, '$1d$2')
-      .replace(/(\d+)\s+d(\d+)/gi, '$1d$2')
-      .replace(/(\d+)\s+d(\d+)/gi, '$1d$2')
-      .replace(/(\d+)d(\d)\s(\d)/gi, '$1d$2$3')
-      .replace(/(\d+)j(?:Day|day)/gi, '$1/Day')
-      .replace(/(\d+)f(?:Day|day)/gi, '$1/Day')
-      .replace(/(\d+)j(\d+)/gi, '$1/$2')
-      .replace(/(\d+)f(\d+)/gi, '$1/$2')
-      .replace(/{/gi, '(')
-      .replace(/}/gi, ')')
-      .replace(/(\d+)\((\d+) ft/gi, '$1/$2 ft')
-      .replace(/• /gi, '')
-      .replace(/’/gi, '\'');
-
 
     statblock = statblock.replace(/(\d+)\s*?plus\s*?((?:\d+d\d+)|(?:\d+))/gi, '$2 + $1');
     var replaceObj = {
+        'Jly': 'fly',
+        ',1\'': ',*',
         'jday': '/day',
         'abol eth': 'aboleth',
         'ACT IONS': 'ACTIONS',
@@ -142,12 +113,50 @@ function sanitise(statblock, logger) {
         'withi n': 'within',
         'tohit': 'to hit',
         'At wi ll': 'At will',
-        'per-son': 'person'
+        'per-son': 'person',
+        'ab ility': 'ability',
+        'spe ll': 'spell'
     };
     var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
     statblock = statblock.replace(re, function (matched) {
         return replaceObj[matched];
     });
+
+    statblock = statblock
+      .replace(/,\./gi, ',')
+      .replace(/:\./g, ':')
+      .replace(/(\W)l(\W)/g,'$11$2')
+      .replace(/\.([\w])/g, '. $1')
+      .replace(/1</g, '*')
+      .replace(/(\w)ii/g, '$1ll')
+      .replace(/([a-z\/])1/g, '$1l')
+      .replace(/([a-z])\/([a-z])/g, '$1l$2')
+      .replace(/(^| )l /gm, '$11 ')
+      .replace(/ft\s\./gi, 'ft.')
+      .replace(/ft\.\s,/gi, 'ft')
+      .replace(/ft\./gi, 'ft')
+      .replace(/(\d+) ft\/(\d+) ft/gi, '$1/$2 ft')
+      .replace(/lOd/g, '10d')
+      .replace(/dl0/gi, 'd10')
+      .replace(/dlO/gi, 'd10')
+      .replace(/dl2/gi, 'd12')
+      .replace(/S(\d+)d(\d+)/gi, '5$1d$2')
+      .replace(/l(\d+)d(\d+)/gi, '1$1d$2')
+      .replace(/ld(\d+)/gi, '1d$1')
+      .replace(/l(\d+)d\s+(\d+)/gi, '1$1d$2')
+      .replace(/(\d+)d\s+(\d+)/gi, '$1d$2')
+      .replace(/(\d+)\s+d(\d+)/gi, '$1d$2')
+      .replace(/(\d+)\s+d(\d+)/gi, '$1d$2')
+      .replace(/(\d+)d(\d)\s(\d)/gi, '$1d$2$3')
+      .replace(/(\d+)j(?:Day|day)/gi, '$1/Day')
+      .replace(/(\d+)f(?:Day|day)/gi, '$1/Day')
+      .replace(/(\d+)j(\d+)/gi, '$1/$2')
+      .replace(/(\d+)f(\d+)/gi, '$1/$2')
+      .replace(/{/gi, '(')
+      .replace(/}/gi, ')')
+      .replace(/(\d+)\((\d+) ft/gi, '$1/$2 ft')
+      .replace(/• /gi, '')
+      .replace(/’/gi, '\'');
 
     logger.debug('Final stage cleaned statblock: $$$', statblock);
     return statblock;

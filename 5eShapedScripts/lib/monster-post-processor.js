@@ -7,7 +7,7 @@ _.each(_.range(4, 10), function (level) {
 });
 
 var spellcastingHandler = {
-    splitRegex: /(Cantrips|(?:1st|2nd|3rd|[4-9]th)\s*level)\s*\(([^\)]+)\)\s*:/i,
+    splitRegex: /(Cantrips|(?:1st|2nd|3rd|[4-9]th)\s*level)\.?\s*\(([^\)]+)\)\s*:/i,
 
     makeLevelDetailsObject: function (match) {
         var levelMatch = match[1].match(/\d/);
@@ -47,8 +47,8 @@ var innateHandler = {
 };
 
 
-function processSpellcastingTrait(traits, traitName, traitHandler, entityLookup) {
-    var trait = _.findWhere(traits, {name: traitName});
+function processSpellcastingTrait(monster, traitName, traitHandler, entityLookup) {
+    var trait = _.findWhere(monster.traits, {name: traitName});
     if (trait) {
         var spellList = trait.text.substring(trait.text.indexOf(':') + 1).replace('\n', ' ');
         var castingDetails = trait.text.substring(0, trait.text.indexOf(':'));
@@ -65,17 +65,22 @@ function processSpellcastingTrait(traits, traitName, traitHandler, entityLookup)
             _.last(levelDetails).spells = spellList;
         }
 
+        var hasCastBeforeCombat = false;
         var spellDetailsByLevel = _.chain(levelDetails)
           .each(function (levelDetails) {
-              levelDetails.spells = _.chain(levelDetails.spells.split(','))
+              levelDetails.spells = _.chain(levelDetails.spells.replace(',*', '*,').split(','))
                 .map(_.partial(_.result, _, 'trim'))
                 .map(function (spellName) {
-                    var match = spellName.match(/([^\(]+)(?:\(([^\)]+)\))?/);
+                    var match = spellName.match(/([^\(\*]+)(?:\(([^\)]+)\))?(\*)?/);
+                    hasCastBeforeCombat = hasCastBeforeCombat || !!match[3];
                     return {
-                        name: match[1],
+                        name: match[1].trim(),
                         restriction: match[2],
+                        castBeforeCombat: !!match[3],
                         toString: function () {
-                            return this.name + (this.restriction ? ' (' + this.restriction + ')' : '');
+                            return this.name +
+                              (this.restriction ? ' (' + this.restriction + ')' : '') +
+                              (this.castBeforeCombat ? '*' : '');
                         },
                         toSpellArrayItem: function () {
                             return this.name;
@@ -98,27 +103,29 @@ function processSpellcastingTrait(traits, traitName, traitHandler, entityLookup)
 
 
         trait.text = castingDetails + ':\n' + _.pluck(spellDetailsByLevel, 'newText').join('\n');
-        return _.chain(spellDetailsByLevel)
+        if (hasCastBeforeCombat) {
+            trait.text += '\n* The ' + monster.name.toLowerCase() + ' casts these spells on itself before combat.';
+        }
+        var spells = _.chain(spellDetailsByLevel)
           .pluck('spells')
           .flatten()
           .map(_.partial(_.result, _, 'toSpellArrayItem'))
+          .union(monster.spells ? monster.spells : [])
+          .sortBy('name')
+          .sortBy('level')
           .value();
+
+        if (!_.isEmpty(spells)) {
+            monster.spells = spells;
+        }
     }
     return [];
 }
 
 
 module.exports = function (monster, entityLookup) {
-    var spells = processSpellcastingTrait(monster.traits, 'Spellcasting', spellcastingHandler, entityLookup);
-    var innateSpells = processSpellcastingTrait(monster.traits, 'Innate Spellcasting', innateHandler, entityLookup);
-    spells = _.chain(spells)
-      .union(innateSpells)
-      .sortBy('name')
-      .sortBy('level')
-      .value();
-    if (!_.isEmpty(spells)) {
-        monster.spells = spells;
-    }
+    processSpellcastingTrait(monster, 'Spellcasting', spellcastingHandler, entityLookup);
+    processSpellcastingTrait(monster, 'Innate Spellcasting', innateHandler, entityLookup);
     return monster;
 };
 

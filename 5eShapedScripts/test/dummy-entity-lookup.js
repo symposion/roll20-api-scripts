@@ -50,7 +50,22 @@ var spells = [
     {name: 'Sanctuary', level: 1},
     {name: 'Lesser Restoration', level: 2},
     {name: 'Spiritual Weapon', level: 2},
-    {name: 'Spirit Guardians', level: 3}
+    {name: 'Spirit Guardians', level: 3},
+    {name: 'Fire Bolt', level: 0},
+    {name: 'Light', level: 0},
+    {name: 'Shocking Grasp', level: 1},
+    {name: 'Identify', level: 1},
+    {name: 'Mage Armor', level: 1},
+    {name: 'Misty Step', level: 2},
+    {name: 'Fly', level: 3},
+    {name: 'Lightning Bolt', level: 3},
+    {name: 'Fire Shield', level: 4},
+    {name: 'Stoneskin', level: 4},
+    {name: 'Cone of Cold', level: 5},
+    {name: 'Wall of Force', level: 5},
+    {name: 'Teleport', level: 6},
+    {name: 'Mind Blank', level: 8},
+    {name: 'Time Stop', level: 9}
 ];
 
 entityLookup.addEntities({info: _.noop}, 'spell', spells);

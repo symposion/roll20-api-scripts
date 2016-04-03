@@ -1,0 +1,133 @@
+{
+  "npc": {
+    "name": "Archmage",
+    "size": "Medium",
+    "type": "humanoid (any race)",
+    "alignment": "any alignment",
+    "AC": "12 (1 5 with mage armor)",
+    "HP": "99 (18d8 + 18)",
+    "speed": "30ft",
+    "strength": 10,
+    "dexterity": 14,
+    "constitution": 12,
+    "intelligence": 20,
+    "wisdom": 15,
+    "charisma": 16,
+    "savingThrows": "Int +9, Wis +6",
+    "skills": "Arcana +13, History +13",
+    "languages": "any six languages",
+    "challenge": "12",
+    "traits": [
+      {
+        "name": "Magic Resistance",
+        "text": "The archmage has advantage on saving throws against spells and other magical effects."
+      },
+      {
+        "name": "Spellcasting",
+        "text": "The archmage is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 17, +9 to hit with spell attacks). The archmage can cast disguise self and invisibility at will and has the following wizard spells prepared:\nCantrips (at will): Fire Bolt, Light, Mage Hand, Prestidigitation, Shocking Grasp\n1st level (4 slots): Detect Magic, Identify, Mage Armor*, Magic Missile\n2nd level (3 slots): Detect Thoughts, Mirror Image, Misty Step\n3rd level (3 slots): Counterspell, Fly, Lightning Bolt\n4th level (3 slots): Banishment, Fire Shield, Stoneskin*\n5th level (3 slots): Cone of Cold, Scrying, Wall of Force\n6th level (1 slot): Globe of Invulnerability\n7th level (1 slot): Teleport\n8th level (1 slot): Mind Blank*\n9th level (1 slot): Time Stop*\n* The archmage casts these spells on itself before combat."
+      }
+    ],
+    "spells": [
+      {
+        "name": "Fire Bolt",
+        "level": 0
+      },
+      {
+        "name": "Light",
+        "level": 0
+      },
+      {
+        "name": "Mage Hand",
+        "level": 0
+      },
+      {
+        "name": "Prestidigitation",
+        "level": 0
+      },
+      {
+        "name": "Detect Magic",
+        "level": 1
+      },
+      {
+        "name": "Identify",
+        "level": 1
+      },
+      {
+        "name": "Mage Armor",
+        "level": 1
+      },
+      {
+        "name": "Magic Missile",
+        "level": 1
+      },
+      {
+        "name": "Shocking Grasp",
+        "level": 1
+      },
+      {
+        "name": "Detect Thoughts",
+        "level": 2
+      },
+      {
+        "name": "Mirror Image",
+        "level": 2
+      },
+      {
+        "name": "Misty Step",
+        "level": 2
+      },
+      {
+        "name": "Counterspell",
+        "level": 3
+      },
+      {
+        "name": "Fly",
+        "level": 3
+      },
+      {
+        "name": "Lightning Bolt",
+        "level": 3
+      },
+      {
+        "name": "Banishment",
+        "level": 4
+      },
+      {
+        "name": "Fire Shield",
+        "level": 4
+      },
+      {
+        "name": "Stoneskin",
+        "level": 4
+      },
+      {
+        "name": "Cone of Cold",
+        "level": 5
+      },
+      {
+        "name": "Scrying",
+        "level": 5
+      },
+      {
+        "name": "Wall of Force",
+        "level": 5
+      },
+      {
+        "name": "Globe of Invulnerability",
+        "level": 6
+      },
+      {
+        "name": "Teleport",
+        "level": 6
+      },
+      {
+        "name": "Mind Blank",
+        "level": 8
+      },
+      {
+        "name": "Time Stop",
+        "level": 9
+      }
+    ]
+  }
+}
