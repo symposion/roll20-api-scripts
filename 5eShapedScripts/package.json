@@ -23,7 +23,7 @@
     "webpack-stream": "^3.1.0"
   },
   "scripts": {
-    "test": "gulp test"
+    "test": "gulp"
   },
   "repository": {
     "type": "git",
