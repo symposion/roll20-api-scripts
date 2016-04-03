@@ -541,6 +541,7 @@ function getParser(formatSpec, logger) {
  */
 function ParserError(message) {
     'use strict';
+    //noinspection JSUnusedGlobalSymbols
     this.message = message;
 }
 ParserError.prototype = new Error();
@@ -551,6 +552,7 @@ ParserError.prototype = new Error();
 function MissingContentError(missingFieldParsers) {
     'use strict';
     this.missingFieldParsers = missingFieldParsers;
+    //noinspection JSUnusedGlobalSymbols
     this.message = _.reduce(this.missingFieldParsers, function (memo, parser) {
           return memo + '<li>Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times</li>';
       }, '<ul>') + '</ul>';
@@ -565,6 +567,7 @@ function BadValueError(name, value, pattern) {
     this.name = name;
     this.value = value;
     this.pattern = pattern;
+    //noinspection JSUnusedGlobalSymbols
     this.message = 'Bad value [' + this.value + '] for field [' + this.name + ']. Should have matched pattern: ' + this.pattern;
 }
 BadValueError.prototype = new ParserError();

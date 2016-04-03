@@ -1,6 +1,13 @@
+'use strict';
 var _ = require('underscore');
+var utils = require('./utils');
 
 var entities = {
+    monster: {},
+    spell: {}
+};
+
+var noWhiteSpaceEntities = {
     monster: {},
     spell: {}
 };
@@ -8,7 +15,6 @@ var entities = {
 module.exports = {
 
     addEntities: function (logger, type, entityArray, overwrite) {
-        'use strict';
         if (!entities[type]) {
             throw 'Unrecognised entity type ' + type;
         }
@@ -17,7 +23,7 @@ module.exports = {
             var key = entity.name.toLowerCase();
             if (!entities[type][key] || overwrite) {
                 entities[type][key] = entity;
-                entities[type][key.replace(/\s+/g, '')] = entity;
+                noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = entity;
                 addedCount++;
             }
         });
@@ -25,20 +31,21 @@ module.exports = {
         logger.info(this);
     },
     findEntity: function (type, name, tryWithoutWhitespace) {
-        'use strict';
         var key = name.toLowerCase();
         if (!entities[type]) {
             throw 'Unrecognised entity type ' + type;
         }
         var found = entities[type][key];
         if (!found && tryWithoutWhitespace) {
-            found = entities[type][key.replace(/\s+/g, '')];
+            found = noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
         }
-        return found && JSON.parse(JSON.stringify(found));
+        return found && utils.deepClone(found);
+    },
+    getAll: function (type) {
+        return utils.deepClone(_.values(entities[type]));
     },
     logWrap: 'entityLookup',
     toJSON: function () {
-        'use strict';
         return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
     }
 };

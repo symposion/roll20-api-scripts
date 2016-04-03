@@ -66,7 +66,7 @@
 		var myState = roll20.getState('ShapedScripts');
 		var logger = __webpack_require__(5)(myState.config);
 		var entityLookup = __webpack_require__(6);
-		var shaped = __webpack_require__(7)(logger, myState, roll20, parseModule.getParser(mmFormat, logger), entityLookup);
+		var shaped = __webpack_require__(8)(logger, myState, roll20, parseModule.getParser(mmFormat, logger), entityLookup);
 		var _ = __webpack_require__(3);
 
 		logger.wrapModule(entityLookup);
@@ -777,6 +777,7 @@
 		 */
 		function ParserError(message) {
 			'use strict';
+			//noinspection JSUnusedGlobalSymbols
 			this.message = message;
 		}
 
@@ -788,6 +789,7 @@
 		function MissingContentError(missingFieldParsers) {
 			'use strict';
 			this.missingFieldParsers = missingFieldParsers;
+			//noinspection JSUnusedGlobalSymbols
 			this.message = _.reduce(this.missingFieldParsers, function (memo, parser) {
 				return memo + '<li>Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times</li>';
 			}, '<ul>') + '</ul>';
@@ -803,6 +805,7 @@
 			this.name = name;
 			this.value = value;
 			this.pattern = pattern;
+			//noinspection JSUnusedGlobalSymbols
 			this.message = 'Bad value [' + this.value + '] for field [' + this.name + ']. Should have matched pattern: ' + this.pattern;
 		}
 
@@ -1314,9 +1317,16 @@
 	/* 6 */
 	/***/ function (module, exports, __webpack_require__) {
 
+		'use strict';
 		var _ = __webpack_require__(3);
+		var utils = __webpack_require__(7);
 
 		var entities = {
+			monster: {},
+			spell: {}
+		};
+
+		var noWhiteSpaceEntities = {
 			monster: {},
 			spell: {}
 		};
@@ -1324,7 +1334,6 @@
 		module.exports = {
 
 			addEntities: function (logger, type, entityArray, overwrite) {
-				'use strict';
 				if (!entities[type]) {
 					throw 'Unrecognised entity type ' + type;
 				}
@@ -1333,7 +1342,7 @@
 					var key = entity.name.toLowerCase();
 					if (!entities[type][key] || overwrite) {
 						entities[type][key] = entity;
-						entities[type][key.replace(/\s+/g, '')] = entity;
+						noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = entity;
 						addedCount++;
 					}
 				});
@@ -1341,20 +1350,21 @@
 				logger.info(this);
 			},
 			findEntity: function (type, name, tryWithoutWhitespace) {
-				'use strict';
 				var key = name.toLowerCase();
 				if (!entities[type]) {
 					throw 'Unrecognised entity type ' + type;
 				}
 				var found = entities[type][key];
 				if (!found && tryWithoutWhitespace) {
-					found = entities[type][key.replace(/\s+/g, '')];
+					found = noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
 				}
-				return found && JSON.parse(JSON.stringify(found));
+				return found && utils.deepClone(found);
+			},
+			getAll: function (type) {
+				return utils.deepClone(_.values(entities[type]));
 			},
 			logWrap: 'entityLookup',
 			toJSON: function () {
-				'use strict';
 				return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
 			}
 		};
@@ -1365,16 +1375,84 @@
 	/* 7 */
 	/***/ function (module, exports, __webpack_require__) {
 
+		var _ = __webpack_require__(3);
+
+		module.exports = {
+			deepExtend: function (original, newValues) {
+				'use strict';
+				var self = this;
+				if (!original) {
+					original = _.isArray(newValues) ? [] : {};
+				}
+				_.each(newValues, function (value, key) {
+					if (_.isArray(original[key])) {
+						if (!_.isArray(value)) {
+							original[key].push(value);
+						}
+						else {
+							original[key] = _.map(value, function (item, index) {
+								if (_.isObject(item)) {
+									return self.deepExtend(original[key][index], item);
+								}
+								else {
+									return item !== undefined ? item : original[key][index];
+								}
+							});
+						}
+					}
+					else if (_.isObject(original[key])) {
+						original[key] = self.deepExtend(original[key], value);
+					}
+					else {
+						original[key] = value;
+					}
+
+				});
+				return original;
+			},
+
+			createObjectFromPath: function (pathString, value) {
+				'use strict';
+				var newObject = {};
+				_.reduce(pathString.split(/\./), function (object, pathPart, index, pathParts) {
+					var match = pathPart.match(/([^.\[]*)(?:\[(\d+)\])?/);
+					var newVal = index === pathParts.length - 1 ? value : {};
+
+					if (match[2]) {
+						object[match[1]] = [];
+						object[match[1]][match[2]] = newVal;
+					}
+					else {
+						object[match[1]] = newVal;
+					}
+					return newVal;
+
+				}, newObject);
+				return newObject;
+			},
+
+			deepClone: function (object) {
+				'use strict';
+				return JSON.parse(JSON.stringify(object));
+			}
+		};
+
+
+		/***/
+	},
+	/* 8 */
+	/***/ function (module, exports, __webpack_require__) {
+
 		/* globals unescape */
 		'use strict';
 		var _ = __webpack_require__(3);
-		var srdConverter = __webpack_require__(8);
+		var srdConverter = __webpack_require__(9);
 		var parseModule = __webpack_require__(2);
-		var cp = __webpack_require__(9);
-		var utils = __webpack_require__(10);
+		var cp = __webpack_require__(10);
+		var utils = __webpack_require__(7);
 		var mpp = __webpack_require__(11);
 
-		var version        = '0.3.3',
+		var version        = '0.4',
 			schemaVersion  = 0.4,
 			configDefaults = {
 				logLevel: 'INFO',
@@ -1387,9 +1465,9 @@
 						showPlayers: false
 					},
 					bar2: {
-						attribute: '',
+						attribute: 'speed',
 						max: false,
-						link: false,
+						link: true,
 						showPlayers: false
 					},
 					bar3: {
@@ -1406,12 +1484,12 @@
 					deathSaveOutput: '@{output_to_all}',
 					initiativeOutput: '@{output_to_all}',
 					showNameOnRollTemplate: '@{show_character_name_yes}',
-					rollOptions: '@{roll_2}',
+					rollOptions: '@{normal}',
 					initiativeRoll: '@{normal_initiative}',
 					initiativeToTracker: '@{initiative_to_tracker_yes}',
 					breakInitiativeTies: '@{initiative_tie_breaker_var}',
-					showTargetAC: '@{attacks_vs_target_ac_yes}',
-					showTargetName: '@{attacks_vs_target_name_yes}',
+					showTargetAC: '@{attacks_vs_target_ac_no}',
+					showTargetName: '@{attacks_vs_target_name_no}',
 					autoAmmo: '@{ammo_auto_use_var}'
 				},
 				rollHPOnDrop: true,
@@ -1537,7 +1615,7 @@
 		 * @param roll20
 		 * @param parser
 		 * @param entityLookup
-		 * @returns {{handleInput: function, configOptionsSpec: object, configure: function, importStatblock: function, importMonstersFromJson: function, importSpellsFromJson: function, createNewCharacter: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, rollHPForToken: function, checkForAmmoUpdate: function, checkForDeathSave: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
+		 * @returns {{handleInput: function, configOptionsSpec: {}, configure: function, applyTokenDefaults: function, importStatblock: function, importMonstersFromJson: function, importMonsters: function, importSpellsFromJson: function, addSpellsToCharacter:function, hydrateSpellList: function, monsterDataPopulator: function, getTokenRetrievalStrategy: function, nameRetrievalStrategy: function, creationRetrievalStrategy: function, getTokenConfigurer: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, getHPBar: function, rollHPForToken: function, checkForAmmoUpdate: function, checkForDeathSave: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
 		 */
 		module.exports = function (logger, myState, roll20, parser, entityLookup) {
 			var sanitise = logger.wrapFunction('sanitise', __webpack_require__(12), '');
@@ -1578,6 +1656,7 @@
 					.options(this.configOptionsSpec)
 					.addCommand('import-statblock', this.importStatblock.bind(this))
 					.option('overwrite', booleanValidator)
+					.option('replace', booleanValidator)
 					.withSelection({
 						graphic: {
 							min: 1,
@@ -1585,8 +1664,10 @@
 						}
 					})
 					.addCommand('import-monster', this.importMonstersFromJson.bind(this))
+					.option('all', booleanValidator)
 					.optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
 					.option('overwrite', booleanValidator)
+					.option('replace', booleanValidator)
 					.withSelection({
 						graphic: {
 							min: 0,
@@ -1717,13 +1798,12 @@
 						var represents = token.get('represents');
 						var character = roll20.getObj('character', represents);
 						if (character) {
-							self.setTokenDefaults(token, character);
+							self.getTokenConfigurer(token)(character);
 						}
 					});
 				},
 
 				importStatblock: function (options) {
-
 					logger.info('Importing statblocks for tokens $$$', options.selected.graphic);
 					var self = this;
 					_.each(options.selected.graphic, function (token) {
@@ -1731,27 +1811,70 @@
 						if (text) {
 							text = sanitise(unescape(text), logger);
 							var processedNpc = mpp(parser.parse(text).npc, entityLookup);
-							//noinspection JSUnresolvedVariable
-							var character = self.createNewCharacter(processedNpc, token, options.overwrite);
-							if (character) {
+							self.importMonsters([processedNpc], options, token, [function (character) {
 								character.set('gmnotes', text.replace(/\n/g, '<br>'));
-								report('Import Success', 'Character [' + character.get('name') + '] successfully created.');
-							}
+							}]);
 						}
 					});
 				},
 
 				importMonstersFromJson: function (options) {
-					var self = this;
-					var token = options.selected.graphic;
-					if (token && _.size(options.monsters) > 1) {
-						reportError('Cannot have a token selected when importing more than one monster');
-						return;
+					var characterProcessors = [];
+					characterProcessors.push(this.hydrateSpellList.bind(this));
+					if (options.all) {
+						options.monsters = entityLookup.getAll('monster');
+						delete options.all;
 					}
-					var importedList = _.chain(options.monsters)
+
+
+					this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, characterProcessors);
+					options.monsters = options.monsters.slice(20);
+					var self = this;
+					if (!_.isEmpty(options.monsters)) {
+						setTimeout(function () {
+							self.importMonstersFromJson(options);
+						}, 200);
+					}
+
+				},
+
+				importMonsters: function (monsters, options, token, characterProcessors) {
+					var characterRetrievalStrategies = [];
+
+					if (token) {
+						characterProcessors.push(this.getAvatarCopier(token).bind(this));
+						if (_.size(monsters) === 1) {
+							characterProcessors.push(this.getTokenConfigurer(token).bind(this));
+							if (options.replace || options.overwrite) {
+								characterRetrievalStrategies.push(this.getTokenRetrievalStrategy(token).bind(this));
+							}
+						}
+					}
+					if (options.replace) {
+						characterRetrievalStrategies.push(this.nameRetrievalStrategy);
+					}
+
+					characterRetrievalStrategies.push(this.creationRetrievalStrategy.bind(this));
+					characterProcessors.push(this.monsterDataPopulator.bind(this));
+
+					var importedList = _.chain(monsters)
 					.map(function (monsterData) {
-						self.hydrateSpellList(monsterData);
-						var character = self.createNewCharacter(monsterData, token, options.overwrite);
+						var character = _.reduce(characterRetrievalStrategies, function (result, strategy) {
+							return result || strategy(monsterData.name);
+						}, null);
+
+						if (!character) {
+							logger.error('Failed to find or create character for monster $$$', monsterData.name);
+							throw 'Failed to create new character';
+						}
+
+						var oldAttrs = roll20.findObjs({type: 'attribute', characterid: character.id});
+						_.invoke(oldAttrs, 'remove');
+						character.set('name', monsterData.name);
+
+						_.each(characterProcessors, function (proc) {
+							proc(character, monsterData);
+						});
 						return character && character.get('name');
 					})
 					.compact()
@@ -1761,15 +1884,13 @@
 						var monsterList = importedList.join('</li><li>');
 						report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
 					}
-
-
 				},
 
 				importSpellsFromJson: function (options) {
 					this.addSpellsToCharacter(options.selected.character, options.spells);
 				},
 
-				addSpellsToCharacter: function (character, spells) {
+				addSpellsToCharacter: function (character, spells, noreport) {
 					var gender = roll20.getAttrByName(character.id, 'gender');
 
 					var defaultIndex = Math.min(myState.config.defaultGenderIndex, myState.config.genderPronouns.length);
@@ -1785,12 +1906,14 @@
 						spells: srdConverter.convertSpells(spells, pronounInfo)
 					};
 					this.getImportDataWrapper(character).mergeImportData(importData);
-					report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
-						return spell.name;
-					}).join('</li><li>') + '</li></ul>');
+					if (!noreport) {
+						report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
+							return spell.name;
+						}).join('</li><li>') + '</li></ul>');
+					}
 				},
 
-				hydrateSpellList: function (monster) {
+				hydrateSpellList: function (character, monster) {
 					if (!monster.spells) {
 						return;
 					}
@@ -1799,115 +1922,82 @@
 					});
 				},
 
-				createNewCharacter: function (monsterData, token, overwrite) {
+
+				monsterDataPopulator: function (character, monsterData) {
+					_.each(myState.config.newCharSettings, function (value, key) {
+						var attribute = roll20.getOrCreateAttr(character.id, configToAttributeLookup[key]);
+						attribute.set('current', _.isBoolean(value) ? (value ? 1 : 0) : value);
+					});
 
 					var converted = srdConverter.convertMonster(monsterData);
-
-					var character;
-					if (token && token.get('represents')) {
-						character = roll20.getObj('character', token.get('represents'));
-						if (character) {
-							if (!overwrite) {
-								reportError('Found character "' + character.get('name') + '" for token already but overwrite was not set. Try again with --overwrite if you wish to replace this character');
-								return;
-							}
-							else {
-								var oldAttrs = roll20.findObjs({type: 'attribute', characterid: character.id});
-								character.set('name', converted.character_name);// jshint ignore:line
-								_.invoke(oldAttrs, 'remove');
-							}
-						}
-					}
-
 					logger.debug('Converted monster data: $$$', converted);
-					if (!character) {
-						character = roll20.createObj('character', {
-							name: converted.character_name, // jshint ignore:line
-							avatar: token ? token.get('imgsrc') : ''
-						});
-					}
-
-
-					if (!character) {
-						logger.error('Failed to create character for converted monsterData $$$', converted);
-						throw 'Failed to create new character';
-					}
-
-					if (token) {
-						this.setTokenDefaults(token, character);
-					}
-
 					var expandedSpells = converted.spells;
 					delete converted.spells;
 					this.getImportDataWrapper(character).setNewImportData({npc: converted});
 					if (expandedSpells) {
-						this.addSpellsToCharacter(character, expandedSpells);
+						this.addSpellsToCharacter(character, expandedSpells, true);
 					}
-
-					this.setCharacterDefaults(character);
 					return character;
 
 				},
 
-				setCharacterDefaults: function (character) {
-					_.each(myState.config.newCharSettings, function (value, key) {
-						var attribute = {
-							name: configToAttributeLookup[key],
-							current: _.isBoolean(value) ? (value ? 1 : 0) : value,
-							characterid: character.id
-						};
-						roll20.createObj('attribute', attribute);
-					});
+				getTokenRetrievalStrategy: function (token) {
+					return function (name) {
+						return token && roll20.getObj('character', token.get('represents'));
+					};
 				},
 
-				setTokenDefaults: function (token, character) {
-					token.set('represents', character.id);
-					token.set('name', character.get('name'));
-					var settings = myState.config.tokenSettings;
-					if (settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
-						token.set('name', token.get('name') + ' %%NUMBERED%%');
+				nameRetrievalStrategy: function (name) {
+					var chars = roll20.findObjs({type: 'character', name: name});
+					if (chars.length > 1) {
+						throw 'More than one existing character found with name "' + name + '". Can\'t replace';
 					}
+					else {
+						return chars[0];
+					}
+				},
 
-					_.chain(settings)
-					.pick(['bar1', 'bar2', 'bar3'])
-					.each(function (bar, barName) {
-						var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
-						if (attribute) {
-							token.set(barName + '_value', attribute.get('current'));
-							if (bar.max) {
-								token.set(barName + '_max', attribute.get('max'));
-							}
-							token.set('showplayers_' + barName, bar.showPlayers);
-							if (bar.link) {
-								token.set(barName + '_link', attribute.id);
-							}
+				creationRetrievalStrategy: function (name) {
+					return roll20.createObj('character', {name: name});
+				},
+
+				getAvatarCopier: function (token) {
+					return function (character) {
+						character.set('avatar', token.get('imgsrc'));
+					};
+				},
+
+				getTokenConfigurer: function (token) {
+					return function (character) {
+						token.set('represents', character.id);
+						token.set('name', character.get('name'));
+						var settings = myState.config.tokenSettings;
+						if (settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
+							token.set('name', token.get('name') + ' %%NUMBERED%%');
 						}
-					});
 
-					token.set('showname', settings.showName);
-					token.set('showplayers_name', settings.showNameToPlayers);
+						_.chain(settings)
+						.pick(['bar1', 'bar2', 'bar3'])
+						.each(function (bar, barName) {
+							var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
+							if (attribute) {
+								token.set(barName + '_value', attribute.get('current'));
+								if (bar.max) {
+									token.set(barName + '_max', attribute.get('max'));
+								}
+								token.set('showplayers_' + barName, bar.showPlayers);
+								if (bar.link) {
+									token.set(barName + '_link', attribute.id);
+								}
+							}
+						});
+
+						token.set('showname', settings.showName);
+						token.set('showplayers_name', settings.showNameToPlayers);
+					};
 				},
 
 				getImportDataWrapper: function (character) {
-					var getOrCreateAttribute = function (name) {
-						var attribute = {
-							type: 'attribute',
-							name: name,
-							characterid: character.id
-						};
-						var attrs = roll20.findObjs(attribute);
-						if (attrs && attrs.length === 1) {
-							return attrs[0];
-						}
-						else {
-							var attr = roll20.createObj('attribute', attribute);
-							if (!attr) {
-								logger.error('Failed to create attribute $$$ on character $$$', name, character.get('name'));
-								throw 'Failed to set import data on character';
-							}
-							return attr;
-						}
-					};
 
 
 					return {
@@ -1915,15 +2005,15 @@
 							if (_.isEmpty(importData)) {
 								return;
 							}
-							getOrCreateAttribute('import_data').set('current', JSON.stringify(importData));
-							getOrCreateAttribute('import_data_present').set('current', 'on');
+							roll20.setAttrByName(character.id, 'import_data', JSON.stringify(importData));
+							roll20.setAttrByName(character.id, 'import_data_present', 'on');
 						},
 						mergeImportData: function (importData) {
 							if (_.isEmpty(importData)) {
 								return;
 							}
-							var attr = getOrCreateAttribute('import_data');
-							var dataPresentAttr = getOrCreateAttribute('import_data_present');
+							var attr = roll20.getOrCreateAttr(character.id, 'import_data');
+							var dataPresentAttr = roll20.getOrCreateAttr(character.id, 'import_data_present');
 							var current = {};
 							try {
 								if (!_.isEmpty(attr.get('current').trim())) {
@@ -2093,7 +2183,6 @@
 							name: options.characterName
 						})[0];
 
-						//TODO: Could we output a chat button maybe in the roll_2 case?
 						//TODO: Do we want to output text on death/recovery?
 						var increment = function (val) {
 							return ++val;
@@ -2196,7 +2285,7 @@
 
 		/***/
 	},
-	/* 8 */
+	/* 9 */
 	/***/ function (module, exports, __webpack_require__) {
 
 		var _ = __webpack_require__(3);
@@ -2474,12 +2563,12 @@
 
 		/***/
 	},
-	/* 9 */
+	/* 10 */
 	/***/ function (module, exports, __webpack_require__) {
 
 		var _ = __webpack_require__(3);
 		var roll20 = __webpack_require__(1);
-		var utils = __webpack_require__(10);
+		var utils = __webpack_require__(7);
 
 
 		var getParser = function (optionString, validator) {
@@ -2702,74 +2791,6 @@
 			};
 
 
-		};
-
-
-		/***/
-	},
-	/* 10 */
-	/***/ function (module, exports, __webpack_require__) {
-
-		var _ = __webpack_require__(3);
-
-		module.exports = {
-			deepExtend: function (original, newValues) {
-				'use strict';
-				var self = this;
-				if (!original) {
-					original = _.isArray(newValues) ? [] : {};
-				}
-				_.each(newValues, function (value, key) {
-					if (_.isArray(original[key])) {
-						if (!_.isArray(value)) {
-							original[key].push(value);
-						}
-						else {
-							original[key] = _.map(value, function (item, index) {
-								if (_.isObject(item)) {
-									return self.deepExtend(original[key][index], item);
-								}
-								else {
-									return item !== undefined ? item : original[key][index];
-								}
-							});
-						}
-					}
-					else if (_.isObject(original[key])) {
-						original[key] = self.deepExtend(original[key], value);
-					}
-					else {
-						original[key] = value;
-					}
-
-				});
-				return original;
-			},
-
-			createObjectFromPath: function (pathString, value) {
-				'use strict';
-				var newObject = {};
-				_.reduce(pathString.split(/\./), function (object, pathPart, index, pathParts) {
-					var match = pathPart.match(/([^.\[]*)(?:\[(\d+)\])?/);
-					var newVal = index === pathParts.length - 1 ? value : {};
-
-					if (match[2]) {
-						object[match[1]] = [];
-						object[match[1]][match[2]] = newVal;
-					}
-					else {
-						object[match[1]] = newVal;
-					}
-					return newVal;
-
-				}, newObject);
-				return newObject;
-			},
-
-			deepClone: function (object) {
-				'use strict';
-				return JSON.parse(JSON.stringify(object));
-			}
 		};
 
 
