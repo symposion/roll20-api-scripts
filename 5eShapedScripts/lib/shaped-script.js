@@ -344,7 +344,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
 
         /////////////////////////////////////////
         // Configuration UI
-        /////////////////////////////////////////      
+        /////////////////////////////////////////
         configUI: {
             getConfigOptions: function (options, optionsSpec) {
                 return this.getConfigOptionGroupGeneral(options, optionsSpec) +
@@ -585,15 +585,17 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             characterRetrievalStrategies.push(this.creationRetrievalStrategy.bind(this));
             characterProcessors.push(this.monsterDataPopulator.bind(this));
 
+            var errors = [];
             var importedList = _.chain(monsters)
               .map(function (monsterData) {
+
                   var character = _.reduce(characterRetrievalStrategies, function (result, strategy) {
-                      return result || strategy(monsterData.name);
+                      return result || strategy(monsterData.name, errors);
                   }, null);
 
                   if (!character) {
                       logger.error('Failed to find or create character for monster $$$', monsterData.name);
-                      throw 'Failed to create new character';
+                      return null;
                   }
 
                   var oldAttrs = roll20.findObjs({type: 'attribute', characterid: character.id});
@@ -611,6 +613,10 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
             if (!_.isEmpty(importedList)) {
                 var monsterList = importedList.join('</li><li>');
                 report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
+            }
+            if (!_.isEmpty(errors)) {
+                var errorList = errors.join('</li><li>');
+                reportError('The following errors occurred on import:  <ul><li>' + errorList + '</li></ul>');
             }
         },
 
@@ -670,23 +676,28 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         getTokenRetrievalStrategy: function (token) {
-            return function (name) {
+            return function (name, errors) {
                 return token && roll20.getObj('character', token.get('represents'));
             };
         },
 
-        nameRetrievalStrategy: function (name) {
+        nameRetrievalStrategy: function (name, errors) {
             var chars = roll20.findObjs({type: 'character', name: name});
             if (chars.length > 1) {
-                throw 'More than one existing character found with name "' + name + '". Can\'t replace';
+                errors.push('More than one existing character found with name "' + name + '". Can\'t replace');
             }
             else {
                 return chars[0];
             }
         },
 
-        creationRetrievalStrategy: function (name) {
-            return roll20.createObj('character', {name: name});
+        creationRetrievalStrategy: function (name, errors) {
+            if (!_.isEmpty(roll20.findObjs({type: 'character', name: name}))) {
+                errors.push('Can\'t create new character with name "' + name + '" because one already exists with that name. Perhaps you want --replace?');
+            }
+            else {
+                return roll20.createObj('character', {name: name});
+            }
         },
 
         getAvatarCopier: function (token) {
