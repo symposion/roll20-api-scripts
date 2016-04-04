@@ -45,7 +45,6 @@ var ShapedScripts =
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* globals fifthSpells, fifthMonsters */
 		'use strict';
 	var roll20 = __webpack_require__(1);
 	var parseModule = __webpack_require__(2);
@@ -59,85 +58,59 @@ var ShapedScripts =
 	logger.wrapModule(entityLookup);
 	logger.wrapModule(roll20);
 
-	var versionCompare = function (v1, v2) {
+		var jsonValidator = __webpack_require__(13)(__webpack_require__(4));
 
-	    if (v1 === v2) {
-	        return 0;
-	    }
-	    else if (v1 === undefined || v1 === null) {
-	        return -1;
-	    }
-	    else if (v2 === undefined || v2 === null) {
-	        return 1;
-	    }
+		entityLookup.configureEntity('monsters', [entityLookup.wrapJsonValidator(jsonValidator), entityLookup.spellHydrator.bind(entityLookup)]);
+		entityLookup.configureEntity('spells', [entityLookup.monsterSpellUpdater.bind(entityLookup)]);
 
-	    var v1parts = v1.split('.');
-	    var v2parts = v2.split('.');
-
-	    var isValidPart = function (x) {
-	        return /^\d+$/.test(x);
-	    };
-
-	    if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
-	        return NaN;
-	    }
-
-	    v1parts = _.map(v1parts, Number);
-	    v2parts = _.map(v2parts, Number);
-
-	    for (var i = 0; i < v1parts.length; ++i) {
-	        if (v2parts.length === i) {
-	            return 1;
-	        }
-
-	        if (v1parts[i] > v2parts[i]) {
-	            return 1;
-	        } else if (v1parts[i] < v2parts[i]) {
-	            return -1;
-	        }
-	    }
-
-	    if (v1parts.length !== v2parts.length) {
-	        return -1;
-	    }
-
-	    return 0;
-	};
-
-	roll20.on('ready', function () {
-	    if (typeof fifthMonsters !== 'undefined') {
-			module.exports.addMonsters(fifthMonsters);
-	    }
-	    if (typeof fifthSpells !== 'undefined') {
-			module.exports.addSpells(fifthSpells);
-	    }
-	    shaped.checkInstall();
-	    shaped.registerEventHandlers();
-	});
+		roll20.on('ready', function () {
+			shaped.checkInstall();
+			shaped.registerEventHandlers();
+		});
 
 		module.exports = {
-			addMonsters: function (monsters) {
-				if (typeof monsters === 'string') {
-					monsters = JSON.parse(monsters);
-				}
-				if (versionCompare(monsters.version, '0.1') < 0) {
-					roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of monster data file used, please upgrade to the latest version');
-				}
-				//noinspection JSUnresolvedVariable
-				entityLookup.addEntities(logger, 'monster', monsters.monsters);
-			},
+			addEntities: function (entities) {
+				try {
+					if (typeof entities === 'string') {
+						entities = JSON.parse(entities);
+					}
+					var result = entityLookup.addEntities(entities);
+					var summary = _.mapObject(result, function (propVal, propName) {
+						if (propName === 'errors') {
+							return propVal.length;
+						}
+						else {
+							return _.mapObject(propVal, function (array) {
+								return array.length;
+							});
+						}
+					});
+					logger.info('Summary of adding entities to the lookup: $$$', summary);
+					logger.info('Details: $$$', result);
+					if (!_.isEmpty(result.errors)) {
+						var message = _.chain(result.errors)
+						.groupBy('entity')
+						.mapObject(function (entityErrors) {
+							return _.chain(entityErrors)
+							.pluck('errors')
+							.flatten()
+							.value();
+						})
+						.map(function (errors, entityName) {
+							return '<li>' + entityName + ':<ul><li>' + errors.join('</li><li>') + '</li></ul></li>';
+						})
+						.value();
 
-			addSpells: function (spells) {
-				if (typeof spells === 'string') {
-					spells = JSON.parse(spells);
-				}
-				if (versionCompare(spells.version, '0.1') < 0) {
-					roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of spells data file used, please upgrade to the latest version');
-				}
-				//noinspection JSUnresolvedVariable
-				entityLookup.addEntities(logger, 'spell', spells.spells);
-			}
-		};
+						roll20.sendChat('ShapedScripts', '/w gm <div><h3>Errors occurred importing information from JSON files:</h3> <ul>' + message + '</ul></div>');
+					}
+	        }
+				catch (e) {
+					roll20.sendChat('Shaped Scripts', '/w gm Error adding spells or monsters: ' + e);
+					logger.error(e.toString());
+					logger.error(e.stack);
+	        }
+	    }
+	};
 
 
 /***/ },
@@ -854,7 +827,7 @@ var ShapedScripts =
 						"name": "type",
 						"type": "string",
 						"bare": "true",
-						"pattern": "^([\\w\\s\\(\\)]+),",
+						"pattern": "^([\\w\\s\\(\\),-]+),",
 						"matchGroup": 1
 					},
 					{
@@ -873,9 +846,15 @@ var ShapedScripts =
 							"unaligned",
 							"any alignment",
 							"any good alignment",
+							"any non-good alignment",
 							"any evil alignment",
+							"any non-evil alignment",
 							"any lawful alignment",
-							"any chaotic alignment"
+							"any non-lawful alignment",
+							"any chaotic alignment",
+							"any non-chaotic alignment",
+							"construct",
+							"(?:lawful|neutral|chaotic) (?:good|neutral|evil) \\(\\d+%\\) or (?:lawful|neutral|chaotic) (?:good|neutral|evil) \\(\\d+%\\)"
 						],
 						"bare": true
 					}
@@ -902,7 +881,7 @@ var ShapedScripts =
 						"name": "speed",
 						"minOccurs": 0,
 						"type": "string",
-						"pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\(hover\\))?$"
+						"pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\([^\\)]+\\))?$"
 					},
 					{
 						"name": "strength",
@@ -945,12 +924,12 @@ var ShapedScripts =
 						"name": "skills",
 						"minOccurs": 0,
 						"type": "string",
-						"pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Slight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
+						"pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Sleight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
 					},
 					{
 						"minOccurs": 0,
 						"type": "string",
-						"name": "damageVulnerabilties",
+						"name": "damageVulnerabilities",
 						"parseToken": "damage vulnerabilities"
 					},
 					{
@@ -975,7 +954,7 @@ var ShapedScripts =
 						"name": "senses",
 						"type": "string",
 						"minOccurs": 0,
-						"pattern": "(?:(?:^|,\\s*)(?:blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)+"
+						"pattern": "(?:(?:^|,\\s*)(?:blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft\\.?(?: or \\d+ ft\\. while deafened)?(?:\\s?\\([^\\)]+\\))?)+"
 					},
 					{
 						"name": "passivePerception",
@@ -983,6 +962,11 @@ var ShapedScripts =
 						"minOccurs": 0,
 						"type": "number",
 						"skipOutput": true
+					},
+					{
+						"name": "spells",
+						"minOccurs": 0,
+						"type": "string"
 					},
 					{
 						"name": "languages",
@@ -1018,7 +1002,7 @@ var ShapedScripts =
 							{
 								"name": "name",
 								"type": "string",
-								"pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+								"pattern": "(^|.*?[a-z]\\.\\s?)((?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|to|in|the|with|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
 								"matchGroup": 2,
 								"forPreviousMatchGroup": 1,
 								"forNextMatchGroup": 3,
@@ -1064,7 +1048,7 @@ var ShapedScripts =
 							{
 								"name": "name",
 								"type": "string",
-								"pattern": "(^|.*?[a-z]\\.\\s?)((?:\\d+\\.\\s?)?[A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+								"pattern": "(^|.*?[a-z]\\.\\s?)((?:\\d+\\.\\s?)?(?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|in|to|with|the|and|or|a|\\+\\d+)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
 								"matchGroup": 2,
 								"forPreviousMatchGroup": 1,
 								"forNextMatchGroup": 3,
@@ -1110,7 +1094,7 @@ var ShapedScripts =
 							{
 								"name": "name",
 								"type": "string",
-								"pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+								"pattern": "(^|.*?[a-z]\\.\\s?)((?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|in|to|with|the|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
 								"matchGroup": 2,
 								"forPreviousMatchGroup": 1,
 								"forNextMatchGroup": 3,
@@ -1164,7 +1148,7 @@ var ShapedScripts =
 								"name": "name",
 								"type": "string",
 								"bare": true,
-								"pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+								"pattern": "(^|.*?[a-z]\\.\\s?)((?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|with|to|the|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
 								"matchGroup": 2,
 								"forPreviousMatchGroup": 1,
 								"forNextMatchGroup": 3,
@@ -1184,6 +1168,55 @@ var ShapedScripts =
 								"type": "string"
 							}
 						]
+					}
+				]
+			},
+			{
+				"name": "lairActionSection",
+				"type": "orderedContent",
+				"minOccurs": 0,
+				"maxOccurs": 1,
+				"flatten": true,
+				"contentModel": [
+					{
+						"name": "actionHeader",
+						"type": "heading",
+						"bare": true,
+						"pattern": "^Lair Actions$"
+					},
+					{
+						"name": "lairActions",
+						"type": "string",
+						"bare": true,
+						"minOccurs": 1,
+						"maxOccurs": "Infinity"
+					}
+				]
+			},
+			{
+				"name": "regionalEffectsSection",
+				"type": "orderedContent",
+				"minOccurs": 0,
+				"maxOccurs": 1,
+				"flatten": true,
+				"contentModel": [
+					{
+						"name": "actionHeader",
+						"type": "heading",
+						"bare": true,
+						"pattern": "^Regional Effects$"
+					},
+					{
+						"name": "regionalEffects",
+						"type": "string",
+						"minOccurs": 1,
+						"maxOccurs": "Infinity",
+						"bare": true
+					},
+					{
+						"name": "regionalEffectsFade",
+						"type": "string",
+						"bare": true
 					}
 				]
 			}
@@ -1310,48 +1343,98 @@ var ShapedScripts =
 	var _ = __webpack_require__(3);
 	var utils = __webpack_require__(7);
 
-	var entities = {
-	    monster: {},
-	    spell: {}
-	};
+		var currentVersion = '0.2';
 
-	var noWhiteSpaceEntities = {
-	    monster: {},
-	    spell: {}
-	};
+		var entities = {};
 
-		var entityProcessors = {
-			monster: [
-				spellHydrator
-			],
-			spell: [
-				monsterSpellUpdater
-			]
-		};
+		var noWhiteSpaceEntities = {};
+
+
+		var entityProcessors = {};
 
 	module.exports = {
 
-	    addEntities: function (logger, type, entityArray, overwrite) {
-	        if (!entities[type]) {
-	            throw 'Unrecognised entity type ' + type;
+		configureEntity: function (entityName, processors) {
+			entities[entityName] = {};
+			noWhiteSpaceEntities[entityName] = {};
+			entityProcessors[entityName] = processors;
+		},
+
+		addEntities: function (entitiesObject) {
+			var results = {
+				errors: []
+			};
+			//TODO: Do semver properly
+			if (utils.versionCompare(currentVersion, entitiesObject.version) !== 0) {
+				results.errors.push({
+					entity: 'general',
+					errors: ['Invalid JSON version [' + entitiesObject.version + ']. Script supports version: [' + currentVersion + ']']
+				});
+				return results;
 	        }
-	        var addedCount = 0;
-	        _.each(entityArray, function (entity) {
-	            var key = entity.name.toLowerCase();
-	            if (!entities[type][key] || overwrite) {
-					var processed = _.reduce(entityProcessors[type], utils.executor, entity);
-					entities[type][key] = processed;
-					noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = processed;
-	                addedCount++;
-	            }
-	        });
-	        logger.info('Added $$$ entities of type $$$ to the lookup', addedCount, type);
-	        logger.info(this);
+
+			_.chain(entitiesObject)
+			.omit('version', 'patch')
+			.each(function (entityArray, type) {
+				results[type] = {
+					withErrors: [],
+					skipped: [],
+					deleted: [],
+					patched: [],
+					added: []
+				};
+
+				if (!entities[type]) {
+					results.errors.push({entity: 'general', errors: ['Unrecognised entity type ' + type]});
+					return;
+				}
+
+
+				_.each(entityArray, function (entity) {
+					var key = entity.name.toLowerCase();
+					var operation = !!entities[type][key] ? (entitiesObject.patch ? 'patched' : 'skipped') : 'added';
+
+					//noinspection FallThroughInSwitchStatementJS
+					if (operation === 'patched') {
+						entity = patchEntity(entities[type][key], entity);
+						if (!entity) {
+							operation = 'deleted';
+							delete entities[type][key];
+							delete noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
+						}
+
+					}
+
+					if (_.contains(['patched', 'added'], operation)) {
+						var processed = _.reduce(entityProcessors[type], utils.executor, {entity: entity, errors: []});
+						if (!_.isEmpty(processed.errors)) {
+							processed.entity = processed.entity.name;
+							results.errors.push(processed);
+							operation = 'withErrors';
+						}
+						else {
+							if (processed.entity.name.toLowerCase() !== key) {
+								results[type].deleted.push(key);
+								delete entities[type][key];
+								delete noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
+								key = processed.entity.name.toLowerCase();
+							}
+							entities[type][key] = processed.entity;
+							noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = processed.entity;
+						}
+					}
+
+
+					results[type][operation].push(key);
+				});
+			});
+
+			return results;
 	    },
 	    findEntity: function (type, name, tryWithoutWhitespace) {
 	        var key = name.toLowerCase();
 	        if (!entities[type]) {
-	            throw 'Unrecognised entity type ' + type;
+				throw new Error('Unrecognised entity type ' + type);
 	        }
 	        var found = entities[type][key];
 	        if (!found && tryWithoutWhitespace) {
@@ -1363,23 +1446,20 @@ var ShapedScripts =
 	        return utils.deepClone(_.values(entities[type]));
 	    },
 
-	    logWrap: 'entityLookup',
-	    toJSON: function () {
-	        return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
-	    }
-	};
-
-		function spellHydrator(monster) {
+		spellHydrator: function (monsterInfo) {
+			var monster = monsterInfo.entity;
+			var self = this;
 			if (monster.spells) {
 				monster.spells = _.map(monster.spells.split(', '), function (spellName) {
-					return module.exports.findEntity('spell', spellName) || spellName;
+					return self.findEntity('spells', spellName) || spellName;
 				});
 			}
-			return monster;
-		}
+			return monsterInfo;
+		},
 
-		function monsterSpellUpdater(spell) {
-			_.chain(entities.monster)
+		monsterSpellUpdater: function (spellInfo) {
+			var spell = spellInfo.entity;
+			_.chain(entities.monsters)
 			.pluck('spells')
 			.compact()
 			.each(function (spellArray) {
@@ -1395,19 +1475,46 @@ var ShapedScripts =
 					spellArray[spellIndex] = spell;
 				}
 			});
-			return spell;
+			return spellInfo;
+		},
+
+		wrapJsonValidator: function (jsonValidator) {
+			return function (entityInfo) {
+				var result = jsonValidator(entityInfo.entity);
+				entityInfo.errors = entityInfo.errors.concat(result.errors);
+				return entityInfo;
+			};
+		},
+
+	    logWrap: 'entityLookup',
+	    toJSON: function () {
+	        return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
+	    }
+	};
+
+		function patchEntity(original, patch) {
+			if (patch.remove) {
+				return undefined;
+			}
+			return _.mapObject(original, function (propVal, propName) {
+				if (propName === 'name' && patch.newName) {
+					return patch.newName;
+				}
+				return patch[propName] || propVal;
+
+			});
 		}
 
 
-/***/ },
+		/***/ },
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
+		'use strict';
 	var _ = __webpack_require__(3);
 
 	module.exports = {
 	    deepExtend: function (original, newValues) {
-	        'use strict';
 	        var self = this;
 	        if (!original) {
 	            original = _.isArray(newValues) ? [] : {};
@@ -1440,7 +1547,6 @@ var ShapedScripts =
 	    },
 
 	    createObjectFromPath: function (pathString, value) {
-	        'use strict';
 	        var newObject = {};
 	        _.reduce(pathString.split(/\./), function (object, pathPart, index, pathParts) {
 	            var match = pathPart.match(/([^.\[]*)(?:\[(\d+)\])?/);
@@ -1460,12 +1566,10 @@ var ShapedScripts =
 	    },
 
 	    deepClone: function (object) {
-	        'use strict';
 	        return JSON.parse(JSON.stringify(object));
 		},
 
 		executor: function () {
-			'use strict';
 			switch (arguments.length) {
 				case 0:
 					return;
@@ -1476,6 +1580,51 @@ var ShapedScripts =
 					args.unshift(arguments[0]);
 					return arguments[1].apply(null, args);
 			}
+		},
+
+		versionCompare: function (v1, v2) {
+
+			if (v1 === v2) {
+				return 0;
+			}
+			else if (v1 === undefined || v1 === null) {
+				return -1;
+			}
+			else if (v2 === undefined || v2 === null) {
+				return 1;
+			}
+
+			var v1parts = v1.split('.');
+			var v2parts = v2.split('.');
+
+			var isValidPart = function (x) {
+				return /^\d+$/.test(x);
+			};
+
+			if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
+				return NaN;
+			}
+
+			v1parts = _.map(v1parts, Number);
+			v2parts = _.map(v2parts, Number);
+
+			for (var i = 0; i < v1parts.length; ++i) {
+				if (v2parts.length === i) {
+					return 1;
+				}
+
+				if (v1parts[i] > v2parts[i]) {
+					return 1;
+				} else if (v1parts[i] < v2parts[i]) {
+					return -1;
+				}
+			}
+
+			if (v1parts.length !== v2parts.length) {
+				return -1;
+			}
+
+			return 0;
 	    }
 	};
 
@@ -1709,7 +1858,7 @@ var ShapedScripts =
 	              })
 	              .addCommand('import-monster', this.importMonstersFromJson.bind(this))
 	              .option('all', booleanValidator)
-	              .optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
+				.optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monsters'))
 	              .option('overwrite', booleanValidator)
 	              .option('replace', booleanValidator)
 	              .withSelection({
@@ -1719,7 +1868,7 @@ var ShapedScripts =
 	                  }
 	              })
 	              .addCommand('import-spell', this.importSpellsFromJson.bind(this))
-	              .optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spell'))
+				.optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spells'))
 	              .withSelection({
 	                  character: {
 	                      min: 1,
@@ -3096,7 +3245,7 @@ var ShapedScripts =
 	                    };
 	                })
 	                .each(function (spell) {
-	                    spell.object = entityLookup.findEntity('spell', spell.name, true);
+						spell.object = entityLookup.findEntity('spells', spell.name, true);
 	                    if (spell.object) {
 	                        spell.name = spell.object.name;
 	                        spell.toSpellArrayItem = function () {
@@ -3309,6 +3458,202 @@ var ShapedScripts =
 	}
 
 	module.exports = sanitise;
+
+
+		/***/
+	},
+	/* 13 */
+	/***/ function (module, exports, __webpack_require__) {
+
+		'use strict';
+		var _ = __webpack_require__(3);
+
+		var validatorFactories = {
+			orderedContent: function (spec) {
+				return makeContentModelValidator(spec);
+			},
+
+			unorderedContent: function (spec) {
+				return makeContentModelValidator(spec);
+			},
+
+			string: function (spec) {
+				if (spec.pattern) {
+					if (spec.matchGroup) {
+						return regExValidator(spec.name, extractRegexPart(spec.pattern, spec.matchGroup), spec.caseSensitive);
+					}
+					else {
+						return regExValidator(spec.name, spec.pattern, spec.caseSensitive);
+					}
+				}
+				return _.constant({errors: [], completed: []});
+			},
+
+			enumType: function (spec) {
+				return function (value) {
+					var result = {errors: [], completed: []};
+					if (!_.some(spec.enumValues, function (enumVal) {
+						return new RegExp(enumVal, 'i').test(value);
+					})) {
+						result.errors.push('Value "' + value + '" for field ' + spec.name + ' should have been one of [' + spec.enumValues.join(',') + ']');
+					}
+					return result;
+				};
+			},
+
+			ability: function (spec) {
+				return regExValidator(spec.name, '\\d+');
+			},
+
+			heading: function (spec) {
+				return _.constant({errors: [], completed: []});
+			},
+
+			number: function (spec) {
+				return function (value) {
+					var result = {errors: [], completed: []};
+					if (typeof value !== 'number') {
+						result.errors.push('Value "' + value + '" for field ' + spec.name + ' should have been a number');
+					}
+					return result;
+				};
+			}
+		};
+
+		function extractRegexPart(regexp, matchIndex) {
+			var braceCount = 0;
+			var startIndex = _.findIndex(regexp, function (character, index) {
+				if (character === '(' &&
+				(index < 2 || regexp[index - 1] !== '\\') &&
+				regexp[index + 1] !== '?') {
+					return ++braceCount === matchIndex;
+				}
+			});
+
+			if (startIndex === -1) {
+				throw 'Fucked';
+			}
+
+			//Lose the bracket
+			startIndex++;
+
+			var openCount = 1;
+			var endIndex = _.findIndex(regexp.slice(startIndex), function (character, index, regexp) {
+				if (character === '(' && regexp[index - 1] !== '\\') {
+					openCount++;
+				}
+				if (character === ')' && regexp[index - 1] !== '\\') {
+					return --openCount === 0;
+				}
+			});
+
+			if (endIndex === -1) {
+				throw 'Fucked';
+			}
+
+			return regexp.slice(startIndex, startIndex + endIndex);
+		}
+
+		function regExValidator(fieldName, regexp, caseSensitive) {
+			var re = new RegExp('^' + regexp + '$', caseSensitive ? undefined : 'i');
+			return function (value) {
+				var result = {errors: [], completed: []};
+				if (!re.test(value)) {
+					result.errors.push('Value "' + value + '" doesn\'t match pattern [' + regexp + '] for field ' + fieldName);
+				}
+				return result;
+			};
+		}
+
+		function makeValidator(spec) {
+			var validator = validatorFactories[spec.type](spec);
+			validator.max = _.isUndefined(spec.maxOccurs) ? 1 : spec.maxOccurs;
+			validator.min = _.isUndefined(spec.minOccurs) ? 1 : spec.minOccurs;
+			validator.fieldName = spec.name;
+			return validator;
+		}
+
+		function makeContentModelValidator(spec) {
+			var parts = _.chain(spec.contentModel)
+			.reject({type: 'heading'})
+			.partition({flatten: true})
+			.value();
+			var flattened = _.map(parts[0], makeValidator);
+
+			var subValidators = _.reduce(parts[1], function (subValidators, field) {
+				subValidators[field.name] = makeValidator(field);
+				return subValidators;
+			}, {});
+
+			return function (object, ignoreUnrecognised) {
+				var results = _.reduce(object, function (results, fieldValue, fieldName) {
+					var validator = subValidators[fieldName];
+					if (validator) {
+						results.completed.push(fieldName);
+						if (_.isArray(fieldValue)) {
+							if (fieldValue.length > validator.max) {
+								results.errors.push('Count of ' + fieldName + ' values [' + fieldValue.length + '] exceeds maximum allowed: ' + validator.max);
+							}
+							else if (fieldValue.length < validator.min) {
+								results.errors.push('Count of ' + fieldName + ' values [' + fieldValue.length + '] is less than minimum allowed: ' + validator.min);
+							}
+							else {
+								_.each(fieldValue, function (arrayItem) {
+									results.errors = results.errors.concat(validator(arrayItem).errors);
+								});
+
+							}
+						}
+						else {
+							results.errors = results.errors.concat(validator(fieldValue).errors);
+						}
+					}
+					return results;
+				}, {errors: [], completed: []}
+				);
+
+				var toValidate = _.omit(object, results.completed);
+				_.chain(flattened)
+				.map(function (validator) {
+					var result = validator(toValidate, true);
+					results.completed = results.completed.concat(result.completed);
+					if (result.completed.length === 0) {
+						return validator;
+					}
+					else {
+						results.errors = results.errors.concat(result.errors);
+					}
+					toValidate = _.omit(toValidate, result.completed);
+				})
+				.compact()
+				.each(function (validator) {
+					if (validator.min > 0) {
+						results.errors.push('Missing section: ' + validator.fieldName);
+					}
+				});
+
+				_.chain(subValidators)
+				.omit(results.completed)
+				.each(function (validator) {
+					if (validator.min > 0) {
+						results.errors.push('Missing field: ' + validator.fieldName);
+					}
+				});
+
+				if (!ignoreUnrecognised) {
+					_.chain(object)
+					.omit(results.completed)
+					.each(function (value, key) {
+						results.errors.push('Unrecognised field: ' + key);
+					});
+				}
+
+
+				return results;
+			};
+		}
+
+		module.exports = makeValidator;
 
 
 /***/ }

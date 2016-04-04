@@ -86,7 +86,7 @@ describe('monster-post-processor', function () {
                 {name: 'Spellcasting', text: reformattedTrait},
                 {name: 'Innate Spellcasting', text: reformattedInnateTrait}
             ],
-            spells: _.map(spellList, _.partial(el.entityLookup.findEntity, 'spell'))
+            spells: _.map(spellList, _.partial(el.entityLookup.findEntity, 'spells'))
         };
         var result = mpp(monster, el.entityLookup);
         //noinspection JSUnresolvedVariable

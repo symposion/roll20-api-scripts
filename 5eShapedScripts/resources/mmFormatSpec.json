@@ -30,7 +30,7 @@
           "name": "type",
           "type": "string",
           "bare": "true",
-          "pattern": "^([\\w\\s\\(\\)]+),",
+          "pattern": "^([\\w\\s\\(\\),-]+),",
           "matchGroup": 1
         },
         {
@@ -49,9 +49,15 @@
             "unaligned",
             "any alignment",
             "any good alignment",
+            "any non-good alignment",
             "any evil alignment",
+            "any non-evil alignment",
             "any lawful alignment",
-            "any chaotic alignment"
+            "any non-lawful alignment",
+            "any chaotic alignment",
+            "any non-chaotic alignment",
+            "construct",
+            "(?:lawful|neutral|chaotic) (?:good|neutral|evil) \\(\\d+%\\) or (?:lawful|neutral|chaotic) (?:good|neutral|evil) \\(\\d+%\\)"
           ],
           "bare": true
         }
@@ -78,7 +84,7 @@
           "name": "speed",
           "minOccurs": 0,
           "type": "string",
-          "pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\(hover\\))?$"
+          "pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\([^\\)]+\\))?$"
         },
         {
           "name": "strength",
@@ -121,12 +127,12 @@
           "name": "skills",
           "minOccurs": 0,
           "type": "string",
-          "pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Slight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
+          "pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Sleight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
         },
         {
           "minOccurs": 0,
           "type": "string",
-          "name": "damageVulnerabilties",
+          "name": "damageVulnerabilities",
           "parseToken": "damage vulnerabilities"
         },
         {
@@ -151,7 +157,7 @@
           "name": "senses",
           "type": "string",
           "minOccurs": 0,
-          "pattern": "(?:(?:^|,\\s*)(?:blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)+"
+          "pattern": "(?:(?:^|,\\s*)(?:blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft\\.?(?: or \\d+ ft\\. while deafened)?(?:\\s?\\([^\\)]+\\))?)+"
         },
         {
           "name": "passivePerception",
@@ -159,6 +165,11 @@
           "minOccurs": 0,
           "type": "number",
           "skipOutput": true
+        },
+        {
+          "name": "spells",
+          "minOccurs": 0,
+          "type": "string"
         },
         {
           "name": "languages",
@@ -194,7 +205,7 @@
             {
               "name": "name",
               "type": "string",
-              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "pattern": "(^|.*?[a-z]\\.\\s?)((?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|to|in|the|with|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
               "matchGroup": 2,
               "forPreviousMatchGroup": 1,
               "forNextMatchGroup": 3,
@@ -240,7 +251,7 @@
             {
               "name": "name",
               "type": "string",
-              "pattern": "(^|.*?[a-z]\\.\\s?)((?:\\d+\\.\\s?)?[A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "pattern": "(^|.*?[a-z]\\.\\s?)((?:\\d+\\.\\s?)?(?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|in|to|with|the|and|or|a|\\+\\d+)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
               "matchGroup": 2,
               "forPreviousMatchGroup": 1,
               "forNextMatchGroup": 3,
@@ -286,7 +297,7 @@
             {
               "name": "name",
               "type": "string",
-              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "pattern": "(^|.*?[a-z]\\.\\s?)((?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|in|to|with|the|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
               "matchGroup": 2,
               "forPreviousMatchGroup": 1,
               "forNextMatchGroup": 3,
@@ -340,7 +351,7 @@
               "name": "name",
               "type": "string",
               "bare": true,
-              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "pattern": "(^|.*?[a-z]\\.\\s?)((?:[A-Z][\\w\\-']+[,:!]?|A)(?:\\s(?:[A-Z][\\w\\-']+[,:!]?|of|with|to|the|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
               "matchGroup": 2,
               "forPreviousMatchGroup": 1,
               "forNextMatchGroup": 3,
@@ -360,6 +371,55 @@
               "type": "string"
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "lairActionSection",
+      "type": "orderedContent",
+      "minOccurs": 0,
+      "maxOccurs": 1,
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "actionHeader",
+          "type": "heading",
+          "bare": true,
+          "pattern": "^Lair Actions$"
+        },
+        {
+          "name": "lairActions",
+          "type": "string",
+          "bare": true,
+          "minOccurs": 1,
+          "maxOccurs": "Infinity"
+        }
+      ]
+    },
+    {
+      "name": "regionalEffectsSection",
+      "type": "orderedContent",
+      "minOccurs": 0,
+      "maxOccurs": 1,
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "actionHeader",
+          "type": "heading",
+          "bare": true,
+          "pattern": "^Regional Effects$"
+        },
+        {
+          "name": "regionalEffects",
+          "type": "string",
+          "minOccurs": 1,
+          "maxOccurs": "Infinity",
+          "bare": true
+        },
+        {
+          "name": "regionalEffectsFade",
+          "type": "string",
+          "bare": true
         }
       ]
     }

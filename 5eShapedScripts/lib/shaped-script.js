@@ -223,7 +223,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
               })
               .addCommand('import-monster', this.importMonstersFromJson.bind(this))
               .option('all', booleanValidator)
-              .optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monster'))
+              .optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monsters'))
               .option('overwrite', booleanValidator)
               .option('replace', booleanValidator)
               .withSelection({
@@ -233,7 +233,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                   }
               })
               .addCommand('import-spell', this.importSpellsFromJson.bind(this))
-              .optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spell'))
+              .optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spells'))
               .withSelection({
                   character: {
                       min: 1,

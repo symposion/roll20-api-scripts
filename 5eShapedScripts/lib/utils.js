@@ -1,8 +1,8 @@
+'use strict';
 var _ = require('underscore');
 
 module.exports = {
     deepExtend: function (original, newValues) {
-        'use strict';
         var self = this;
         if (!original) {
             original = _.isArray(newValues) ? [] : {};
@@ -35,7 +35,6 @@ module.exports = {
     },
 
     createObjectFromPath: function (pathString, value) {
-        'use strict';
         var newObject = {};
         _.reduce(pathString.split(/\./), function (object, pathPart, index, pathParts) {
             var match = pathPart.match(/([^.\[]*)(?:\[(\d+)\])?/);
@@ -55,12 +54,10 @@ module.exports = {
     },
 
     deepClone: function (object) {
-        'use strict';
         return JSON.parse(JSON.stringify(object));
     },
 
     executor: function () {
-        'use strict';
         switch (arguments.length) {
             case 0:
                 return;
@@ -79,8 +76,53 @@ module.exports = {
      * @return {string} the supplied string in title case
      */
     toTitleCase : function (s) {
-        'use strict';
         var res = s.replace(/\w\S*/g, function (txt) { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(); });
         return res;
+    },
+
+    versionCompare: function (v1, v2) {
+
+        if (v1 === v2) {
+            return 0;
+        }
+        else if (v1 === undefined || v1 === null) {
+            return -1;
+        }
+        else if (v2 === undefined || v2 === null) {
+            return 1;
+        }
+
+        var v1parts = v1.split('.');
+        var v2parts = v2.split('.');
+
+        var isValidPart = function (x) {
+            return /^\d+$/.test(x);
+        };
+
+        if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
+            return NaN;
+        }
+
+        v1parts = _.map(v1parts, Number);
+        v2parts = _.map(v2parts, Number);
+
+        for (var i = 0; i < v1parts.length; ++i) {
+            if (v2parts.length === i) {
+                return 1;
+            }
+
+            if (v1parts[i] > v2parts[i]) {
+                return 1;
+            } else if (v1parts[i] < v2parts[i]) {
+                return -1;
+            }
+        }
+
+        if (v1parts.length !== v2parts.length) {
+            return -1;
+        }
+
+        return 0;
     }
+    
 };

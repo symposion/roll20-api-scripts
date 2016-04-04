@@ -2,7 +2,7 @@
 require('chai').should();
 var srdConverter = require('../lib/srd-converter');
 var fs = require('fs');
-var _ = require('underscore');
+var glob = require('glob');
 
 describe('srd-converter', function () {
     'use strict';
@@ -128,21 +128,17 @@ describe('srd-converter', function () {
     });
 
     describe('#convertJsonMonster', function () {
-        try {
-            var monsters = JSON.parse(fs.readFileSync('../../roll20/data/monsters/MonsterManual.json', 'utf-8'));
-
-            _.each(monsters, function (monster) {
-                it('should parse ' + monster.name + ' correctly', function () {
-                    srdConverter.convertMonster(monster);
+        glob.sync('../../roll20/data/monsterSourceFiles/*.json').forEach(function (jsonFile) {
+            describe('JSON file: ' + jsonFile, function () {
+                JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
+                  .monsters.forEach(function (monster) {
+                    it('convert ' + monster.name, function () {
+                        srdConverter.convertMonster(monster);
+                    });
                 });
             });
-        }
-        catch (e) {
-            //Test file not present, ignore
-            if (e.code !== 'ENOENT') {
-                throw e;
-            }
-        }
+
+        });
 
     });
 

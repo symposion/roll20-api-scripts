@@ -88,7 +88,7 @@ function processSpellcastingTrait(monster, traitName, traitHandler, entityLookup
                     };
                 })
                 .each(function (spell) {
-                    spell.object = entityLookup.findEntity('spell', spell.name, true);
+                    spell.object = entityLookup.findEntity('spells', spell.name, true);
                     if (spell.object) {
                         spell.name = spell.object.name;
                         spell.toSpellArrayItem = function () {

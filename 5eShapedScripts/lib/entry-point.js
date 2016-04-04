@@ -1,4 +1,3 @@
-/* globals fifthSpells, fifthMonsters */
 'use strict';
 var roll20 = require('./roll20.js');
 var parseModule = require('./parser');
@@ -12,82 +11,56 @@ var _ = require('underscore');
 logger.wrapModule(entityLookup);
 logger.wrapModule(roll20);
 
-var versionCompare = function (v1, v2) {
+var jsonValidator = require('./json-validator')(require('../resources/mmFormatSpec.json'));
 
-    if (v1 === v2) {
-        return 0;
-    }
-    else if (v1 === undefined || v1 === null) {
-        return -1;
-    }
-    else if (v2 === undefined || v2 === null) {
-        return 1;
-    }
-
-    var v1parts = v1.split('.');
-    var v2parts = v2.split('.');
-
-    var isValidPart = function (x) {
-        return /^\d+$/.test(x);
-    };
-
-    if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
-        return NaN;
-    }
-
-    v1parts = _.map(v1parts, Number);
-    v2parts = _.map(v2parts, Number);
-
-    for (var i = 0; i < v1parts.length; ++i) {
-        if (v2parts.length === i) {
-            return 1;
-        }
-
-        if (v1parts[i] > v2parts[i]) {
-            return 1;
-        } else if (v1parts[i] < v2parts[i]) {
-            return -1;
-        }
-    }
-
-    if (v1parts.length !== v2parts.length) {
-        return -1;
-    }
-
-    return 0;
-};
+entityLookup.configureEntity('monsters', [entityLookup.wrapJsonValidator(jsonValidator), entityLookup.spellHydrator.bind(entityLookup)]);
+entityLookup.configureEntity('spells', [entityLookup.monsterSpellUpdater.bind(entityLookup)]);
 
 roll20.on('ready', function () {
-    if (typeof fifthMonsters !== 'undefined') {
-        module.exports.addMonsters(fifthMonsters);
-    }
-    if (typeof fifthSpells !== 'undefined') {
-        module.exports.addSpells(fifthSpells);
-    }
     shaped.checkInstall();
     shaped.registerEventHandlers();
 });
 
 module.exports = {
-    addMonsters: function (monsters) {
-        if (typeof monsters === 'string') {
-            monsters = JSON.parse(monsters);
-        }
-        if (versionCompare(monsters.version, '0.1') < 0) {
-            roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of monster data file used, please upgrade to the latest version');
-        }
-        //noinspection JSUnresolvedVariable
-        entityLookup.addEntities(logger, 'monster', monsters.monsters);
-    },
+    addEntities: function (entities) {
+        try {
+            if (typeof entities === 'string') {
+                entities = JSON.parse(entities);
+            }
+            var result = entityLookup.addEntities(entities);
+            var summary = _.mapObject(result, function (propVal, propName) {
+                if (propName === 'errors') {
+                    return propVal.length;
+                }
+                else {
+                    return _.mapObject(propVal, function (array) {
+                        return array.length;
+                    });
+                }
+            });
+            logger.info('Summary of adding entities to the lookup: $$$', summary);
+            logger.info('Details: $$$', result);
+            if (!_.isEmpty(result.errors)) {
+                var message = _.chain(result.errors)
+                  .groupBy('entity')
+                  .mapObject(function (entityErrors) {
+                      return _.chain(entityErrors)
+                        .pluck('errors')
+                        .flatten()
+                        .value();
+                  })
+                  .map(function (errors, entityName) {
+                      return '<li>' + entityName + ':<ul><li>' + errors.join('</li><li>') + '</li></ul></li>';
+                  })
+                  .value();
 
-    addSpells: function (spells) {
-        if (typeof spells === 'string') {
-            spells = JSON.parse(spells);
+                roll20.sendChat('ShapedScripts', '/w gm <div><h3>Errors occurred importing information from JSON files:</h3> <ul>' + message + '</ul></div>');
+            }
         }
-        if (versionCompare(spells.version, '0.1') < 0) {
-            roll20.sendChat('Shaped Scripts', '/w gm Incompatible version of spells data file used, please upgrade to the latest version');
+        catch (e) {
+            roll20.sendChat('Shaped Scripts', '/w gm Error adding spells or monsters: ' + e);
+            logger.error(e.toString());
+            logger.error(e.stack);
         }
-        //noinspection JSUnresolvedVariable
-        entityLookup.addEntities(logger, 'spell', spells.spells);
     }
 };
