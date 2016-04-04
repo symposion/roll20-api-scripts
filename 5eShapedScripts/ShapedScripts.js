@@ -1446,6 +1446,20 @@ var ShapedScripts =
 	        return utils.deepClone(_.values(entities[type]));
 	    },
 
+		/**
+		 * Gets all of the keys for the specified entity type
+		 * @param {string} type - The entity type to retrieve keys for (either 'monster' or 'spell')
+		 * @param {boolean} sort - True if the returned array should be sorted alphabetically; false otherwise
+		 * @return {Array} An array containing all keys for the specified entity type
+		 */
+		getKeys: function (type, sort) {
+			var keys = _.keys(entities[type]);
+			if (sort) {
+				keys.sort();
+			}
+			return keys;
+		},
+
 		spellHydrator: function (monsterInfo) {
 			var monster = monsterInfo.entity;
 			var self = this;
@@ -1506,7 +1520,8 @@ var ShapedScripts =
 		}
 
 
-		/***/ },
+		/***/
+	},
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -1582,6 +1597,17 @@ var ShapedScripts =
 			}
 		},
 
+		/**
+		 * Gets a string as 'Title Case' capitalizing the first letter of each word (i.e. 'the grapes of wrath' -> 'The Grapes Of Wrath')
+		 * @param {string} s - The string to be converted
+		 * @return {string} the supplied string in title case
+		 */
+		toTitleCase: function (s) {
+			return s.replace(/\w\S*/g, function (txt) {
+				return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+			});
+		},
+
 		versionCompare: function (v1, v2) {
 
 			if (v1 === v2) {
@@ -1626,6 +1652,7 @@ var ShapedScripts =
 
 			return 0;
 	    }
+
 	};
 
 
@@ -1642,9 +1669,9 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 	var mpp = __webpack_require__(11);
 
-	var version        = '0.4.1',
-	    schemaVersion  = 0.4,
-	    configDefaults = {
+		var version        = '0.4.3',
+			schemaVersion  = 0.4,
+			configDefaults = {
 	        logLevel: 'INFO',
 	        tokenSettings: {
 	            number: false,
@@ -2182,20 +2209,25 @@ var ShapedScripts =
 	        },
 
 	        importMonstersFromJson: function (options) {
+
 	            if (options.all) {
 	                options.monsters = entityLookup.getAll('monster');
 	                delete options.all;
 	            }
 
-
-				this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
-	            options.monsters = options.monsters.slice(20);
-	            var self = this;
-	            if (!_.isEmpty(options.monsters)) {
-	                setTimeout(function () {
-	                    self.importMonstersFromJson(options);
-	                }, 200);
+				if (_.isEmpty(options.monsters)) {
+					this.showEntityPicker('monster', 'monsters');
 	            }
+				else {
+					this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
+					options.monsters = options.monsters.slice(20);
+					var self = this;
+					if (!_.isEmpty(options.monsters)) {
+						setTimeout(function () {
+							self.importMonstersFromJson(options);
+						}, 200);
+					}
+				}
 
 	        },
 
@@ -2254,8 +2286,28 @@ var ShapedScripts =
 	        },
 
 	        importSpellsFromJson: function (options) {
-	            this.addSpellsToCharacter(options.selected.character, options.spells);
+				if (_.isEmpty(options.spells)) {
+					this.showEntityPicker('spell', 'spells');
+				} else {
+					this.addSpellsToCharacter(options.selected.character, options.spells);
+				}
 	        },
+
+			showEntityPicker: function (entityName, entityNamePlural) {
+				var list = entityLookup.getKeys(entityNamePlural, true);
+
+				if (!_.isEmpty(list)) {
+					// title case the  names for better display
+					list.forEach(function (part, index) {
+						list[index] = utils.toTitleCase(part);
+					});
+					// create a clickable button with a roll query to select an entity from the loaded json
+
+					report(utils.toTitleCase(entityName) + ' Importer', '<a href="!shaped-import-' + entityName + ' --?{Pick a ' + entityName + '|' + list.join('|') + '}">Click to select a ' + entityName + '</a>');
+				} else {
+					reportError('Could not find any ' + entityNamePlural + '.<br/>Please ensure you have a properly formatted ' + entityNamePlural + ' json file.');
+				}
+			},
 
 	        addSpellsToCharacter: function (character, spells, noreport) {
 	            var gender = roll20.getAttrByName(character.id, 'gender');

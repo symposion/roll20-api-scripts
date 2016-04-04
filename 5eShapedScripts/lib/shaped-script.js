@@ -7,7 +7,7 @@ var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 
-var version        = '0.4.1',
+var version        = '0.4.3',
     schemaVersion  = 0.4,
     configDefaults = {
         logLevel: 'INFO',
@@ -545,26 +545,18 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 }
             });
         },
-        
+
         importMonstersFromJson: function (options) {
-            if (options.monsters === undefined && options.all === undefined) {
-                // no monster name supplied, check to see if we have a loaded monsters json
-                var list = entityLookup.getKeys('monster', true);
-                if (_.size(list) > 0) {
-                    // title case the monster names for better display
-                    list.forEach(function (part, index) { list[index] = utils.toTitleCase(part); });
-                    // create a clickable button with a roll query to select a monster from the loaded json
-                    report('Monster Importer', '<a href="!shaped-import-monster --?{Pick a monster|' + list.join('|') + '}">Click to select a monster</a>');
-                } else {
-                    report('Monster Importer', 'Could not find any monsters.<br/>Please ensure you have a properly formatted monsters json file.');
-                }
-            } else {
-                if (options.all) {
-                    options.monsters = entityLookup.getAll('monster');
-                    delete options.all;
-                }
-                
-                
+
+            if (options.all) {
+                options.monsters = entityLookup.getAll('monster');
+                delete options.all;
+            }
+
+            if (_.isEmpty(options.monsters)) {
+                this.showEntityPicker('monster', 'monsters');
+            }
+            else {
                 this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
                 options.monsters = options.monsters.slice(20);
                 var self = this;
@@ -574,6 +566,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     }, 200);
                 }
             }
+
         },
 
         importMonsters: function (monsters, options, token, characterProcessors) {
@@ -631,19 +624,26 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         },
 
         importSpellsFromJson: function (options) {
-            if (options.spells === undefined) {
-                // no spell name supplied, check to see if we have a loaded spells json
-                var list = entityLookup.getKeys('spell', true);
-                if (_.size(list) > 0) {
-                    // title case the spell names for better display
-                    list.forEach(function (part, index) { list[index] = utils.toTitleCase(part); });
-                    // create a clickable button with a roll query to select a spell from the loaded json
-                    report('Spell Importer', '<a href="!shaped-import-spell --?{Pick a spell|' + list.join('|') + '}">Click to select a spell</a>');
-                } else {
-                    report('Spell Importer', 'Could not find any spells.<br/>Please ensure you have a properly formatted spells json file.');
-                }
+            if (_.isEmpty(options.spells)) {
+                this.showEntityPicker('spell', 'spells');
             } else {
                 this.addSpellsToCharacter(options.selected.character, options.spells);
+            }
+        },
+
+        showEntityPicker: function (entityName, entityNamePlural) {
+            var list = entityLookup.getKeys(entityNamePlural, true);
+
+            if (!_.isEmpty(list)) {
+                // title case the  names for better display
+                list.forEach(function (part, index) {
+                    list[index] = utils.toTitleCase(part);
+                });
+                // create a clickable button with a roll query to select an entity from the loaded json
+
+                report(utils.toTitleCase(entityName) + ' Importer', '<a href="!shaped-import-' + entityName + ' --?{Pick a ' + entityName + '|' + list.join('|') + '}">Click to select a ' + entityName + '</a>');
+            } else {
+                reportError('Could not find any ' + entityNamePlural + '.<br/>Please ensure you have a properly formatted ' + entityNamePlural + ' json file.');
             }
         },
 

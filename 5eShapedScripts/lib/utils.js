@@ -76,8 +76,9 @@ module.exports = {
      * @return {string} the supplied string in title case
      */
     toTitleCase : function (s) {
-        var res = s.replace(/\w\S*/g, function (txt) { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(); });
-        return res;
+        return s.replace(/\w\S*/g, function (txt) {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
     },
 
     versionCompare: function (v1, v2) {
@@ -124,5 +125,5 @@ module.exports = {
 
         return 0;
     }
-    
+
 };
