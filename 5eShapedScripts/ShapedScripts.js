@@ -2570,6 +2570,10 @@ var ShapedScripts =
 	                  })
 	                  .value();
 
+					if (!ammoAttr) {
+						logger.error('No ammo attribute found corresponding to name $$$', options.ammoName);
+						return;
+					}
 
 	                var ammoUsed = 1;
 	                if (options.ammo) {
