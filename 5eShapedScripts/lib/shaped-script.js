@@ -965,7 +965,6 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                     }
                     else {
                         report('HD Police', options.characterName + ' can\'t use ' + hdCount + 'd' + hdSize + ' hit dice because they only have ' + hdAttr.get('current') + ' left');
-                        hdAttr.set('current', 0);
                     }
                 }
 
