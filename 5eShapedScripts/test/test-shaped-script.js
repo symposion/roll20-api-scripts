@@ -78,13 +78,15 @@ describe('shaped-script', function () {
             inlinerolls: [{expression: '50-2'}]
         };
 
+        var options = shapedScript.getRollTemplateOptions(msg);
+
         var setVals = {};
 
         arrowsQty.set = function (propName, value) {
             setVals[propName] = value;
         };
 
-        shapedScript.checkForAmmoUpdate(msg);
+        shapedScript.handleAmmo(options, msg);
 
         it('should decrement ammo correctly', function () {
             //noinspection JSUnresolvedVariable
@@ -184,6 +186,21 @@ describe('shaped-script', function () {
               });
 
         });
+    });
+
+    describe('#triggerChatWatchers', function () {
+        sandbox.restore();
+        var roll20Mock = sandbox.stub(roll20);
+        var characterStub = {id: 'myid'};
+        roll20Mock.findObjs.withArgs({_type: 'character', name: 'Bob'}).returns([characterStub]);
+        var shapedScript = getShaped(logger, {config: {updateAmmo: true}}, roll20Mock, null);
+        shapedScript.registerEventHandlers();
+        var msg = {
+            rolltemplate: '5e-shaped',
+            content: '{{uses=@{Bellaluna|hd_d10}}}{{uses_max=@{Bellaluna|hd_d10|max}}{{character_name=Bob}}@{Bob|attacher_hit_dice}',
+            inlinerolls: [{expression: '50-2'}]
+        };
+        shapedScript.triggerChatWatchers(msg);
     });
 });
 

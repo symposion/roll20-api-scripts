@@ -1669,8 +1669,8 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 	var mpp = __webpack_require__(11);
 
-		var version        = '0.4.3',
-			schemaVersion  = 0.4,
+		var version        = '0.4.4',
+			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
 	        tokenSettings: {
@@ -1710,6 +1710,7 @@ var ShapedScripts =
 	            autoAmmo: '@{ammo_auto_use_var}'
 	        },
 	        rollHPOnDrop: true,
+				autoHD: true,
 	        genderPronouns: [
 	            {
 	                matchPattern: '^f$|female|girl|woman|feminine',
@@ -1812,6 +1813,8 @@ var ShapedScripts =
 	        };
 	    };
 
+		var chatWatchers = [];
+
 	/**
 	 * @typedef {Object} ChatMessage
 	 * @property {string} content
@@ -1835,7 +1838,7 @@ var ShapedScripts =
 	 * @param roll20
 	 * @param parser
 	 * @param entityLookup
-	 * @returns {{handleInput: function, configOptionsSpec: {}, configure: function, applyTokenDefaults: function, importStatblock: function, importMonstersFromJson: function, importMonsters: function, importSpellsFromJson: function, addSpellsToCharacter:function, hydrateSpellList: function, monsterDataPopulator: function, getTokenRetrievalStrategy: function, nameRetrievalStrategy: function, creationRetrievalStrategy: function, getTokenConfigurer: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, getHPBar: function, rollHPForToken: function, checkForAmmoUpdate: function, checkForDeathSave: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
+	 * @returns {{handleInput: function, configOptionsSpec: object, configure: function, applyTokenDefaults: function, importStatblock: function, importMonstersFromJson: function, importMonsters: function, importSpellsFromJson: function, showEntityPicker: function, addSpellsToCharacter: function, monsterDataPopulator: function, getTokenRetrievalStrategy: function, nameRetrievalStrategy: function, creationRetrievalStrategy: function, getAvatarCopier: function, getTokenConfigurer: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, getHPBar: function, rollHPForToken: function, registerChatWatcher: function, triggerChatWatchers: function, handleAmmo: function, handleHD: function, handleDeathSave: function, getRollValue: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
 	 */
 	module.exports = function (logger, myState, roll20, parser, entityLookup) {
 	    var sanitise = logger.wrapFunction('sanitise', __webpack_require__(12), '');
@@ -1914,8 +1917,7 @@ var ShapedScripts =
 	            try {
 	                logger.debug(msg);
 	                if (msg.type !== 'api') {
-	                    this.checkForAmmoUpdate(msg);
-	                    this.checkForDeathSave(msg);
+						this.triggerChatWatchers(msg);
 	                    return;
 	                }
 
@@ -1992,6 +1994,7 @@ var ShapedScripts =
 	                })
 	            },
 	            rollHPOnDrop: booleanValidator,
+				autoHD: booleanValidator,
 	            genderPronouns: [
 	                {
 	                    matchPattern: regExpValidator,
@@ -2536,83 +2539,120 @@ var ShapedScripts =
 	            });
 	        },
 
+
+			registerChatWatcher: function (handler, triggerFields) {
+				var matchers = [];
+				if (triggerFields && !_.isEmpty(triggerFields)) {
+					matchers.push(function (msg, options) {
+						return _.intersection(triggerFields, _.keys(options)).length === triggerFields.length;
+					});
+				}
+				chatWatchers.push({matchers: matchers, handler: handler.bind(this)});
+			},
+
+			triggerChatWatchers: function (msg) {
+				var options = this.getRollTemplateOptions(msg);
+				_.each(chatWatchers, function (watcher) {
+					if (_.every(watcher.matchers, function (matcher) {
+						return matcher(msg, options);
+					})) {
+						watcher.handler(options, msg);
+					}
+				});
+			},
+
 	        /**
 	         *
+			 * @param options
 	         * @param {ChatMessage} msg
 	         */
-	        checkForAmmoUpdate: function (msg) {
+			handleAmmo: function (options, msg) {
 
-	            var options = this.getRollTemplateOptions(msg);
-	            if (options.ammoName && options.characterName) {
-	                var character = roll20.findObjs({
-	                    _type: 'character',
-	                    name: options.characterName
-	                })[0];
+				if (!roll20.getAttrByName(options.character.id, 'ammo_auto_use')) {
+					return;
+				}
 
-	                if (!roll20.getAttrByName(character.id, 'ammo_auto_use')) {
-	                    return;
-	                }
+				var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: options.character.id}))
+				.filter(function (attribute) {
+					return attribute.get('name').indexOf('repeating_ammo') === 0;
+				})
+				.groupBy(function (attribute) {
+					return attribute.get('name').replace(/(repeating_ammo_[^_]+).*/, '$1');
+				})
+				.find(function (attributes) {
+					return _.find(attributes, function (attribute) {
+						return attribute.get('name').match(/.*name$/) && attribute.get('current') === options.ammoName;
+					});
+				})
+				.find(function (attribute) {
+					return attribute.get('name').match(/.*qty$/);
+				})
+				.value();
 
-	                var ammoAttr = _.chain(roll20.findObjs({type: 'attribute', characterid: character.id}))
-	                  .filter(function (attribute) {
-	                      return attribute.get('name').indexOf('repeating_ammo') === 0;
-	                  })
-	                  .groupBy(function (attribute) {
-	                      return attribute.get('name').replace(/(repeating_ammo_[^_]+).*/, '$1');
-	                  })
-	                  .find(function (attributes) {
-	                      return _.find(attributes, function (attribute) {
-	                          return attribute.get('name').match(/.*name$/) && attribute.get('current') === options.ammoName;
-	                      });
-	                  })
-	                  .find(function (attribute) {
-	                      return attribute.get('name').match(/.*qty$/);
-	                  })
-	                  .value();
+				if (!ammoAttr) {
+					logger.error('No ammo attribute found corresponding to name $$$', options.ammoName);
+					return;
+				}
 
-					if (!ammoAttr) {
-						logger.error('No ammo attribute found corresponding to name $$$', options.ammoName);
-						return;
-					}
-
-	                var ammoUsed = 1;
-	                if (options.ammo) {
-	                    var rollRef = options.ammo.match(/\$\[\[(\d+)\]\]/);
-	                    if (rollRef) {
-	                        var rollExpr = msg.inlinerolls[rollRef[1]].expression;
-	                        var match = rollExpr.match(/\d+-(\d+)/);
-	                        if (match) {
-	                            ammoUsed = match[1];
-	                        }
+				var ammoUsed = 1;
+				if (options.ammo) {
+					var rollRef = options.ammo.match(/\$\[\[(\d+)\]\]/);
+					if (rollRef) {
+						var rollExpr = msg.inlinerolls[rollRef[1]].expression;
+						var match = rollExpr.match(/\d+-(\d+)/);
+						if (match) {
+							ammoUsed = match[1];
 	                    }
-
 	                }
 
-	                var val = parseInt(ammoAttr.get('current'), 10) || 0;
-	                ammoAttr.set('current', Math.max(0, val - ammoUsed));
 	            }
 
+				var val = parseInt(ammoAttr.get('current'), 10) || 0;
+				ammoAttr.set('current', Math.max(0, val - ammoUsed));
 	        },
 
-	        checkForDeathSave: function (msg) {
-	            var options = this.getRollTemplateOptions(msg);
-	            if (options.deathSavingThrow && options.characterName && options.roll1) {
-	                var character = roll20.findObjs({
-	                    _type: 'character',
-	                    name: options.characterName
-	                })[0];
+			handleHD: function (options, msg) {
+				var match = options.title.match(/(\d+)d(\d+) Hit Dice/);
+				if (match && myState.config.autoHD) {
+					var hdCount = match[1];
+					var hdSize = match[2];
+					var hdAttr = roll20.getAttrObjectByName(options.character.id, 'hd_d' + hdSize);
+					var hpAttr = roll20.getAttrObjectByName(options.character.id, 'HP');
+					var newHp = Math.min(parseInt(hpAttr.get('current')) + this.getRollValue(msg, options.roll1), hpAttr.get('max'));
 
-	                //TODO: Do we want to output text on death/recovery?
-	                var increment = function (val) {
-	                    return ++val;
-	                };
-	                if (roll20.getAttrByName(character.id, 'roll_setting') !== '@{roll_2}') {
-	                    var rollIndex = options.roll1.match(/\$\[\[(\d+)\]\]/)[1];
-	                    var result = msg.inlinerolls[rollIndex].results.total;
-	                    var attributeToIncrement = result >= 10 ? 'death_saving_throw_successes' : 'death_saving_throw_failures';
-	                    roll20.processAttrValue(character.id, attributeToIncrement, increment);
+					if (hdAttr) {
+						if (hdCount <= hdAttr.get('current')) {
+							hdAttr.set('current', hdAttr.get('current') - hdCount);
+							hpAttr.set('current', newHp);
+						}
+						else {
+							report('HD Police', options.characterName + ' can\'t use ' + hdCount + 'd' + hdSize + ' hit dice because they only have ' + hdAttr.get('current') + ' left');
+							hdAttr.set('current', 0);
+						}
 	                }
+
 	            }
+			},
+
+
+			handleDeathSave: function (options, msg) {
+
+				//TODO: Do we want to output text on death/recovery?
+				var increment = function (val) {
+					return ++val;
+				};
+				//TODO: Advantage?
+				if (roll20.getAttrByName(options.character.id, 'roll_setting') !== '@{roll_2}') {
+					var result = this.getRollValue(msg, options.roll1);
+					var attributeToIncrement = result >= 10 ? 'death_saving_throw_successes' : 'death_saving_throw_failures';
+					roll20.processAttrValue(options.character.id, attributeToIncrement, increment);
+				}
+
+			},
+
+			getRollValue: function (msg, rollOutputExpr) {
+				var rollIndex = rollOutputExpr.match(/\$\[\[(\d+)\]\]/)[1];
+				return msg.inlinerolls[rollIndex].results.total;
 	        },
 
 	        /**
@@ -2633,6 +2673,12 @@ var ShapedScripts =
 	                        options[propertyName] = splitAttr.length === 2 ? splitAttr[1] : '';
 	                    }
 	                }
+					if (options.characterName) {
+						options.character = roll20.findObjs({
+							_type: 'character',
+							name: options.characterName
+						})[0];
+					}
 	                return options;
 	            }
 	            return {};
@@ -2660,11 +2706,13 @@ var ShapedScripts =
 	            if (myState.version !== schemaVersion) {
 	                logger.info('  > Updating Schema to v$$$ from $$$<', schemaVersion, myState && myState.version);
 	                logger.info('Preupgrade state: $$$', myState);
+					//noinspection FallThroughInSwitchStatementJS
 	                switch (myState && myState.version) {
 	                    case 0.1:
 	                    case 0.2:
 	                    case 0.3:
-	                        _.extend(myState.config.genderPronouns, utils.deepClone(configDefaults.genderPronouns));
+							_.extend(myState.config.genderPronouns, utils.deepClone(configDefaults.genderPronouns)); //jshint ignore: line
+						case 0.4:
 	                        _.defaults(myState.config, utils.deepClone(configDefaults));
 	                        myState.version = schemaVersion;
 	                        break;
@@ -2692,6 +2740,9 @@ var ShapedScripts =
 	            roll20.on('chat:message', this.handleInput.bind(this));
 	            roll20.on('add:token', this.handleAddToken.bind(this));
 	            roll20.on('change:token', this.handleChangeToken.bind(this));
+				this.registerChatWatcher(this.handleDeathSave, ['deathSavingThrow', 'character', 'roll1']);
+				this.registerChatWatcher(this.handleAmmo, ['ammoName', 'character']);
+				this.registerChatWatcher(this.handleHD, ['character', 'title']);
 	        },
 
 	        logWrap: 'shapedModule'
