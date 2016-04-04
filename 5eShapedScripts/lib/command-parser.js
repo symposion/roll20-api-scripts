@@ -104,13 +104,22 @@ Command.prototype.optionLookup = function (groupName, lookupFunction) {
     'use strict';
     this.parsers.push(function (arg, errors, options) {
         options[groupName] = options[groupName] || [];
-        var name = arg.toLowerCase();
-        var resolved = lookupFunction(name);
+        var someMatch = false;
+        var resolved = lookupFunction(arg.toLowerCase());
         if (resolved) {
             options[groupName].push(resolved);
-            return true;
+            someMatch = true;
         }
-        return false;
+        else {
+            _.each(arg.toLowerCase().split(','), function (name) {
+                var resolved = lookupFunction(name.trim());
+                if (resolved) {
+                    options[groupName].push(resolved);
+                    someMatch = true;
+                }
+            });
+        }
+        return someMatch;
     });
     return this;
 };
