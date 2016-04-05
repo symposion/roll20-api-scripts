@@ -2021,7 +2021,7 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 		var mpp = __webpack_require__(13);
 
-		var version        = '0.5',
+		var version        = '0.5.1',
 			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
@@ -2198,7 +2198,7 @@ var ShapedScripts =
 	    var addedTokenIds = [];
 		var report = reporter.report;
 		var reportError = reporter.reportError;
-	   
+
 	    var shapedModule = {
 
 	        /**
@@ -2855,19 +2855,20 @@ var ShapedScripts =
 	            if (hpBarLink) {
 	                return;
 	            }
-	            var formula = roll20.getAttrByName(represents, 'hp_formula');
-	            if (!formula) {
-	                return;
-	            }
 
 	            var self = this;
 	            roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
 	                if (results && results.length === 1) {
 	                    var message = self.processInlinerolls(results[0]);
-	                    var total = results[0].inlinerolls[0].results.total;
-	                    roll20.sendChat('HP Roller', '/w GM &{template:5e-shaped} ' + message);
-	                    token.set(hpBar + '_value', total);
-	                    token.set(hpBar + '_max', total);
+						if (!results[0].inlineRolls || !results[0].inlineRolls[0]) {
+							logger.warn('HP roll didn\'t have the expected structure. This is what we got back: $$$', results[0]);
+						}
+						else {
+							var total = results[0].inlinerolls[0].results.total;
+							roll20.sendChat('HP Roller', '/w GM &{template:5e-shaped} ' + message);
+							token.set(hpBar + '_value', total);
+							token.set(hpBar + '_max', total);
+						}
 	                }
 	            });
 	        },
