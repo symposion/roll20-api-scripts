@@ -102,9 +102,12 @@ module.exports = {
         return found && utils.deepClone(found);
     },
     getAll: function (type) {
+        if (!entities[type]) {
+            throw new Error('Unrecognised entity type: ' + type);
+        }
         return utils.deepClone(_.values(entities[type]));
     },
-    
+
     /**
      * Gets all of the keys for the specified entity type
      * @param {string} type - The entity type to retrieve keys for (either 'monster' or 'spell')
@@ -112,6 +115,9 @@ module.exports = {
      * @return {Array} An array containing all keys for the specified entity type
      */
     getKeys: function (type, sort) {
+        if (!entities[type]) {
+            throw new Error('Unrecognised entity type: ' + type);
+        }
         var keys = _.keys(entities[type]);
         if (sort) {
             keys.sort();

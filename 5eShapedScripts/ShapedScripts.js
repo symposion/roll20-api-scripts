@@ -1443,6 +1443,9 @@ var ShapedScripts =
 	        return found && utils.deepClone(found);
 	    },
 	    getAll: function (type) {
+			if (!entities[type]) {
+				throw new Error('Unrecognised entity type: ' + type);
+			}
 	        return utils.deepClone(_.values(entities[type]));
 	    },
 
@@ -1453,6 +1456,9 @@ var ShapedScripts =
 		 * @return {Array} An array containing all keys for the specified entity type
 		 */
 		getKeys: function (type, sort) {
+			if (!entities[type]) {
+				throw new Error('Unrecognised entity type: ' + type);
+			}
 			var keys = _.keys(entities[type]);
 			if (sort) {
 				keys.sort();
@@ -1669,7 +1675,7 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 	var mpp = __webpack_require__(11);
 
-		var version        = '0.4.4',
+		var version        = '0.4.5',
 			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
@@ -2214,7 +2220,7 @@ var ShapedScripts =
 	        importMonstersFromJson: function (options) {
 
 	            if (options.all) {
-	                options.monsters = entityLookup.getAll('monster');
+					options.monsters = entityLookup.getAll('monsters');
 	                delete options.all;
 	            }
 

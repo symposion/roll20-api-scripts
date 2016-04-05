@@ -7,7 +7,7 @@ var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 
-var version        = '0.4.4',
+var version        = '0.4.5',
     schemaVersion  = 0.5,
     configDefaults = {
         logLevel: 'INFO',
@@ -552,7 +552,7 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
         importMonstersFromJson: function (options) {
 
             if (options.all) {
-                options.monsters = entityLookup.getAll('monster');
+                options.monsters = entityLookup.getAll('monsters');
                 delete options.all;
             }
 
