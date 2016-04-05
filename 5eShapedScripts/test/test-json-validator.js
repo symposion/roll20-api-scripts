@@ -2,7 +2,7 @@
 var expect = require('chai').expect;
 var JSONValidator = require('../lib/json-validator');
 var spec = require('../resources/mmFormatSpec.json');
-var data = require('../resources/monsterSample.json');
+var data = require('../samples/monsterSample.json');
 var glob = require('glob');
 var fs = require('fs');
 

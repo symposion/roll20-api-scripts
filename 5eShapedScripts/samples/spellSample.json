@@ -1,0 +1,34 @@
+{
+  "version": "0.2",
+  "spells": [
+    {
+      "name": "Fireball",
+      "description": "A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one.\nThe fire spreads around corners. It ignites flammable objects in the area that aren't being worn or carried.",
+      "higherLevel": "When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.",
+      "emote": "evokes a bright streak that flashes from {{GENDER_PRONOUN_HIS_HER}} pointing finger to a point and then blossoms with a low roar into an explosion of flame",
+      "source": "phb 241",
+      "range": "150 ft",
+      "target": "each creature in the aoe",
+      "aoe": "20 ft radius sphere centered on a point within range",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true,
+        "materialMaterial": "A tiny ball of bat guano and sulfur"
+      },
+      "duration": "Instantaneous",
+      "castingTime": "1 action",
+      "level": 3,
+      "school": "Evocation",
+      "save": {
+        "ability": "Dexterity",
+        "damage": "8d6",
+        "damageType": "fire",
+        "saveSuccess": "half damage",
+        "higherLevelDice": "1",
+        "higherLevelDie": "d6"
+      },
+      "effects": "The fire spreads around corners. It ignites flammable objects in the area that aren't being worn or carried."
+    }
+  ]
+}
