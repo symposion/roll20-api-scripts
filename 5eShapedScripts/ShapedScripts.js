@@ -2021,7 +2021,7 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 		var mpp = __webpack_require__(13);
 
-		var version        = '0.5.1',
+		var version        = '0.5.2',
 			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
@@ -2860,7 +2860,7 @@ var ShapedScripts =
 	            roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
 	                if (results && results.length === 1) {
 	                    var message = self.processInlinerolls(results[0]);
-						if (!results[0].inlineRolls || !results[0].inlineRolls[0]) {
+						if (!results[0].inlinerolls || !results[0].inlinerolls[0]) {
 							logger.warn('HP roll didn\'t have the expected structure. This is what we got back: $$$', results[0]);
 						}
 						else {
