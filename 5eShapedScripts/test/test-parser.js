@@ -35,6 +35,7 @@ describe('Monster Manual tests', function () {
               var parsed = JSON.parse(specText);
               parser = parseModule.getParser(parsed, logger);
           });
+
     });
 
 
@@ -70,10 +71,10 @@ function getExpectedOutputForFile(file) {
 
     var filename = file.replace(/\.txt$/, '.json');
     return fs.readFileAsync(filename, 'utf-8')
-      .then(JSON.parse).catch(function (e) {
+      .catch(function (e) {
           return null;
-      });
-
+      })
+      .then(JSON.parse);
 
 }
 
@@ -82,7 +83,7 @@ function runParse(parser, statBlockText) {
     'use strict';
     try {
         var parsed = parser.parse(sanitise(statBlockText, logger));
-        parsed.npc = mpp(parsed.npc, el.entityLookup);
+        mpp(parsed.monsters, el.entityLookup);
         return parsed;
     }
     catch (e) {

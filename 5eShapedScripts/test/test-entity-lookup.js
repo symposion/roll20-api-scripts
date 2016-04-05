@@ -1,9 +1,12 @@
-/* globals describe: false, it:false, after:false */
+/* globals describe: false, it:false */
 var expect = require('chai').expect;
 var utils = require('../lib/utils');
-var mockery = require('mockery');
-mockery.enable({useCleanCache: true});
-mockery.warnOnUnregistered(false);
+var EntityLookup = require('../lib/entity-lookup');
+var JSONValidator = require('../lib/json-validator');
+var spec = require('../resources/mmFormatSpec.json');
+var glob = require('glob');
+var fs = require('fs');
+var _ = require('underscore');
 
 
 describe('entity-lookup', function () {
@@ -19,10 +22,9 @@ describe('entity-lookup', function () {
 
 
     describe('#lookupEntity', function () {
-        mockery.resetCache();
-        var el = require('../lib/entity-lookup');
-        el.configureEntity('spells', [el.monsterSpellUpdater]);
-        el.configureEntity('monsters', [el.spellHydrator]);
+        var el = new EntityLookup();
+        el.configureEntity('spells', [el.getMonsterSpellUpdater()], _.constant(true));
+        el.configureEntity('monsters', [el.getSpellHydrator()], _.constant(true));
         el.addEntities({version: '0.2', spells: [spell1, spell2]});
         it('finds entity by name', function () {
             expect(el.findEntity('spells', 'SPell1')).to.deep.equal(spell1);
@@ -40,10 +42,9 @@ describe('entity-lookup', function () {
     });
 
     describe('#addEntities', function () {
-        mockery.resetCache();
-        var el = require('../lib/entity-lookup');
-        el.configureEntity('spells', [el.monsterSpellUpdater.bind(el)]);
-        el.configureEntity('monsters', [el.spellHydrator.bind(el)]);
+        var el = new EntityLookup();
+        el.configureEntity('spells', [el.getMonsterSpellUpdater()], _.constant(true));
+        el.configureEntity('monsters', [el.getSpellHydrator()], _.constant(true));
         it('should hydrate spells', function () {
             el.addEntities({version: '0.2', monsters: utils.deepClone([monster1, monster2])});
             expect(el.findEntity('monsters', 'monster1')).to.deep.equal({
@@ -57,10 +58,40 @@ describe('entity-lookup', function () {
         });
     });
 
-    after(function () {
-        mockery.deregisterAll();
-        mockery.disable();
-    });
 
+    describe('functional test', function () {
+        var el = new EntityLookup();
+        var jv = new JSONValidator(spec);
+        el.configureEntity('spells', [el.getMonsterSpellUpdater()], EntityLookup.getVersionChecker('0.2'));
+        el.configureEntity('monsters', [EntityLookup.jsonValidatorAsEntityProcessor(jv), el.getSpellHydrator()], EntityLookup.jsonValidatorAsVersionChecker(jv));
+        glob.sync('../../roll20/data/spellSourceFiles/spellData.json').forEach(function (jsonFile) {
+            var spells = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+            it('loads spells correctly', function () {
+                var results = el.addEntities(spells);
+                expect(results.spells.skipped).to.be.empty; //jshint ignore: line
+                expect(results.spells.deleted).to.be.empty; //jshint ignore: line
+                expect(results.spells.patched).to.be.empty; //jshint ignore: line
+                expect(results.spells.withErrors).to.be.empty; //jshint ignore: line
+                expect(results.errors).to.be.empty; //jshint ignore: line
+                expect(results.spells.added).to.have.lengthOf(spells.spells.length);
+            });
+        });
+
+        glob.sync('../../roll20/data/monsterSourceFiles/*.json').forEach(function (jsonFile) {
+            describe('JSON file: ' + jsonFile, function () {
+                var monsters = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+                it('loads ' + jsonFile + ' correctly', function () {
+                    var results = el.addEntities(monsters);
+                    expect(results.errors).to.be.empty; //jshint ignore: line
+                    expect(results.monsters.skipped).to.be.empty; //jshint ignore: line
+                    expect(results.monsters.deleted).to.be.empty; //jshint ignore: line
+                    expect(results.monsters.patched).to.be.empty; //jshint ignore: line
+                    expect(results.monsters.withErrors).to.be.empty; //jshint ignore: line
+                    expect(results.monsters.added).to.have.lengthOf(monsters.monsters.length);
+                });
+            });
+
+        });
+    });
 });
 

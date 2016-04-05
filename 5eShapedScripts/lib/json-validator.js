@@ -19,18 +19,17 @@ var validatorFactories = {
                 return regExValidator(spec.name, spec.pattern, spec.caseSensitive);
             }
         }
-        return _.constant({errors: [], completed: []});
+        return function () {
+        };
     },
 
     enumType: function (spec) {
-        return function (value) {
-            var result = {errors: [], completed: []};
+        return function (value, errors) {
             if (!_.some(spec.enumValues, function (enumVal) {
-                  return new RegExp(enumVal, 'i').test(value);
+                  return new RegExp('^' + enumVal + '$', 'i').test(value);
               })) {
-                result.errors.push('Value "' + value + '" for field ' + spec.name + ' should have been one of [' + spec.enumValues.join(',') + ']');
+                errors.add('Value "' + value + '" should have been one of [' + spec.enumValues.join(',') + ']');
             }
-            return result;
         };
     },
 
@@ -39,16 +38,15 @@ var validatorFactories = {
     },
 
     heading: function (spec) {
-        return _.constant({errors: [], completed: []});
+        return function () {
+        };
     },
 
     number: function (spec) {
-        return function (value) {
-            var result = {errors: [], completed: []};
+        return function (value, errors) {
             if (typeof value !== 'number') {
-                result.errors.push('Value "' + value + '" for field ' + spec.name + ' should have been a number');
+                errors.add('Value "' + value + '" should have been a number');
             }
-            return result;
         };
     }
 };
@@ -64,7 +62,7 @@ function extractRegexPart(regexp, matchIndex) {
     });
 
     if (startIndex === -1) {
-        throw 'Fucked';
+        throw new Error('Can\'t find matchgroup ' + matchIndex + ' in regular expression ' + regexp);
     }
 
     //Lose the bracket
@@ -81,7 +79,7 @@ function extractRegexPart(regexp, matchIndex) {
     });
 
     if (endIndex === -1) {
-        throw 'Fucked';
+        throw new Error('matchgroup ' + matchIndex + ' seems not to have closing brace in regular expression ' + regexp);
     }
 
     return regexp.slice(startIndex, startIndex + endIndex);
@@ -89,12 +87,10 @@ function extractRegexPart(regexp, matchIndex) {
 
 function regExValidator(fieldName, regexp, caseSensitive) {
     var re = new RegExp('^' + regexp + '$', caseSensitive ? undefined : 'i');
-    return function (value) {
-        var result = {errors: [], completed: []};
+    return function (value, errors) {
         if (!re.test(value)) {
-            result.errors.push('Value "' + value + '" doesn\'t match pattern [' + regexp + '] for field ' + fieldName);
+            errors.add('Value "' + value + '" doesn\'t match pattern /' + regexp + '/');
         }
-        return result;
     };
 }
 
@@ -118,72 +114,142 @@ function makeContentModelValidator(spec) {
         return subValidators;
     }, {});
 
-    return function (object, ignoreUnrecognised) {
-        var results = _.reduce(object, function (results, fieldValue, fieldName) {
+    return function (object, errors, isFlatten) {
+        var completed = _.reduce(object, function (completed, fieldValue, fieldName) {
               var validator = subValidators[fieldName];
               if (validator) {
-                  results.completed.push(fieldName);
+                  completed.push(fieldName);
+                  errors.pushPath(fieldName);
                   if (_.isArray(fieldValue)) {
                       if (fieldValue.length > validator.max) {
-                          results.errors.push('Count of ' + fieldName + ' values [' + fieldValue.length + '] exceeds maximum allowed: ' + validator.max);
+                          errors.add('Number of entries [' + fieldValue.length + '] exceeds maximum allowed: ' + validator.max);
                       }
                       else if (fieldValue.length < validator.min) {
-                          results.errors.push('Count of ' + fieldName + ' values [' + fieldValue.length + '] is less than minimum allowed: ' + validator.min);
+                          errors.add('Number of entries [' + fieldValue.length + '] is less than minimum allowed: ' + validator.min);
                       }
                       else {
-                          _.each(fieldValue, function (arrayItem) {
-                              results.errors = results.errors.concat(validator(arrayItem).errors);
+                          _.each(fieldValue, function (arrayItem, index) {
+                              errors.pushIndex(arrayItem.name ? arrayItem.name : index);
+                              validator(arrayItem, errors);
+                              errors.popIndex();
                           });
 
                       }
                   }
                   else {
-                      results.errors = results.errors.concat(validator(fieldValue).errors);
+                      validator(fieldValue, errors);
                   }
+                  errors.popPath();
               }
-              return results;
-          }, {errors: [], completed: []}
-        );
+            return completed;
+        }, []);
 
-        var toValidate = _.omit(object, results.completed);
+        var toValidate = _.omit(object, completed);
         _.chain(flattened)
           .map(function (validator) {
-              var result = validator(toValidate, true);
-              results.completed = results.completed.concat(result.completed);
-              if (result.completed.length === 0) {
+              var subCompleted = validator(toValidate, errors, true);
+              if (subCompleted.length === 0) {
                   return validator;
               }
               else {
-                  results.errors = results.errors.concat(result.errors);
+                  completed = completed.concat(subCompleted);
               }
-              toValidate = _.omit(toValidate, result.completed);
+              toValidate = _.omit(toValidate, completed);
           })
           .compact()
           .each(function (validator) {
               if (validator.min > 0) {
-                  results.errors.push('Missing section: ' + validator.fieldName);
+                  errors.pushPath(validator.fieldName);
+                  errors.add('Section is missing');
+                  errors.popPath();
               }
           });
 
-        _.chain(subValidators)
-          .omit(results.completed)
-          .each(function (validator) {
-              if (validator.min > 0) {
-                  results.errors.push('Missing field: ' + validator.fieldName);
-              }
-          });
+        //If we're a flattened validator (our content is injected directly into the parent content model)
+        //Then we should only report missing fields if there was some match in our content model - otherwise
+        //the parent content model will check the cardinality of this model as a whole
+        if (!isFlatten || !_.isEmpty(completed)) {
+            _.chain(subValidators)
+              .omit(completed)
+              .each(function (validator) {
+                  if (validator.min > 0) {
+                      errors.pushPath(validator.fieldName);
+                      errors.add('Field is missing');
+                      errors.popPath();
+                  }
+              });
+        }
 
-        if (!ignoreUnrecognised) {
+        //Flattened content models shouldn't check for unrecognised fields since they're only parsing
+        //part of the current content model.
+        if (!isFlatten) {
             _.chain(object)
-              .omit(results.completed)
+              .omit(completed)
               .each(function (value, key) {
-                  results.errors.push('Unrecognised field: ' + key);
+                  errors.pushPath(key);
+                  errors.add('Unrecognised field');
+                  errors.popPath();
               });
         }
 
 
-        return results;
+        return completed;
     };
 }
 
-module.exports = makeValidator;
+function Errors() {
+
+    var errors = [];
+    var currentPath = [];
+    this.pushPath = function (path) {
+        currentPath.push(path);
+    };
+    this.popPath = function () {
+        currentPath.pop();
+    };
+    this.pushIndex = function (index) {
+        currentPath[currentPath.length - 1] = currentPath[currentPath.length - 1] + '[' + index + ']';
+    };
+
+    this.popIndex = function (index) {
+        currentPath[currentPath.length - 1] = currentPath[currentPath.length - 1].replace(/\[[^\]]+\]/, '');
+    };
+
+    this.add = function (msg) {
+        errors.push({msg: msg, path: _.clone(currentPath)});
+    };
+
+    this.getErrors = function () {
+        return _.chain(errors)
+          .groupBy(function (error) {
+              return error.path[0];
+          })
+          .mapObject(function (errorList) {
+              return _.map(errorList, function (error) {
+                  return error.path.slice(1).join('.') + ': ' + error.msg;
+              });
+          })
+          .value();
+    };
+}
+
+module.exports = JSONValidator;
+
+function JSONValidator(spec) {
+    var versionProp = {
+        type: 'string',
+        name: 'version',
+        pattern: '^' + spec.formatVersion.replace('.', '\\.') + '$'
+    };
+    var contentValidator = makeValidator({type: 'unorderedContent', contentModel: [spec, versionProp]});
+    this.validate = function (object) {
+        var errors = new Errors();
+        contentValidator(object, errors);
+        return errors.getErrors();
+    };
+
+    this.getVersionNumber = function () {
+        return spec.formatVersion;
+    };
+
+}

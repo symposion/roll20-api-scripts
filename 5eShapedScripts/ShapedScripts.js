@@ -51,17 +51,20 @@ var ShapedScripts =
 	var mmFormat = __webpack_require__(4);
 	var myState = roll20.getState('ShapedScripts');
 	var logger = __webpack_require__(5)(myState.config);
-	var entityLookup = __webpack_require__(6);
-	var shaped = __webpack_require__(8)(logger, myState, roll20, parseModule.getParser(mmFormat, logger), entityLookup);
+		var EntityLookup = __webpack_require__(6);
+		var JSONValidator = __webpack_require__(8);
+		var el = new EntityLookup();
+		var Reporter = __webpack_require__(9);
+		var reporter = new Reporter(roll20, 'Shaped Scripts');
+		var shaped = __webpack_require__(10)(logger, myState, roll20, parseModule.getParser(mmFormat, logger), el, reporter);
 	var _ = __webpack_require__(3);
 
-	logger.wrapModule(entityLookup);
+		logger.wrapModule(el);
 	logger.wrapModule(roll20);
 
-		var jsonValidator = __webpack_require__(13)(__webpack_require__(4));
-
-		entityLookup.configureEntity('monsters', [entityLookup.wrapJsonValidator(jsonValidator), entityLookup.spellHydrator.bind(entityLookup)]);
-		entityLookup.configureEntity('spells', [entityLookup.monsterSpellUpdater.bind(entityLookup)]);
+		var jsonValidator = new JSONValidator(__webpack_require__(4));
+		el.configureEntity('monsters', [EntityLookup.jsonValidatorAsEntityProcessor(jsonValidator), el.getSpellHydrator()], EntityLookup.jsonValidatorAsVersionChecker(jsonValidator));
+		el.configureEntity('spells', [el.getMonsterSpellUpdater()], EntityLookup.getVersionChecker('0.2'));
 
 		roll20.on('ready', function () {
 			shaped.checkInstall();
@@ -74,14 +77,14 @@ var ShapedScripts =
 					if (typeof entities === 'string') {
 						entities = JSON.parse(entities);
 					}
-					var result = entityLookup.addEntities(entities);
-					var summary = _.mapObject(result, function (propVal, propName) {
-						if (propName === 'errors') {
-							return propVal.length;
+					var result = el.addEntities(entities);
+					var summary = _.mapObject(result, function (resultObject, type) {
+						if (type === 'errors') {
+							return resultObject.length;
 						}
 						else {
-							return _.mapObject(propVal, function (array) {
-								return array.length;
+							return _.mapObject(resultObject, function (operationResultArray) {
+								return operationResultArray.length;
 							});
 						}
 					});
@@ -101,11 +104,11 @@ var ShapedScripts =
 						})
 						.value();
 
-						roll20.sendChat('ShapedScripts', '/w gm <div><h3>Errors occurred importing information from JSON files:</h3> <ul>' + message + '</ul></div>');
+						reporter.reportError('JSON import error:<ul>' + message + '</ul>');
 					}
 	        }
 				catch (e) {
-					roll20.sendChat('Shaped Scripts', '/w gm Error adding spells or monsters: ' + e);
+					reporter.reportError('JSON parse error, please see log for more information');
 					logger.error(e.toString());
 					logger.error(e.stack);
 	        }
@@ -644,7 +647,7 @@ var ShapedScripts =
 	                        var incomplete = incompleteParserStack.shift();
 	                        incomplete.parser.complete(incomplete.state, finalText);
 	                        var value = incomplete.state.getObjectValue();
-	                        if (_.isObject(value)) {
+							if (_.isObject(value) && !incomplete.parser.flatten) {
 	                            //Crude but this list is unlikely to get that big
 	                            completedObjects.push(value);
 	                        }
@@ -732,6 +735,7 @@ var ShapedScripts =
 	            stateManager.completeCurrentStack(textLines.join('\n'));
 
 	            if (success && textLines.length === 0) {
+					stateManager.outputObject.version = formatSpec.formatVersion;
 	                logger.info(stateManager.outputObject);
 	                return stateManager.outputObject;
 	            }
@@ -796,7 +800,9 @@ var ShapedScripts =
 /***/ function(module, exports) {
 
 	module.exports = {
-		"name": "npc",
+		"formatVersion": "0.2",
+		"name": "monsters",
+		"maxOccurs": "Infinity",
 		"type": "orderedContent",
 		"bare": true,
 		"contentModel": [
@@ -1343,95 +1349,98 @@ var ShapedScripts =
 	var _ = __webpack_require__(3);
 	var utils = __webpack_require__(7);
 
-		var currentVersion = '0.2';
 
-		var entities = {};
-
-		var noWhiteSpaceEntities = {};
+		module.exports = EntityLookup;
 
 
-		var entityProcessors = {};
+		function EntityLookup() {
+			var entities             = {},
+				noWhiteSpaceEntities = {},
+				entityProcessors     = {},
+				versionCheckers      = {},
+				self                 = this;
 
-	module.exports = {
-
-		configureEntity: function (entityName, processors) {
-			entities[entityName] = {};
-			noWhiteSpaceEntities[entityName] = {};
-			entityProcessors[entityName] = processors;
-		},
-
-		addEntities: function (entitiesObject) {
-			var results = {
-				errors: []
+			this.configureEntity = function (entityName, processors, versionChecker) {
+				entities[entityName] = {};
+				noWhiteSpaceEntities[entityName] = {};
+				entityProcessors[entityName] = processors;
+				versionCheckers[entityName] = versionChecker;
 			};
-			//TODO: Do semver properly
-			if (utils.versionCompare(currentVersion, entitiesObject.version) !== 0) {
-				results.errors.push({
-					entity: 'general',
-					errors: ['Invalid JSON version [' + entitiesObject.version + ']. Script supports version: [' + currentVersion + ']']
-				});
-				return results;
-	        }
 
-			_.chain(entitiesObject)
-			.omit('version', 'patch')
-			.each(function (entityArray, type) {
-				results[type] = {
-					withErrors: [],
-					skipped: [],
-					deleted: [],
-					patched: [],
-					added: []
+			this.addEntities = function (entitiesObject) {
+				var results = {
+					errors: []
 				};
 
-				if (!entities[type]) {
-					results.errors.push({entity: 'general', errors: ['Unrecognised entity type ' + type]});
-					return;
-				}
 
+				_.chain(entitiesObject)
+				.omit('version', 'patch')
+				.each(function (entityArray, type) {
+					results[type] = {
+						withErrors: [],
+						skipped: [],
+						deleted: [],
+						patched: [],
+						added: []
+					};
 
-				_.each(entityArray, function (entity) {
-					var key = entity.name.toLowerCase();
-					var operation = !!entities[type][key] ? (entitiesObject.patch ? 'patched' : 'skipped') : 'added';
-
-					//noinspection FallThroughInSwitchStatementJS
-					if (operation === 'patched') {
-						entity = patchEntity(entities[type][key], entity);
-						if (!entity) {
-							operation = 'deleted';
-							delete entities[type][key];
-							delete noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
-						}
-
+					if (!entities[type]) {
+						results.errors.push({entity: 'general', errors: ['Unrecognised entity type ' + type]});
+						return;
 					}
 
-					if (_.contains(['patched', 'added'], operation)) {
-						var processed = _.reduce(entityProcessors[type], utils.executor, {entity: entity, errors: []});
-						if (!_.isEmpty(processed.errors)) {
-							processed.entity = processed.entity.name;
-							results.errors.push(processed);
-							operation = 'withErrors';
-						}
-						else {
-							if (processed.entity.name.toLowerCase() !== key) {
-								results[type].deleted.push(key);
+					if (!versionCheckers[type](entitiesObject.version, results.errors)) {
+						return;
+					}
+
+
+					_.each(entityArray, function (entity) {
+						var key = entity.name.toLowerCase();
+						var operation = !!entities[type][key] ? (entitiesObject.patch ? 'patched' : 'skipped') : 'added';
+
+						if (operation === 'patched') {
+							entity = patchEntity(entities[type][key], entity);
+							if (!entity) {
+								operation = 'deleted';
 								delete entities[type][key];
 								delete noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
-								key = processed.entity.name.toLowerCase();
 							}
-							entities[type][key] = processed.entity;
-							noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = processed.entity;
+
 						}
-					}
+
+						if (_.contains(['patched', 'added'], operation)) {
+							var processed = _.reduce(entityProcessors[type], utils.executor, {
+								entity: entity,
+								type: type,
+								version: entitiesObject.version,
+								errors: []
+							});
+							if (!_.isEmpty(processed.errors)) {
+								processed.entity = processed.entity.name;
+								results.errors.push(processed);
+								operation = 'withErrors';
+							}
+							else {
+								if (processed.entity.name.toLowerCase() !== key) {
+									results[type].deleted.push(key);
+									delete entities[type][key];
+									delete noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
+									key = processed.entity.name.toLowerCase();
+								}
+								entities[type][key] = processed.entity;
+								noWhiteSpaceEntities[type][key.replace(/\s+/g, '')] = processed.entity;
+							}
+						}
 
 
-					results[type][operation].push(key);
+						results[type][operation].push(key);
+					});
 				});
-			});
 
-			return results;
-	    },
-	    findEntity: function (type, name, tryWithoutWhitespace) {
+				return results;
+			};
+
+			this.findEntity = function (type, name, tryWithoutWhitespace) {
 	        var key = name.toLowerCase();
 	        if (!entities[type]) {
 				throw new Error('Unrecognised entity type ' + type);
@@ -1441,76 +1450,114 @@ var ShapedScripts =
 	            found = noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
 	        }
 	        return found && utils.deepClone(found);
-	    },
-	    getAll: function (type) {
-			if (!entities[type]) {
-				throw new Error('Unrecognised entity type: ' + type);
-			}
-	        return utils.deepClone(_.values(entities[type]));
-	    },
+			};
 
-		/**
-		 * Gets all of the keys for the specified entity type
-		 * @param {string} type - The entity type to retrieve keys for (either 'monster' or 'spell')
-		 * @param {boolean} sort - True if the returned array should be sorted alphabetically; false otherwise
-		 * @return {Array} An array containing all keys for the specified entity type
-		 */
-		getKeys: function (type, sort) {
-			if (!entities[type]) {
-				throw new Error('Unrecognised entity type: ' + type);
-			}
-			var keys = _.keys(entities[type]);
-			if (sort) {
-				keys.sort();
-			}
-			return keys;
-		},
-
-		spellHydrator: function (monsterInfo) {
-			var monster = monsterInfo.entity;
-			var self = this;
-			if (monster.spells) {
-				monster.spells = _.map(monster.spells.split(', '), function (spellName) {
-					return self.findEntity('spells', spellName) || spellName;
-				});
-			}
-			return monsterInfo;
-		},
-
-		monsterSpellUpdater: function (spellInfo) {
-			var spell = spellInfo.entity;
-			_.chain(entities.monsters)
-			.pluck('spells')
-			.compact()
-			.each(function (spellArray) {
-				var spellIndex = _.findIndex(spellArray, function (monsterSpell) {
-					if (typeof monsterSpell === 'string') {
-						return monsterSpell.toLowerCase() === spell.name.toLowerCase();
-					}
-					else {
-						return monsterSpell !== spell && monsterSpell.name.toLowerCase() === spell.name.toLowerCase();
-					}
-				});
-				if (spellIndex !== -1) {
-					spellArray[spellIndex] = spell;
+			this.getAll = function (type) {
+				if (!entities[type]) {
+					throw new Error('Unrecognised entity type: ' + type);
 				}
-			});
-			return spellInfo;
-		},
+	        return utils.deepClone(_.values(entities[type]));
+			};
 
-		wrapJsonValidator: function (jsonValidator) {
+			/**
+			 * Gets all of the keys for the specified entity type
+			 * @param {string} type - The entity type to retrieve keys for (either 'monster' or 'spell')
+			 * @param {boolean} sort - True if the returned array should be sorted alphabetically; false otherwise
+			 * @function
+			 * @public
+			 * @name EntityLookup#getKeys
+			 * @return {Array} An array containing all keys for the specified entity type
+			 */
+			this.getKeys = function (type, sort) {
+				if (!entities[type]) {
+					throw new Error('Unrecognised entity type: ' + type);
+				}
+				var keys = _.keys(entities[type]);
+				if (sort) {
+					keys.sort();
+				}
+				return keys;
+			};
+
+
+			/**
+			 * Gets spell hydrator
+			 * @function
+			 * @public
+			 * @name EntityLookup#getSpellHydrator
+			 * @return {function}
+			 */
+			this.getSpellHydrator = function () {
+				return function (monsterInfo) {
+					var monster = monsterInfo.entity;
+					if (monster.spells) {
+						monster.spells = _.map(monster.spells.split(', '), function (spellName) {
+							return self.findEntity('spells', spellName) || spellName;
+						});
+					}
+					return monsterInfo;
+				};
+			};
+
+			this.getMonsterSpellUpdater = function () {
+				return function (spellInfo) {
+					var spell = spellInfo.entity;
+					_.chain(entities.monsters)
+					.pluck('spells')
+					.compact()
+					.each(function (spellArray) {
+						var spellIndex = _.findIndex(spellArray, function (monsterSpell) {
+							if (typeof monsterSpell === 'string') {
+								return monsterSpell.toLowerCase() === spell.name.toLowerCase();
+							}
+							else {
+								return monsterSpell !== spell && monsterSpell.name.toLowerCase() === spell.name.toLowerCase();
+							}
+						});
+						if (spellIndex !== -1) {
+							spellArray[spellIndex] = spell;
+						}
+					});
+					return spellInfo;
+				};
+			};
+
+
+			this.toJSON = function () {
+				return {monsterCount: _.size(entities.monsters), spellCount: _.size(entities.spells)};
+			};
+
+		}
+
+		EntityLookup.prototype.logWrap = 'entityLookup';
+		EntityLookup.jsonValidatorAsEntityProcessor = function (jsonValidator) {
 			return function (entityInfo) {
-				var result = jsonValidator(entityInfo.entity);
-				entityInfo.errors = entityInfo.errors.concat(result.errors);
+				var wrapper = {
+					version: entityInfo.version
+				};
+				wrapper[entityInfo.type] = [entityInfo.entity];
+				var errors = jsonValidator.validate(wrapper);
+				var flattenedErrors = _.chain(errors).values().flatten().value();
+				entityInfo.errors = entityInfo.errors.concat(flattenedErrors);
 				return entityInfo;
 			};
-		},
-
-	    logWrap: 'entityLookup',
-	    toJSON: function () {
-	        return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
-	    }
 	};
+		EntityLookup.jsonValidatorAsVersionChecker = function (jsonValidator) {
+			return EntityLookup.getVersionChecker(jsonValidator.getVersionNumber());
+		};
+		EntityLookup.getVersionChecker = function (requiredVersion) {
+			return function (version, errorsArray) {
+				var valid = version === requiredVersion;
+				if (!valid) {
+					errorsArray.push({
+						entity: 'general',
+						errors: ['Incorrect entity objects version: [' + version + ']. Required is: ' + requiredVersion]
+					});
+				}
+				return valid;
+			};
+		};
+
 
 		function patchEntity(original, patch) {
 			if (patch.remove) {
@@ -1666,16 +1713,315 @@ var ShapedScripts =
 /* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
+		'use strict';
+		var _ = __webpack_require__(3);
+
+		var validatorFactories = {
+			orderedContent: function (spec) {
+				return makeContentModelValidator(spec);
+			},
+
+			unorderedContent: function (spec) {
+				return makeContentModelValidator(spec);
+			},
+
+			string: function (spec) {
+				if (spec.pattern) {
+					if (spec.matchGroup) {
+						return regExValidator(spec.name, extractRegexPart(spec.pattern, spec.matchGroup), spec.caseSensitive);
+					}
+					else {
+						return regExValidator(spec.name, spec.pattern, spec.caseSensitive);
+					}
+				}
+				return function () {
+				};
+			},
+
+			enumType: function (spec) {
+				return function (value, errors) {
+					if (!_.some(spec.enumValues, function (enumVal) {
+						return new RegExp('^' + enumVal + '$', 'i').test(value);
+					})) {
+						errors.add('Value "' + value + '" should have been one of [' + spec.enumValues.join(',') + ']');
+					}
+				};
+			},
+
+			ability: function (spec) {
+				return regExValidator(spec.name, '\\d+');
+			},
+
+			heading: function (spec) {
+				return function () {
+				};
+			},
+
+			number: function (spec) {
+				return function (value, errors) {
+					if (typeof value !== 'number') {
+						errors.add('Value "' + value + '" should have been a number');
+					}
+				};
+			}
+		};
+
+		function extractRegexPart(regexp, matchIndex) {
+			var braceCount = 0;
+			var startIndex = _.findIndex(regexp, function (character, index) {
+				if (character === '(' &&
+				(index < 2 || regexp[index - 1] !== '\\') &&
+				regexp[index + 1] !== '?') {
+					return ++braceCount === matchIndex;
+				}
+			});
+
+			if (startIndex === -1) {
+				throw new Error('Can\'t find matchgroup ' + matchIndex + ' in regular expression ' + regexp);
+			}
+
+			//Lose the bracket
+			startIndex++;
+
+			var openCount = 1;
+			var endIndex = _.findIndex(regexp.slice(startIndex), function (character, index, regexp) {
+				if (character === '(' && regexp[index - 1] !== '\\') {
+					openCount++;
+				}
+				if (character === ')' && regexp[index - 1] !== '\\') {
+					return --openCount === 0;
+				}
+			});
+
+			if (endIndex === -1) {
+				throw new Error('matchgroup ' + matchIndex + ' seems not to have closing brace in regular expression ' + regexp);
+			}
+
+			return regexp.slice(startIndex, startIndex + endIndex);
+		}
+
+		function regExValidator(fieldName, regexp, caseSensitive) {
+			var re = new RegExp('^' + regexp + '$', caseSensitive ? undefined : 'i');
+			return function (value, errors) {
+				if (!re.test(value)) {
+					errors.add('Value "' + value + '" doesn\'t match pattern /' + regexp + '/');
+				}
+			};
+		}
+
+		function makeValidator(spec) {
+			var validator = validatorFactories[spec.type](spec);
+			validator.max = _.isUndefined(spec.maxOccurs) ? 1 : spec.maxOccurs;
+			validator.min = _.isUndefined(spec.minOccurs) ? 1 : spec.minOccurs;
+			validator.fieldName = spec.name;
+			return validator;
+		}
+
+		function makeContentModelValidator(spec) {
+			var parts = _.chain(spec.contentModel)
+			.reject({type: 'heading'})
+			.partition({flatten: true})
+			.value();
+			var flattened = _.map(parts[0], makeValidator);
+
+			var subValidators = _.reduce(parts[1], function (subValidators, field) {
+				subValidators[field.name] = makeValidator(field);
+				return subValidators;
+			}, {});
+
+			return function (object, errors, isFlatten) {
+				var completed = _.reduce(object, function (completed, fieldValue, fieldName) {
+					var validator = subValidators[fieldName];
+					if (validator) {
+						completed.push(fieldName);
+						errors.pushPath(fieldName);
+						if (_.isArray(fieldValue)) {
+							if (fieldValue.length > validator.max) {
+								errors.add('Number of entries [' + fieldValue.length + '] exceeds maximum allowed: ' + validator.max);
+							}
+							else if (fieldValue.length < validator.min) {
+								errors.add('Number of entries [' + fieldValue.length + '] is less than minimum allowed: ' + validator.min);
+							}
+							else {
+								_.each(fieldValue, function (arrayItem, index) {
+									errors.pushIndex(arrayItem.name ? arrayItem.name : index);
+									validator(arrayItem, errors);
+									errors.popIndex();
+								});
+
+							}
+						}
+						else {
+							validator(fieldValue, errors);
+						}
+						errors.popPath();
+					}
+					return completed;
+				}, []);
+
+				var toValidate = _.omit(object, completed);
+				_.chain(flattened)
+				.map(function (validator) {
+					var subCompleted = validator(toValidate, errors, true);
+					if (subCompleted.length === 0) {
+						return validator;
+					}
+					else {
+						completed = completed.concat(subCompleted);
+					}
+					toValidate = _.omit(toValidate, completed);
+				})
+				.compact()
+				.each(function (validator) {
+					if (validator.min > 0) {
+						errors.pushPath(validator.fieldName);
+						errors.add('Section is missing');
+						errors.popPath();
+					}
+				});
+
+				//If we're a flattened validator (our content is injected directly into the parent content model)
+				//Then we should only report missing fields if there was some match in our content model - otherwise
+				//the parent content model will check the cardinality of this model as a whole
+				if (!isFlatten || !_.isEmpty(completed)) {
+					_.chain(subValidators)
+					.omit(completed)
+					.each(function (validator) {
+						if (validator.min > 0) {
+							errors.pushPath(validator.fieldName);
+							errors.add('Field is missing');
+							errors.popPath();
+						}
+					});
+				}
+
+				//Flattened content models shouldn't check for unrecognised fields since they're only parsing
+				//part of the current content model.
+				if (!isFlatten) {
+					_.chain(object)
+					.omit(completed)
+					.each(function (value, key) {
+						errors.pushPath(key);
+						errors.add('Unrecognised field');
+						errors.popPath();
+					});
+				}
+
+
+				return completed;
+			};
+		}
+
+		function Errors() {
+
+			var errors = [];
+			var currentPath = [];
+			this.pushPath = function (path) {
+				currentPath.push(path);
+			};
+			this.popPath = function () {
+				currentPath.pop();
+			};
+			this.pushIndex = function (index) {
+				currentPath[currentPath.length - 1] = currentPath[currentPath.length - 1] + '[' + index + ']';
+			};
+
+			this.popIndex = function (index) {
+				currentPath[currentPath.length - 1] = currentPath[currentPath.length - 1].replace(/\[[^\]]+\]/, '');
+			};
+
+			this.add = function (msg) {
+				errors.push({msg: msg, path: _.clone(currentPath)});
+			};
+
+			this.getErrors = function () {
+				return _.chain(errors)
+				.groupBy(function (error) {
+					return error.path[0];
+				})
+				.mapObject(function (errorList) {
+					return _.map(errorList, function (error) {
+						return error.path.slice(1).join('.') + ': ' + error.msg;
+					});
+				})
+				.value();
+			};
+		}
+
+		module.exports = JSONValidator;
+
+		function JSONValidator(spec) {
+			var versionProp = {
+				type: 'string',
+				name: 'version',
+				pattern: '^' + spec.formatVersion.replace('.', '\\.') + '$'
+			};
+			var contentValidator = makeValidator({type: 'unorderedContent', contentModel: [spec, versionProp]});
+			this.validate = function (object) {
+				var errors = new Errors();
+				contentValidator(object, errors);
+				return errors.getErrors();
+			};
+
+			this.getVersionNumber = function () {
+				return spec.formatVersion;
+			};
+
+		}
+
+
+		/***/
+	},
+	/* 9 */
+	/***/ function (module, exports) {
+
+		'use strict';
+
+		function Reporter(roll20, scriptName) {
+			this.report = function (heading, text) {
+				//Horrible bug with this at the moment - seems to generate spurious chat
+				//messages when noarchive:true is set
+				//sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
+
+				roll20.sendChat('',
+				'/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
+				'<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;">' +
+				scriptName + ' ' + heading +
+				'</div>' +
+				text +
+				'</div>');
+			};
+
+			this.reportError = function (text) {
+				roll20.sendChat('',
+				'/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
+				'<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;color:red;">' +
+				scriptName +
+				'</div>' +
+				text +
+				'</div>');
+			};
+		}
+
+
+		module.exports = Reporter;
+
+
+		/***/
+	},
+	/* 10 */
+	/***/ function (module, exports, __webpack_require__) {
+
 	/* globals unescape */
 	'use strict';
 	var _ = __webpack_require__(3);
-	var srdConverter = __webpack_require__(9);
+		var srdConverter = __webpack_require__(11);
 	var parseModule = __webpack_require__(2);
-	var cp = __webpack_require__(10);
+		var cp = __webpack_require__(12);
 	var utils = __webpack_require__(7);
-	var mpp = __webpack_require__(11);
+		var mpp = __webpack_require__(13);
 
-		var version        = '0.4.5',
+		var version        = '0.5',
 			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
@@ -1844,35 +2190,15 @@ var ShapedScripts =
 	 * @param roll20
 	 * @param parser
 	 * @param entityLookup
+	 * @param reporter
 	 * @returns {{handleInput: function, configOptionsSpec: object, configure: function, applyTokenDefaults: function, importStatblock: function, importMonstersFromJson: function, importMonsters: function, importSpellsFromJson: function, showEntityPicker: function, addSpellsToCharacter: function, monsterDataPopulator: function, getTokenRetrievalStrategy: function, nameRetrievalStrategy: function, creationRetrievalStrategy: function, getAvatarCopier: function, getTokenConfigurer: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, getHPBar: function, rollHPForToken: function, registerChatWatcher: function, triggerChatWatchers: function, handleAmmo: function, handleHD: function, handleDeathSave: function, getRollValue: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
 	 */
-	module.exports = function (logger, myState, roll20, parser, entityLookup) {
-	    var sanitise = logger.wrapFunction('sanitise', __webpack_require__(12), '');
+	module.exports = function (logger, myState, roll20, parser, entityLookup, reporter) {
+		var sanitise = logger.wrapFunction('sanitise', __webpack_require__(14), '');
 	    var addedTokenIds = [];
-	    var report = function (heading, text) {
-	        //Horrible bug with this at the moment - seems to generate spurious chat
-	        //messages when noarchive:true is set
-	        //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
-
-	        roll20.sendChat('',
-	          '/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
-	          '<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;">' +
-	          'Shaped Scripts ' + heading +
-	          '</div>' +
-	          text +
-	          '</div>');
-	    };
-
-	    var reportError = function (text) {
-	        roll20.sendChat('',
-	          '/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
-	          '<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;color:red;">' +
-	          'Shaped Scripts Error' +
-	          '</div>' +
-	          text +
-	          '</div>');
-	    };
-
+		var report = reporter.report;
+		var reportError = reporter.reportError;
+	   
 	    var shapedModule = {
 
 	        /**
@@ -2209,8 +2535,9 @@ var ShapedScripts =
 	                var text = token.get('gmnotes');
 	                if (text) {
 	                    text = sanitise(unescape(text), logger);
-	                    var processedNpc = mpp(parser.parse(text).npc, entityLookup);
-	                    self.importMonsters([processedNpc], options, token, [function (character) {
+						var monsters = parser.parse(text).monsters;
+						mpp(monsters, entityLookup);
+						self.importMonsters(monsters, options, token, [function (character) {
 	                        character.set('gmnotes', text.replace(/\n/g, '<br>'));
 	                    }]);
 	                }
@@ -2763,7 +3090,7 @@ var ShapedScripts =
 
 
 /***/ },
-/* 9 */
+	/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var _ = __webpack_require__(3);
@@ -3032,7 +3359,7 @@ var ShapedScripts =
 
 
 /***/ },
-/* 10 */
+	/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var _ = __webpack_require__(3);
@@ -3273,7 +3600,7 @@ var ShapedScripts =
 
 
 /***/ },
-/* 11 */
+	/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -3401,16 +3728,17 @@ var ShapedScripts =
 	}
 
 
-	module.exports = function (monster, entityLookup) {
-	    processSpellcastingTrait(monster, 'Spellcasting', spellcastingHandler, entityLookup);
-	    processSpellcastingTrait(monster, 'Innate Spellcasting', innateHandler, entityLookup);
-	    return monster;
+		module.exports = function (monsters, entityLookup) {
+			_.each(monsters, function (monster) {
+				processSpellcastingTrait(monster, 'Spellcasting', spellcastingHandler, entityLookup);
+				processSpellcastingTrait(monster, 'Innate Spellcasting', innateHandler, entityLookup);
+			});
 	};
 
 
 
 /***/ },
-/* 12 */
+	/* 14 */
 /***/ function(module, exports) {
 
 	function sanitise(statblock, logger) {
@@ -3579,202 +3907,6 @@ var ShapedScripts =
 	}
 
 	module.exports = sanitise;
-
-
-		/***/
-	},
-	/* 13 */
-	/***/ function (module, exports, __webpack_require__) {
-
-		'use strict';
-		var _ = __webpack_require__(3);
-
-		var validatorFactories = {
-			orderedContent: function (spec) {
-				return makeContentModelValidator(spec);
-			},
-
-			unorderedContent: function (spec) {
-				return makeContentModelValidator(spec);
-			},
-
-			string: function (spec) {
-				if (spec.pattern) {
-					if (spec.matchGroup) {
-						return regExValidator(spec.name, extractRegexPart(spec.pattern, spec.matchGroup), spec.caseSensitive);
-					}
-					else {
-						return regExValidator(spec.name, spec.pattern, spec.caseSensitive);
-					}
-				}
-				return _.constant({errors: [], completed: []});
-			},
-
-			enumType: function (spec) {
-				return function (value) {
-					var result = {errors: [], completed: []};
-					if (!_.some(spec.enumValues, function (enumVal) {
-						return new RegExp(enumVal, 'i').test(value);
-					})) {
-						result.errors.push('Value "' + value + '" for field ' + spec.name + ' should have been one of [' + spec.enumValues.join(',') + ']');
-					}
-					return result;
-				};
-			},
-
-			ability: function (spec) {
-				return regExValidator(spec.name, '\\d+');
-			},
-
-			heading: function (spec) {
-				return _.constant({errors: [], completed: []});
-			},
-
-			number: function (spec) {
-				return function (value) {
-					var result = {errors: [], completed: []};
-					if (typeof value !== 'number') {
-						result.errors.push('Value "' + value + '" for field ' + spec.name + ' should have been a number');
-					}
-					return result;
-				};
-			}
-		};
-
-		function extractRegexPart(regexp, matchIndex) {
-			var braceCount = 0;
-			var startIndex = _.findIndex(regexp, function (character, index) {
-				if (character === '(' &&
-				(index < 2 || regexp[index - 1] !== '\\') &&
-				regexp[index + 1] !== '?') {
-					return ++braceCount === matchIndex;
-				}
-			});
-
-			if (startIndex === -1) {
-				throw 'Fucked';
-			}
-
-			//Lose the bracket
-			startIndex++;
-
-			var openCount = 1;
-			var endIndex = _.findIndex(regexp.slice(startIndex), function (character, index, regexp) {
-				if (character === '(' && regexp[index - 1] !== '\\') {
-					openCount++;
-				}
-				if (character === ')' && regexp[index - 1] !== '\\') {
-					return --openCount === 0;
-				}
-			});
-
-			if (endIndex === -1) {
-				throw 'Fucked';
-			}
-
-			return regexp.slice(startIndex, startIndex + endIndex);
-		}
-
-		function regExValidator(fieldName, regexp, caseSensitive) {
-			var re = new RegExp('^' + regexp + '$', caseSensitive ? undefined : 'i');
-			return function (value) {
-				var result = {errors: [], completed: []};
-				if (!re.test(value)) {
-					result.errors.push('Value "' + value + '" doesn\'t match pattern [' + regexp + '] for field ' + fieldName);
-				}
-				return result;
-			};
-		}
-
-		function makeValidator(spec) {
-			var validator = validatorFactories[spec.type](spec);
-			validator.max = _.isUndefined(spec.maxOccurs) ? 1 : spec.maxOccurs;
-			validator.min = _.isUndefined(spec.minOccurs) ? 1 : spec.minOccurs;
-			validator.fieldName = spec.name;
-			return validator;
-		}
-
-		function makeContentModelValidator(spec) {
-			var parts = _.chain(spec.contentModel)
-			.reject({type: 'heading'})
-			.partition({flatten: true})
-			.value();
-			var flattened = _.map(parts[0], makeValidator);
-
-			var subValidators = _.reduce(parts[1], function (subValidators, field) {
-				subValidators[field.name] = makeValidator(field);
-				return subValidators;
-			}, {});
-
-			return function (object, ignoreUnrecognised) {
-				var results = _.reduce(object, function (results, fieldValue, fieldName) {
-					var validator = subValidators[fieldName];
-					if (validator) {
-						results.completed.push(fieldName);
-						if (_.isArray(fieldValue)) {
-							if (fieldValue.length > validator.max) {
-								results.errors.push('Count of ' + fieldName + ' values [' + fieldValue.length + '] exceeds maximum allowed: ' + validator.max);
-							}
-							else if (fieldValue.length < validator.min) {
-								results.errors.push('Count of ' + fieldName + ' values [' + fieldValue.length + '] is less than minimum allowed: ' + validator.min);
-							}
-							else {
-								_.each(fieldValue, function (arrayItem) {
-									results.errors = results.errors.concat(validator(arrayItem).errors);
-								});
-
-							}
-						}
-						else {
-							results.errors = results.errors.concat(validator(fieldValue).errors);
-						}
-					}
-					return results;
-				}, {errors: [], completed: []}
-				);
-
-				var toValidate = _.omit(object, results.completed);
-				_.chain(flattened)
-				.map(function (validator) {
-					var result = validator(toValidate, true);
-					results.completed = results.completed.concat(result.completed);
-					if (result.completed.length === 0) {
-						return validator;
-					}
-					else {
-						results.errors = results.errors.concat(result.errors);
-					}
-					toValidate = _.omit(toValidate, result.completed);
-				})
-				.compact()
-				.each(function (validator) {
-					if (validator.min > 0) {
-						results.errors.push('Missing section: ' + validator.fieldName);
-					}
-				});
-
-				_.chain(subValidators)
-				.omit(results.completed)
-				.each(function (validator) {
-					if (validator.min > 0) {
-						results.errors.push('Missing field: ' + validator.fieldName);
-					}
-				});
-
-				if (!ignoreUnrecognised) {
-					_.chain(object)
-					.omit(results.completed)
-					.each(function (value, key) {
-						results.errors.push('Unrecognised field: ' + key);
-					});
-				}
-
-
-				return results;
-			};
-		}
-
-		module.exports = makeValidator;
 
 
 /***/ }

@@ -2,35 +2,29 @@
 var _ = require('underscore');
 var utils = require('./utils');
 
-var currentVersion = '0.2';
 
-var entities = {};
-
-var noWhiteSpaceEntities = {};
+module.exports = EntityLookup;
 
 
-var entityProcessors = {};
+function EntityLookup() {
+    var entities             = {},
+        noWhiteSpaceEntities = {},
+        entityProcessors     = {},
+        versionCheckers      = {},
+        self                 = this;
 
-module.exports = {
-
-    configureEntity: function (entityName, processors) {
+    this.configureEntity = function (entityName, processors, versionChecker) {
         entities[entityName] = {};
         noWhiteSpaceEntities[entityName] = {};
         entityProcessors[entityName] = processors;
-    },
+        versionCheckers[entityName] = versionChecker;
+    };
 
-    addEntities: function (entitiesObject) {
+    this.addEntities = function (entitiesObject) {
         var results = {
             errors: []
         };
-        //TODO: Do semver properly
-        if (utils.versionCompare(currentVersion, entitiesObject.version) !== 0) {
-            results.errors.push({
-                entity: 'general',
-                errors: ['Invalid JSON version [' + entitiesObject.version + ']. Script supports version: [' + currentVersion + ']']
-            });
-            return results;
-        }
+
 
         _.chain(entitiesObject)
           .omit('version', 'patch')
@@ -48,12 +42,15 @@ module.exports = {
                   return;
               }
 
+              if (!versionCheckers[type](entitiesObject.version, results.errors)) {
+                  return;
+              }
+
 
               _.each(entityArray, function (entity) {
                   var key = entity.name.toLowerCase();
                   var operation = !!entities[type][key] ? (entitiesObject.patch ? 'patched' : 'skipped') : 'added';
 
-                  //noinspection FallThroughInSwitchStatementJS
                   if (operation === 'patched') {
                       entity = patchEntity(entities[type][key], entity);
                       if (!entity) {
@@ -65,7 +62,12 @@ module.exports = {
                   }
 
                   if (_.contains(['patched', 'added'], operation)) {
-                      var processed = _.reduce(entityProcessors[type], utils.executor, {entity: entity, errors: []});
+                      var processed = _.reduce(entityProcessors[type], utils.executor, {
+                          entity: entity,
+                          type: type,
+                          version: entitiesObject.version,
+                          errors: []
+                      });
                       if (!_.isEmpty(processed.errors)) {
                           processed.entity = processed.entity.name;
                           results.errors.push(processed);
@@ -89,8 +91,9 @@ module.exports = {
           });
 
         return results;
-    },
-    findEntity: function (type, name, tryWithoutWhitespace) {
+    };
+
+    this.findEntity = function (type, name, tryWithoutWhitespace) {
         var key = name.toLowerCase();
         if (!entities[type]) {
             throw new Error('Unrecognised entity type ' + type);
@@ -100,21 +103,25 @@ module.exports = {
             found = noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
         }
         return found && utils.deepClone(found);
-    },
-    getAll: function (type) {
+    };
+
+    this.getAll = function (type) {
         if (!entities[type]) {
             throw new Error('Unrecognised entity type: ' + type);
         }
         return utils.deepClone(_.values(entities[type]));
-    },
+    };
 
     /**
      * Gets all of the keys for the specified entity type
      * @param {string} type - The entity type to retrieve keys for (either 'monster' or 'spell')
      * @param {boolean} sort - True if the returned array should be sorted alphabetically; false otherwise
+     * @function
+     * @public
+     * @name EntityLookup#getKeys
      * @return {Array} An array containing all keys for the specified entity type
      */
-    getKeys: function (type, sort) {
+    this.getKeys = function (type, sort) {
         if (!entities[type]) {
             throw new Error('Unrecognised entity type: ' + type);
         }
@@ -123,53 +130,88 @@ module.exports = {
             keys.sort();
         }
         return keys;
-    },
+    };
 
-    spellHydrator: function (monsterInfo) {
-        var monster = monsterInfo.entity;
-        var self = this;
-        if (monster.spells) {
-            monster.spells = _.map(monster.spells.split(', '), function (spellName) {
-                return self.findEntity('spells', spellName) || spellName;
-            });
-        }
-        return monsterInfo;
-    },
 
-    monsterSpellUpdater: function (spellInfo) {
-        var spell = spellInfo.entity;
-        _.chain(entities.monsters)
-          .pluck('spells')
-          .compact()
-          .each(function (spellArray) {
-              var spellIndex = _.findIndex(spellArray, function (monsterSpell) {
-                  if (typeof monsterSpell === 'string') {
-                      return monsterSpell.toLowerCase() === spell.name.toLowerCase();
-                  }
-                  else {
-                      return monsterSpell !== spell && monsterSpell.name.toLowerCase() === spell.name.toLowerCase();
+    /**
+     * Gets spell hydrator
+     * @function
+     * @public
+     * @name EntityLookup#getSpellHydrator
+     * @return {function}
+     */
+    this.getSpellHydrator = function () {
+        return function (monsterInfo) {
+            var monster = monsterInfo.entity;
+            if (monster.spells) {
+                monster.spells = _.map(monster.spells.split(', '), function (spellName) {
+                    return self.findEntity('spells', spellName) || spellName;
+                });
+            }
+            return monsterInfo;
+        };
+    };
+
+    this.getMonsterSpellUpdater = function () {
+        return function (spellInfo) {
+            var spell = spellInfo.entity;
+            _.chain(entities.monsters)
+              .pluck('spells')
+              .compact()
+              .each(function (spellArray) {
+                  var spellIndex = _.findIndex(spellArray, function (monsterSpell) {
+                      if (typeof monsterSpell === 'string') {
+                          return monsterSpell.toLowerCase() === spell.name.toLowerCase();
+                      }
+                      else {
+                          return monsterSpell !== spell && monsterSpell.name.toLowerCase() === spell.name.toLowerCase();
+                      }
+                  });
+                  if (spellIndex !== -1) {
+                      spellArray[spellIndex] = spell;
                   }
               });
-              if (spellIndex !== -1) {
-                  spellArray[spellIndex] = spell;
-              }
-          });
-        return spellInfo;
-    },
-
-    wrapJsonValidator: function (jsonValidator) {
-        return function (entityInfo) {
-            var result = jsonValidator(entityInfo.entity);
-            entityInfo.errors = entityInfo.errors.concat(result.errors);
-            return entityInfo;
+            return spellInfo;
         };
-    },
+    };
 
-    logWrap: 'entityLookup',
-    toJSON: function () {
-        return {monsterCount: _.size(entities.monster), spellCount: _.size(entities.spell)};
-    }
+
+    this.toJSON = function () {
+        return {monsterCount: _.size(entities.monsters), spellCount: _.size(entities.spells)};
+    };
+
+}
+
+EntityLookup.prototype.logWrap = 'entityLookup';
+EntityLookup.jsonValidatorAsEntityProcessor = function (jsonValidator) {
+    return function (entityInfo) {
+        var wrapper = {
+            version: entityInfo.version
+        };
+        wrapper[entityInfo.type] = [entityInfo.entity];
+        var errors = jsonValidator.validate(wrapper);
+        var flattenedErrors = _.chain(errors).values().flatten().value();
+        entityInfo.errors = entityInfo.errors.concat(flattenedErrors);
+        return entityInfo;
+    };
 };
+EntityLookup.jsonValidatorAsVersionChecker = function (jsonValidator) {
+    return EntityLookup.getVersionChecker(jsonValidator.getVersionNumber());
+};
+EntityLookup.getVersionChecker = function (requiredVersion) {
+    return function (version, errorsArray) {
+        var valid = version === requiredVersion;
+        if (!valid) {
+            errorsArray.push({
+                entity: 'general',
+                errors: ['Incorrect entity objects version: [' + version + ']. Required is: ' + requiredVersion]
+            });
+        }
+        return valid;
+    };
+};
+
+
 
 function patchEntity(original, patch) {
     if (patch.remove) {

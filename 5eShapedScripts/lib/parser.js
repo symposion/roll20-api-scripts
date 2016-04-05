@@ -439,7 +439,7 @@ function getParser(formatSpec, logger) {
                         var incomplete = incompleteParserStack.shift();
                         incomplete.parser.complete(incomplete.state, finalText);
                         var value = incomplete.state.getObjectValue();
-                        if (_.isObject(value)) {
+                        if (_.isObject(value) && !incomplete.parser.flatten) {
                             //Crude but this list is unlikely to get that big
                             completedObjects.push(value);
                         }
@@ -527,6 +527,7 @@ function getParser(formatSpec, logger) {
             stateManager.completeCurrentStack(textLines.join('\n'));
 
             if (success && textLines.length === 0) {
+                stateManager.outputObject.version = formatSpec.formatVersion;
                 logger.info(stateManager.outputObject);
                 return stateManager.outputObject;
             }

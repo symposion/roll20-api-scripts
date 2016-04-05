@@ -123,9 +123,10 @@ function processSpellcastingTrait(monster, traitName, traitHandler, entityLookup
 }
 
 
-module.exports = function (monster, entityLookup) {
-    processSpellcastingTrait(monster, 'Spellcasting', spellcastingHandler, entityLookup);
-    processSpellcastingTrait(monster, 'Innate Spellcasting', innateHandler, entityLookup);
-    return monster;
+module.exports = function (monsters, entityLookup) {
+    _.each(monsters, function (monster) {
+        processSpellcastingTrait(monster, 'Spellcasting', spellcastingHandler, entityLookup);
+        processSpellcastingTrait(monster, 'Innate Spellcasting', innateHandler, entityLookup);
+    });
 };
 

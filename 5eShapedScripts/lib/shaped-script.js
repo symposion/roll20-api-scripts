@@ -7,7 +7,7 @@ var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 
-var version        = '0.4.5',
+var version        = '0.5',
     schemaVersion  = 0.5,
     configDefaults = {
         logLevel: 'INFO',
@@ -176,35 +176,15 @@ var chatWatchers = [];
  * @param roll20
  * @param parser
  * @param entityLookup
+ * @param reporter
  * @returns {{handleInput: function, configOptionsSpec: object, configure: function, applyTokenDefaults: function, importStatblock: function, importMonstersFromJson: function, importMonsters: function, importSpellsFromJson: function, showEntityPicker: function, addSpellsToCharacter: function, monsterDataPopulator: function, getTokenRetrievalStrategy: function, nameRetrievalStrategy: function, creationRetrievalStrategy: function, getAvatarCopier: function, getTokenConfigurer: function, getImportDataWrapper: function, handleAddToken: function, handleChangeToken: function, getHPBar: function, rollHPForToken: function, registerChatWatcher: function, triggerChatWatchers: function, handleAmmo: function, handleHD: function, handleDeathSave: function, getRollValue: function, getRollTemplateOptions: function, processInlinerolls: function, checkInstall: function, registerEventHandlers: function, logWrap: string}}
  */
-module.exports = function (logger, myState, roll20, parser, entityLookup) {
+module.exports = function (logger, myState, roll20, parser, entityLookup, reporter) {
     var sanitise = logger.wrapFunction('sanitise', require('./sanitise'), '');
     var addedTokenIds = [];
-    var report = function (heading, text) {
-        //Horrible bug with this at the moment - seems to generate spurious chat
-        //messages when noarchive:true is set
-        //sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
-
-        roll20.sendChat('',
-          '/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
-          '<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;">' +
-          'Shaped Scripts ' + heading +
-          '</div>' +
-          text +
-          '</div>');
-    };
-
-    var reportError = function (text) {
-        roll20.sendChat('',
-          '/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
-          '<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;color:red;">' +
-          'Shaped Scripts Error' +
-          '</div>' +
-          text +
-          '</div>');
-    };
-
+    var report = reporter.report;
+    var reportError = reporter.reportError;
+   
     var shapedModule = {
 
         /**
@@ -541,8 +521,9 @@ module.exports = function (logger, myState, roll20, parser, entityLookup) {
                 var text = token.get('gmnotes');
                 if (text) {
                     text = sanitise(unescape(text), logger);
-                    var processedNpc = mpp(parser.parse(text).npc, entityLookup);
-                    self.importMonsters([processedNpc], options, token, [function (character) {
+                    var monsters = parser.parse(text).monsters;
+                    mpp(monsters, entityLookup);
+                    self.importMonsters(monsters, options, token, [function (character) {
                         character.set('gmnotes', text.replace(/\n/g, '<br>'));
                     }]);
                 }

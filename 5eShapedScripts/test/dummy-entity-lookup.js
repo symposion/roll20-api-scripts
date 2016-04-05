@@ -1,4 +1,5 @@
-var entityLookup = require('../lib/entity-lookup');
+var EntityLookup = require('../lib/entity-lookup');
+var _ = require('underscore');
 
 var spells = {
     version: '0.2',
@@ -70,9 +71,12 @@ var spells = {
     ]
 };
 
-entityLookup.addEntities(spells);
+var el = new EntityLookup();
+el.configureEntity('monsters', [el.getSpellHydrator()], _.constant(true));
+el.configureEntity('spells', [], _.constant(true));
+el.addEntities(spells);
 
 module.exports = {
     spells: spells,
-    entityLookup: entityLookup
+    entityLookup: el
 };

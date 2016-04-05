@@ -88,8 +88,8 @@ describe('monster-post-processor', function () {
             ],
             spells: _.map(spellList, _.partial(el.entityLookup.findEntity, 'spells'))
         };
-        var result = mpp(monster, el.entityLookup);
+        mpp([monster], el.entityLookup);
         //noinspection JSUnresolvedVariable
-        expect(result).to.deep.equal(reformedMonster);
+        expect(monster).to.deep.equal(reformedMonster);
     });
 });

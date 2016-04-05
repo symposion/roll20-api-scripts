@@ -4,17 +4,20 @@ var parseModule = require('./parser');
 var mmFormat = require('../resources/mmFormatSpec.json');
 var myState = roll20.getState('ShapedScripts');
 var logger = require('./logger')(myState.config);
-var entityLookup = require('./entity-lookup');
-var shaped = require('./shaped-script')(logger, myState, roll20, parseModule.getParser(mmFormat, logger), entityLookup);
+var EntityLookup = require('./entity-lookup');
+var JSONValidator = require('./json-validator');
+var el = new EntityLookup();
+var Reporter = require('./reporter');
+var reporter = new Reporter(roll20, 'Shaped Scripts');
+var shaped = require('./shaped-script')(logger, myState, roll20, parseModule.getParser(mmFormat, logger), el, reporter);
 var _ = require('underscore');
 
-logger.wrapModule(entityLookup);
+logger.wrapModule(el);
 logger.wrapModule(roll20);
 
-var jsonValidator = require('./json-validator')(require('../resources/mmFormatSpec.json'));
-
-entityLookup.configureEntity('monsters', [entityLookup.wrapJsonValidator(jsonValidator), entityLookup.spellHydrator.bind(entityLookup)]);
-entityLookup.configureEntity('spells', [entityLookup.monsterSpellUpdater.bind(entityLookup)]);
+var jsonValidator = new JSONValidator(require('../resources/mmFormatSpec.json'));
+el.configureEntity('monsters', [EntityLookup.jsonValidatorAsEntityProcessor(jsonValidator), el.getSpellHydrator()], EntityLookup.jsonValidatorAsVersionChecker(jsonValidator));
+el.configureEntity('spells', [el.getMonsterSpellUpdater()], EntityLookup.getVersionChecker('0.2'));
 
 roll20.on('ready', function () {
     shaped.checkInstall();
@@ -27,14 +30,14 @@ module.exports = {
             if (typeof entities === 'string') {
                 entities = JSON.parse(entities);
             }
-            var result = entityLookup.addEntities(entities);
-            var summary = _.mapObject(result, function (propVal, propName) {
-                if (propName === 'errors') {
-                    return propVal.length;
+            var result = el.addEntities(entities);
+            var summary = _.mapObject(result, function (resultObject, type) {
+                if (type === 'errors') {
+                    return resultObject.length;
                 }
                 else {
-                    return _.mapObject(propVal, function (array) {
-                        return array.length;
+                    return _.mapObject(resultObject, function (operationResultArray) {
+                        return operationResultArray.length;
                     });
                 }
             });
@@ -54,11 +57,11 @@ module.exports = {
                   })
                   .value();
 
-                roll20.sendChat('ShapedScripts', '/w gm <div><h3>Errors occurred importing information from JSON files:</h3> <ul>' + message + '</ul></div>');
+                reporter.reportError('JSON import error:<ul>' + message + '</ul>');
             }
         }
         catch (e) {
-            roll20.sendChat('Shaped Scripts', '/w gm Error adding spells or monsters: ' + e);
+            reporter.reportError('JSON parse error, please see log for more information');
             logger.error(e.toString());
             logger.error(e.stack);
         }

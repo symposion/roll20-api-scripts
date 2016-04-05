@@ -11,6 +11,7 @@ var getShaped = require('../lib/shaped-script');
 mockery.disable();
 var sinon = require('sinon');
 var logger = require('./dummy-logger');
+var reporter = require('./dummy-reporter');
 var Roll20Object = require('./dummy-roll20-object');
 
 describe('shaped-script', function () {
@@ -70,7 +71,7 @@ describe('shaped-script', function () {
         roll20Mock.findObjs.withArgs({type: 'attribute', characterid: characterStub.id}).returns(attributeArray);
         roll20Mock.getAttrByName.withArgs(characterStub.id, 'ammo_auto_use').returns('1');
 
-        var shapedScript = getShaped(logger, {config: {updateAmmo: true}}, roll20Mock, null);
+        var shapedScript = getShaped(logger, {config: {updateAmmo: true}}, roll20Mock, null, null, reporter);
 
         var msg = {
             rolltemplate: '5e-shaped',
@@ -193,7 +194,7 @@ describe('shaped-script', function () {
         var roll20Mock = sandbox.stub(roll20);
         var characterStub = {id: 'myid'};
         roll20Mock.findObjs.withArgs({_type: 'character', name: 'Bob'}).returns([characterStub]);
-        var shapedScript = getShaped(logger, {config: {updateAmmo: true}}, roll20Mock, null);
+        var shapedScript = getShaped(logger, {config: {updateAmmo: true}}, roll20Mock, null, null, reporter);
         shapedScript.registerEventHandlers();
         var msg = {
             rolltemplate: '5e-shaped',
@@ -211,7 +212,7 @@ function runImportMonsterTest(sandbox, monsters, options, preConfigure, expectat
     sandbox.stub(roll20, 'findObjs');
     sandbox.stub(roll20, 'sendChat');
     sandbox.stub(roll20, 'getObj');
-    var shapedScript = getShaped(logger, {}, roll20, null);
+    var shapedScript = getShaped(logger, {}, roll20, null, null, reporter);
     shapedScript.checkInstall();
 
     var token = new Roll20Object('graphic');

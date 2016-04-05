@@ -1,5 +1,7 @@
 {
-  "name": "npc",
+  "formatVersion": "0.2",
+  "name": "monsters",
+  "maxOccurs": "Infinity",
   "type": "orderedContent",
   "bare": true,
   "contentModel": [
