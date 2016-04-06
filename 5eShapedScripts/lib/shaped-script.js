@@ -670,15 +670,17 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
             _.chain(settings)
               .pick(['bar1', 'bar2', 'bar3'])
               .each(function (bar, barName) {
-                  var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
-                  if (attribute) {
-                      token.set(barName + '_value', attribute.get('current'));
-                      if (bar.max) {
-                          token.set(barName + '_max', attribute.get('max'));
-                      }
-                      token.set('showplayers_' + barName, bar.showPlayers);
-                      if (bar.link) {
-                          token.set(barName + '_link', attribute.id);
+                  if (!_.isEmpty(bar.attribute)) {
+                      var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
+                      if (attribute) {
+                          token.set(barName + '_value', attribute.get('current'));
+                          if (bar.max) {
+                              token.set(barName + '_max', attribute.get('max'));
+                          }
+                          token.set('showplayers_' + barName, bar.showPlayers);
+                          if (bar.link) {
+                              token.set(barName + '_link', attribute.id);
+                          }
                       }
                   }
               });
