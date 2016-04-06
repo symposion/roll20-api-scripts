@@ -100,19 +100,22 @@ Command.prototype.options = function (optsSpec) {
     return this;
 };
 
-Command.prototype.optionLookup = function (groupName, lookupFunction) {
+Command.prototype.optionLookup = function (groupName, lookup, caseSensitive) {
     'use strict';
+    if (typeof lookup !== 'function') {
+        lookup = _.propertyOf(lookup);
+    }
     this.parsers.push(function (arg, errors, options) {
         options[groupName] = options[groupName] || [];
         var someMatch = false;
-        var resolved = lookupFunction(arg.toLowerCase());
+        var resolved = lookup(caseSensitive ? arg : arg.toLowerCase());
         if (resolved) {
             options[groupName].push(resolved);
             someMatch = true;
         }
         else {
             _.each(arg.toLowerCase().split(','), function (name) {
-                var resolved = lookupFunction(name.trim());
+                var resolved = lookup(name.trim());
                 if (resolved) {
                     options[groupName].push(resolved);
                     someMatch = true;

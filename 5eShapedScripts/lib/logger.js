@@ -60,14 +60,14 @@ module.exports = function (config) {
         };
 
     logger.getLabel = function (logLevel) {
-        var logPair = _.chain(this).pairs().find(function (pair) {
+        var logPair = _.chain(logger).pairs().find(function (pair) {
             return pair[1] === logLevel;
         }).value();
         return logPair ? logPair[0] : 'UNKNOWN';
     };
 
     _.each(logger, function (level, levelName) {
-        logger[levelName.toLowerCase()] = _.partial(outputLog.bind(logger), level);
+        logger[levelName.toLowerCase()] = _.partial(outputLog, level);
     });
 
     logger.wrapModule = function (modToWrap) {
@@ -82,6 +82,10 @@ module.exports = function (config) {
         }
     };
 
+    logger.getLogTap = function (level, messageString) {
+        return _.partial(outputLog, level, messageString);
+    };
+    
     logger.wrapFunction = function (name, func, moduleName) {
         if (shouldLog(logger.TRACE)) {
             if (name === 'toJSON' || moduleName === 'roll20' && name === 'log') {

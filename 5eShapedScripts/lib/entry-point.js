@@ -9,7 +9,8 @@ var JSONValidator = require('./json-validator');
 var el = new EntityLookup();
 var Reporter = require('./reporter');
 var reporter = new Reporter(roll20, 'Shaped Scripts');
-var shaped = require('./shaped-script')(logger, myState, roll20, parseModule.getParser(mmFormat, logger), el, reporter);
+var ShapedScripts = require('./shaped-script');
+var shaped = new ShapedScripts(logger, myState, roll20, parseModule.getParser(mmFormat, logger), el, reporter);
 var _ = require('underscore');
 
 logger.wrapModule(el);

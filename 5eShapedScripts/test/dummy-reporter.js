@@ -1,6 +1,20 @@
-var _ = require('underscore');
+'use strict';
 
-module.exports = {
-    report: _.noop,
-    reportError: _.noop
-};
+module.exports = Reporter;
+
+/**
+ *
+ * @constructor
+ */
+function Reporter() {
+
+    this.messages = [];
+
+    this.report = function (title, message) {
+        this.messages.push(title + ':' + message);
+    };
+
+    this.reportError = function (message) {
+        this.messages.push(message);
+    };
+}
