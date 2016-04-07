@@ -121,7 +121,7 @@ var ShapedScripts =
 /* 1 */
 	/***/ function (module, exports, __webpack_require__) {
 
-	/* globals state, createObj, findObjs, getObj, getAttrByName, sendChat, on, log */
+		/* globals state, createObj, findObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
 		'use strict';
 		var _ = __webpack_require__(2);
 	//noinspection JSUnusedGlobalSymbols
@@ -186,6 +186,38 @@ var ShapedScripts =
 			return _.filter(this.findObjs({type: 'attribute', characterid: characterId}), function (attr) {
 				return attr.get('name').indexOf(prefix) === 0;
 			});
+		},
+
+		getCurrentPage: function (playerId) {
+			var pageId;
+			if (this.playerIsGM(playerId)) {
+				pageId = this.getObj('player', playerId).get('lastpage');
+			}
+			else {
+				pageId = this.getCampaign().get('playerspecificpages')[playerId] || this.getCampaign().get('playerpageid');
+			}
+			return pageId ? this.getObj('page', pageId) : null;
+		},
+
+		spawnFx: function (pointsArray, fxType, pageId) {
+			switch (pointsArray.length) {
+				case 1:
+					spawnFx(pointsArray[0].x, pointsArray[0].y, fxType, pageId);
+					break;
+				case 2:
+					spawnFxBetweenPoints(pointsArray[0], pointsArray[1], fxType, pageId);
+					break;
+				default:
+					throw new Error('Wrong number of points supplied to spawnFx: $$$', pointsArray);
+			}
+		},
+
+		playerIsGM: function (playerId) {
+			return playerIsGM(playerId);
+		},
+
+		getCampaign: function () {
+			return Campaign(); //jshint ignore: line
 		},
 
 	    sendChat: function (sendAs, message, callback, options) {
@@ -2023,7 +2055,7 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 		var mpp = __webpack_require__(13);
 
-		var version        = '0.6',
+		var version        = '0.7',
 			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
@@ -2941,6 +2973,56 @@ var ShapedScripts =
 
 			};
 
+			this.handleFX = function (options, msg) {
+				var parts = options.fx.split(',');
+				if (parts.length !== 3 || _.isEmpty(parts[0])) {
+					logger.warn('FX roll template variable is not formated correctly: [$$$]', options.fx);
+					return;
+				}
+
+
+				var fxType        = parts[0],
+					sourceTokenId = parts[2] !== '0' ? parts[2] : null,
+					targetTokenId = parts[1] !== '0' ? parts[1] : null,
+					fxCoords      = [],
+					pageId;
+
+				if (targetTokenId) {
+					var targetToken = roll20.getObj('graphic', targetTokenId);
+					pageId = targetToken.get('_pageid');
+					fxCoords.push({x: targetToken.get('left'), y: targetToken.get('top')});
+				}
+				else {
+					pageId = roll20.getCurrentPage(msg.playerid).id;
+				}
+
+
+				var casterTokens = roll20.findObjs({type: 'graphic', pageid: pageId, represents: options.character.id});
+
+				//If there are multiple tokens for the character on this page, then try and find one of them that is selected
+				if (casterTokens.length > 1) {
+					var selected = _.findWhere(casterTokens, {id: sourceTokenId});
+					if (selected) {
+						casterTokens = [selected];
+					}
+				}
+
+				if (sourceTokenId) {
+					if (!casterTokens[0]) {
+						logger.warn('Character $$$ has no token on current page, cannot draw FX for spell', options.character.id);
+						return;
+					}
+					fxCoords.unshift({x: casterTokens[0].get('left'), y: casterTokens[0].get('top')});
+				}
+
+				if (!fxCoords.length) {
+					logger.warn('Neither source nor target was specified for FX on spell $$$, ignoring', options.title);
+				}
+				else {
+					roll20.spawnFx(fxCoords, fxType, pageId);
+				}
+			};
+
 			this.getRollValue = function (msg, rollOutputExpr) {
 				var rollIndex = rollOutputExpr.match(/\$\[\[(\d+)\]\]/)[1];
 				return msg.inlinerolls[rollIndex].results.total;
@@ -3062,7 +3144,7 @@ var ShapedScripts =
 					return label + (_.isEmpty(configured) ? ': Not present for character' : ': ' + configured.join(', '));
 
 				};
-				this.sortKey = label;
+				this.sortKey = 'originalOrder';
 			};
 
 			var RollAbilityMaker = function (abilityName, newName) {
@@ -3072,7 +3154,7 @@ var ShapedScripts =
 						action: '%{' + character.get('name') + '|' + abilityName + '}'
 					});
 				};
-				this.sortKey = newName;
+				this.sortKey = 'originalOrder';
 			};
 
 			var abilityLookup = {
@@ -3182,6 +3264,7 @@ var ShapedScripts =
 				roll20.on('change:token', this.handleChangeToken.bind(this));
 				this.registerChatWatcher(this.handleDeathSave, ['deathSavingThrow', 'character', 'roll1']);
 				this.registerChatWatcher(this.handleAmmo, ['ammoName', 'character']);
+				this.registerChatWatcher(this.handleFX, ['fx', 'character']);
 				this.registerChatWatcher(this.handleHD, ['character', 'title']);
 			};
 
