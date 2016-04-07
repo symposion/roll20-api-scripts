@@ -1096,7 +1096,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
             return label + (_.isEmpty(configured) ? ': Not present for character' : ': ' + configured.join(', '));
 
         };
-        this.sortKey = label;
+        this.sortKey = 'originalOrder';
     };
 
     var RollAbilityMaker = function (abilityName, newName) {
@@ -1106,7 +1106,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
                 action: '%{' + character.get('name') + '|' + abilityName + '}'
             });
         };
-        this.sortKey = newName;
+        this.sortKey = 'originalOrder';
     };
 
     var abilityLookup = {
