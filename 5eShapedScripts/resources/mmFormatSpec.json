@@ -187,11 +187,6 @@
       "matchGroup": 1
     },
     {
-      "name": "spellBook",
-      "type": "string",
-      "minOccurs": 0
-    },
-    {
       "name": "traitSection",
       "type": "orderedContent",
       "minOccurs": 0,

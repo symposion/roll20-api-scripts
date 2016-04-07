@@ -1,0 +1,436 @@
+{
+  "title": "monsterJSON",
+  "type": "object",
+  "additionalProperties": false,
+  "options": {
+    "disable_properties": true,
+    "disable_edit_json": true,
+    "disable_collapse": true
+  },
+  "properties": {
+    "monsters": {
+      "type": "array",
+      "propertyOrder": 1,
+      "options": {
+        "disable_collapse": true
+      },
+      "format": "tabs",
+      "minItems": 1,
+      "title": "Monsters",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "headerTemplate": "{{ self.name }}",
+        "title": "Monster",
+        "options": {
+          "remove_empty_properties": true,
+          "disable_collapse": true,
+          "disable_edit_json": true,
+          "grid_columns": "3"
+        },
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": "My Custom Monster",
+            "propertyOrder": 1
+          },
+          "size": {
+            "type": "string",
+            "title": "Size",
+            "propertyOrder": 2,
+            "default": "Medium",
+            "enum": [
+              "Tiny",
+              "Small",
+              "Medium",
+              "Large",
+              "Huge",
+              "Gargantuan"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "beast",
+            "options": {
+              "input_width": "200px"
+            },
+            "propertyOrder": 3,
+            "pattern": "^([\\w\\s\\(\\),-]+)"
+          },
+          "alignment": {
+            "type": "string",
+            "title": "Alignment",
+            "enum": [
+              "lawful good",
+              "lawful neutral",
+              "lawful evil",
+              "neutral good",
+              "neutral evil",
+              "neutral",
+              "chaotic good",
+              "chaotic neutral",
+              "chaotic evil",
+              "unaligned",
+              "any alignment",
+              "any good alignment",
+              "any non-good alignment",
+              "any evil alignment",
+              "any non-evil alignment",
+              "any lawful alignment",
+              "any non-lawful alignment",
+              "any chaotic alignment",
+              "any non-chaotic alignment",
+              "construct"
+            ],
+            "propertyOrder": 4
+          },
+          "AC": {
+            "pattern": "\\d+\\s*(?:\\([^)]*\\))?",
+            "propertyOrder": 5,
+            "options": {
+              "input_width": "150px"
+            },
+            "type": "string"
+          },
+          "HP": {
+            "type": "string",
+            "options": {
+              "input_width": "150px"
+            },
+            "propertyOrder": 6,
+            "pattern": "\\d+(?:\\s?\\(\\s?\\d+d\\d+(?:\\s?[-+]\\s?\\d+)?\\s?\\))?"
+          },
+          "speed": {
+            "propertyOrder": 7,
+            "title": "Speed",
+            "type": "string",
+            "pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\([^\\)]+\\))?$"
+          },
+          "strength": {
+            "type": "integer",
+            "format": "number",
+            "options": {
+              "input_width": "75px"
+            },
+            "propertyOrder": 8,
+            "minimum": 0,
+            "maximum": 30,
+            "default": 10
+          },
+          "dexterity": {
+            "type": "integer",
+            "options": {
+              "input_width": "75px"
+            },
+            "format": "number",
+            "propertyOrder": 9,
+            "minimum": 0,
+            "maximum": 30,
+            "default": 10
+          },
+          "constitution": {
+            "type": "integer",
+            "options": {
+              "input_width": "75px"
+            },
+            "format": "number",
+            "propertyOrder": 10,
+            "minimum": 0,
+            "maximum": 30,
+            "default": 10
+          },
+          "intelligence": {
+            "type": "integer",
+            "options": {
+              "input_width": "75px"
+            },
+            "format": "number",
+            "propertyOrder": 11,
+            "minimum": 0,
+            "maximum": 30,
+            "default": 10
+          },
+          "wisdom": {
+            "type": "integer",
+            "options": {
+              "input_width": "75px"
+            },
+            "format": "number",
+            "propertyOrder": 12,
+            "minimum": 0,
+            "maximum": 30,
+            "default": 10
+          },
+          "charisma": {
+            "type": "integer",
+            "options": {
+              "input_width": "75px"
+            },
+            "format": "number",
+            "propertyOrder": 13,
+            "minimum": 0,
+            "maximum": 30,
+            "default": 10
+          },
+          "savingThrows": {
+            "type": "string",
+            "propertyOrder": 14,
+            "pattern": "(?:(?:^|,\\s*)(?:Str|Dex|Con|Int|Wis|Cha)\\s+[\\-\\+]\\d+)+"
+          },
+          "skills": {
+            "type": "string",
+            "propertyOrder": 15,
+            "pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Sleight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
+          },
+          "damageVulnerabilities": {
+            "type": "string",
+            "propertyOrder": 16
+          },
+          "damageResistances": {
+            "type": "string",
+            "propertyOrder": 17
+          },
+          "damageImmunities": {
+            "type": "string",
+            "propertyOrder": 18
+          },
+          "conditionImmunities": {
+            "type": "string",
+            "propertyOrder": 19
+          },
+          "senses": {
+            "type": "string",
+            "propertyOrder": 20,
+            "pattern": "(?:(?:^|,\\s*)(?:blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft\\.?(?: or \\d+ ft\\. while deafened)?(?:\\s?\\([^\\)]+\\))?)+"
+          },
+          "spells": {
+            "type": "string",
+            "propertyOrder": 21
+          },
+          "languages": {
+            "type": "string",
+            "propertyOrder": 22
+          },
+          "challenge": {
+            "type": "string",
+            "options": {
+              "input_width": "50px"
+            },
+            "propertyOrder": 23,
+            "pattern": "\\d+(?:\\s?\\/\\s?\\d)?"
+          },
+          "traits": {
+            "type": "array",
+            "propertyOrder": 23.5,
+            "title": "Traits",
+            "format": "tab",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "headerTemplate": "{{ self.name }}",
+              "options": {
+                "disable_edit_json": true,
+                "disable_properties": true
+              },
+              "title": "Trait",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "recharge": {
+                  "type": "string",
+                  "options": {
+                    "input_width": "150px"
+                  }
+                },
+                "text": {
+                  "type": "string",
+                  "format": "textarea"
+                }
+              }
+            }
+          },
+          "actions": {
+            "type": "array",
+            "propertyOrder": 24,
+            "format": "tab",
+            "title": "Actions",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "headerTemplate": "{{ self.name }}",
+              "options": {
+                "disable_edit_json": true,
+                "disable_properties": true
+              },
+              "title": "Action",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "recharge": {
+                  "type": "string",
+                  "options": {
+                    "input_width": "150px"
+                  }
+                },
+                "text": {
+                  "type": "string",
+                  "format": "textarea"
+                }
+              }
+            }
+          },
+          "reactions": {
+            "type": "array",
+            "propertyOrder": 25,
+            "format": "tab",
+            "title": "Reactions",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "headerTemplate": "{{ self.name }}",
+              "options": {
+                "disable_edit_json": true,
+                "disable_properties": true
+              },
+              "title": "Reaction",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string",
+                  "format": "textarea"
+                }
+              }
+            }
+          },
+          "legendaryPoints": {
+            "type": "integer",
+            "propertyOrder": 26,
+            "default": 0
+          },
+          "legendaryActions": {
+            "type": "array",
+            "propertyOrder": 27,
+            "format": "tab",
+            "title": "Legendary Actions",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "headerTemplate": "{{ self.name }}",
+              "options": {
+                "disable_edit_json": true,
+                "disable_properties": true
+              },
+              "title": "Legendary Action",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "cost": {
+                  "type": "integer",
+                  "options": {
+                    "input_width": "50px"
+                  },
+                  "format": "number",
+                  "minimum": 1,
+                  "default": 1
+                },
+                "text": {
+                  "type": "string",
+                  "format": "textarea"
+                }
+              }
+            }
+          },
+          "lairActions": {
+            "type": "array",
+            "propertyOrder": 28,
+            "format": "table",
+            "title": "Legendary Actions",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "title": "Lair Action"
+            }
+          },
+          "regionalEffects": {
+            "type": "array",
+            "propertyOrder": 29,
+            "format": "table",
+            "title": "Regional Effects",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "title": "Regional Effect"
+            }
+          },
+          "regionalEffectsFade": {
+            "type": "string",
+            "title": "Regional Effects Fade",
+            "propertyOrder": 30
+          }
+        },
+        "required": [
+          "name",
+          "size",
+          "type",
+          "alignment",
+          "AC",
+          "HP",
+          "speed",
+          "strength",
+          "dexterity",
+          "constitution",
+          "intelligence",
+          "wisdom",
+          "charisma",
+          "challenge"
+        ],
+        "defaultProperties": [
+          "name",
+          "size",
+          "type",
+          "alignment",
+          "AC",
+          "HP",
+          "speed",
+          "strength",
+          "dexterity",
+          "constitution",
+          "intelligence",
+          "wisdom",
+          "charisma",
+          "challenge",
+          "traits",
+          "actions",
+          "savingThrows",
+          "skills",
+          "damageVulnerabilities",
+          "damageResistances",
+          "damageImmunities",
+          "conditionImmunities",
+          "senses",
+          "spells",
+          "languages"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "version": {
+      "type": "string",
+      "propertyOrder": 2,
+      "options": {
+        "hidden": true
+      },
+      "description": "Format version number, don't change this unless you know what you are doing",
+      "minLength": 3,
+      "maxLength": 5,
+      "default": "0.2"
+    }
+  }
+}
