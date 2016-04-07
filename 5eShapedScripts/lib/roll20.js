@@ -65,6 +65,18 @@ module.exports = {
         });
     },
 
+    getRepeatingSectionItemIdsByName: function (characterId, sectionName) {
+        var re = new RegExp('repeating_' + sectionName + '_([^_]+)_name$');
+        return _.reduce(this.getRepeatingSectionAttrs(characterId, sectionName),
+          function (lookup, attr) {
+              var match = attr.get('name').match(re);
+              if (match) {
+                  lookup[attr.get('current').toLowerCase()] = match[1];
+              }
+              return lookup;
+          }, {});
+    },
+
     getCurrentPage: function (playerId) {
         var pageId;
         if (this.playerIsGM(playerId)) {

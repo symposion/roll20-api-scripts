@@ -7,7 +7,7 @@ var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 
-var version        = '0.7',
+var version        = '0.7.1',
     schemaVersion  = 0.5,
     configDefaults = {
         logLevel: 'INFO',
@@ -1032,10 +1032,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         }
         var messages = _.map(options.selected.character, function (character) {
 
+            var cache = {};
             var operationMessages = _.chain(options.abilities)
               .sortBy('sortKey')
               .map(function (maker) {
-                  return maker.run(character);
+                  return maker.run(character, cache);
               })
               .value();
 
@@ -1079,16 +1080,13 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     };
 
     var RepeatingAbilityMaker = function (repeatingSection, abilityName, label) {
-        this.run = function (character) {
-            var configured = _.chain(roll20.getRepeatingSectionAttrs(character.id, repeatingSection))
-              .filter(function (attr) {
-                  return attr.get('name').match(/_name$/);
-              })
-              .tap(logger.getLogTap(logger.DEBUG, 'Repeating section attributes for abilities: $$$'))
-              .map(function (attr) {
-                  var repeatingId     = attr.get('name').split('_')[2],
-                      repeatingName   = attr.get('current'),
-                      repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId + '_' + abilityName + '}';
+        this.run = function (character, cache) {
+            cache[repeatingSection] = cache[repeatingSection] ||
+              roll20.getRepeatingSectionItemIdsByName(character.id, repeatingSection);
+
+            var configured = _.chain(cache[repeatingSection])
+              .map(function (repeatingId, repeatingName) {
+                  var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId + '_' + abilityName + '}';
                   return {name: repeatingName, action: repeatingAction};
               })
               .map(getAbilityMaker(character))
@@ -1109,7 +1107,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         this.sortKey = 'originalOrder';
     };
 
-    var abilityLookup = {
+    var staticAbilityOptions = {
         DELETE: abilityDeleter,
         attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks'),
         features: new RepeatingAbilityMaker('classfeature', 'classfeature', 'Class Features'),
@@ -1124,6 +1122,24 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         skills: new RollAbilityMaker('ability_checks_macro', 'Skills'),
         skillsquery: new RollAbilityMaker('ability_checks_query_macro', 'Skills')
     };
+
+    var abilityLookup = function (optionName, existingOptions) {
+        var maker = staticAbilityOptions[optionName];
+
+        //Makes little sense to add named spells to multiple characters at once
+        if (!maker && existingOptions.selected.character.length === 1) {
+
+            existingOptions.spellToRepeatingIdLookup = existingOptions.spellToRepeatingIdLookup ||
+              roll20.getRepeatingSectionItemIdsByName(existingOptions.selected.character[0].id, 'spell');
+
+            var repeatingId = existingOptions.spellToRepeatingIdLookup[optionName.toLowerCase()];
+            if (repeatingId) {
+                maker = new RollAbilityMaker('repeating_spell_' + repeatingId + '_spell', utils.toTitleCase(optionName));
+            }
+        }
+        return maker;
+    };
+
 
     this.getCommandProcessor = function () {
         return cp('shaped')
@@ -1158,13 +1174,13 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
               }
           })
           .addCommand('abilities', this.addAbility.bind(this))
-          .optionLookup('abilities', abilityLookup, true)
           .withSelection({
               character: {
                   min: 1,
                   max: Infinity
               }
           })
+          .optionLookup('abilities', abilityLookup)
           .addCommand('token-defaults', this.applyTokenDefaults.bind(this))
           .withSelection({
               graphic: {

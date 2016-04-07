@@ -100,7 +100,7 @@ Command.prototype.options = function (optsSpec) {
     return this;
 };
 
-Command.prototype.optionLookup = function (groupName, lookup, caseSensitive) {
+Command.prototype.optionLookup = function (groupName, lookup) {
     'use strict';
     if (typeof lookup !== 'function') {
         lookup = _.propertyOf(lookup);
@@ -108,14 +108,14 @@ Command.prototype.optionLookup = function (groupName, lookup, caseSensitive) {
     this.parsers.push(function (arg, errors, options) {
         options[groupName] = options[groupName] || [];
         var someMatch = false;
-        var resolved = lookup(caseSensitive ? arg : arg.toLowerCase());
+        var resolved = lookup(arg, options);
         if (resolved) {
             options[groupName].push(resolved);
             someMatch = true;
         }
         else {
-            _.each(arg.toLowerCase().split(','), function (name) {
-                var resolved = lookup(name.trim());
+            _.each(arg.split(','), function (name) {
+                var resolved = lookup(name.trim(), options);
                 if (resolved) {
                     options[groupName].push(resolved);
                     someMatch = true;
@@ -130,7 +130,9 @@ Command.prototype.optionLookup = function (groupName, lookup, caseSensitive) {
 Command.prototype.handle = function (args, selection) {
     'use strict';
     var self = this;
-    var options = _.reduce(args, function (options, arg) {
+    var options = {errors: []};
+    options.selected = this.selectionSpec && processSelection(selection || [], this.selectionSpec);
+    options = _.reduce(args, function (options, arg) {
         var parser = _.find(self.parsers, function (parser) {
             return parser(arg, options.errors, options);
         });
@@ -139,12 +141,11 @@ Command.prototype.handle = function (args, selection) {
         }
 
         return options;
-    }, {errors: []});
+    }, options);
     if (options.errors.length > 0) {
         throw options.errors.join('\n');
     }
     delete options.errors;
-    options.selected = this.selectionSpec && processSelection(selection || [], this.selectionSpec);
     this.handler(options);
 };
 

@@ -188,6 +188,18 @@ var ShapedScripts =
 			});
 		},
 
+		getRepeatingSectionItemIdsByName: function (characterId, sectionName) {
+			var re = new RegExp('repeating_' + sectionName + '_([^_]+)_name$');
+			return _.reduce(this.getRepeatingSectionAttrs(characterId, sectionName),
+			function (lookup, attr) {
+				var match = attr.get('name').match(re);
+				if (match) {
+					lookup[attr.get('current').toLowerCase()] = match[1];
+				}
+				return lookup;
+			}, {});
+		},
+
 		getCurrentPage: function (playerId) {
 			var pageId;
 			if (this.playerIsGM(playerId)) {
@@ -2055,7 +2067,7 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 		var mpp = __webpack_require__(13);
 
-		var version        = '0.7',
+		var version        = '0.7.1',
 			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
@@ -3080,10 +3092,11 @@ var ShapedScripts =
 				}
 				var messages = _.map(options.selected.character, function (character) {
 
+					var cache = {};
 					var operationMessages = _.chain(options.abilities)
 					.sortBy('sortKey')
 					.map(function (maker) {
-						return maker.run(character);
+						return maker.run(character, cache);
 					})
 					.value();
 
@@ -3127,16 +3140,13 @@ var ShapedScripts =
 			};
 
 			var RepeatingAbilityMaker = function (repeatingSection, abilityName, label) {
-				this.run = function (character) {
-					var configured = _.chain(roll20.getRepeatingSectionAttrs(character.id, repeatingSection))
-					.filter(function (attr) {
-						return attr.get('name').match(/_name$/);
-					})
-					.tap(logger.getLogTap(logger.DEBUG, 'Repeating section attributes for abilities: $$$'))
-					.map(function (attr) {
-						var repeatingId     = attr.get('name').split('_')[2],
-							repeatingName   = attr.get('current'),
-							repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId + '_' + abilityName + '}';
+				this.run = function (character, cache) {
+					cache[repeatingSection] = cache[repeatingSection] ||
+					roll20.getRepeatingSectionItemIdsByName(character.id, repeatingSection);
+
+					var configured = _.chain(cache[repeatingSection])
+					.map(function (repeatingId, repeatingName) {
+						var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId + '_' + abilityName + '}';
 						return {name: repeatingName, action: repeatingAction};
 					})
 					.map(getAbilityMaker(character))
@@ -3157,7 +3167,7 @@ var ShapedScripts =
 				this.sortKey = 'originalOrder';
 			};
 
-			var abilityLookup = {
+			var staticAbilityOptions = {
 				DELETE: abilityDeleter,
 				attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks'),
 				features: new RepeatingAbilityMaker('classfeature', 'classfeature', 'Class Features'),
@@ -3172,6 +3182,24 @@ var ShapedScripts =
 				skills: new RollAbilityMaker('ability_checks_macro', 'Skills'),
 				skillsquery: new RollAbilityMaker('ability_checks_query_macro', 'Skills')
 			};
+
+			var abilityLookup = function (optionName, existingOptions) {
+				var maker = staticAbilityOptions[optionName];
+
+				//Makes little sense to add named spells to multiple characters at once
+				if (!maker && existingOptions.selected.character.length === 1) {
+
+					existingOptions.spellToRepeatingIdLookup = existingOptions.spellToRepeatingIdLookup ||
+					roll20.getRepeatingSectionItemIdsByName(existingOptions.selected.character[0].id, 'spell');
+
+					var repeatingId = existingOptions.spellToRepeatingIdLookup[optionName.toLowerCase()];
+					if (repeatingId) {
+						maker = new RollAbilityMaker('repeating_spell_' + repeatingId + '_spell', utils.toTitleCase(optionName));
+					}
+				}
+				return maker;
+			};
+
 
 			this.getCommandProcessor = function () {
 				return cp('shaped')
@@ -3206,13 +3234,13 @@ var ShapedScripts =
 					}
 				})
 				.addCommand('abilities', this.addAbility.bind(this))
-				.optionLookup('abilities', abilityLookup, true)
 				.withSelection({
 					character: {
 						min: 1,
 						max: Infinity
 					}
 				})
+				.optionLookup('abilities', abilityLookup)
 				.addCommand('token-defaults', this.applyTokenDefaults.bind(this))
 				.withSelection({
 					graphic: {
@@ -3654,7 +3682,7 @@ var ShapedScripts =
 	    return this;
 	};
 
-		Command.prototype.optionLookup = function (groupName, lookup, caseSensitive) {
+		Command.prototype.optionLookup = function (groupName, lookup) {
 	    'use strict';
 			if (typeof lookup !== 'function') {
 				lookup = _.propertyOf(lookup);
@@ -3662,14 +3690,14 @@ var ShapedScripts =
 	    this.parsers.push(function (arg, errors, options) {
 	        options[groupName] = options[groupName] || [];
 			var someMatch = false;
-			var resolved = lookup(caseSensitive ? arg : arg.toLowerCase());
+			var resolved = lookup(arg, options);
 	        if (resolved) {
 	            options[groupName].push(resolved);
 				someMatch = true;
 	        }
 			else {
-				_.each(arg.toLowerCase().split(','), function (name) {
-					var resolved = lookup(name.trim());
+				_.each(arg.split(','), function (name) {
+					var resolved = lookup(name.trim(), options);
 					if (resolved) {
 						options[groupName].push(resolved);
 						someMatch = true;
@@ -3684,7 +3712,9 @@ var ShapedScripts =
 	Command.prototype.handle = function (args, selection) {
 	    'use strict';
 	    var self = this;
-	    var options = _.reduce(args, function (options, arg) {
+		var options = {errors: []};
+		options.selected = this.selectionSpec && processSelection(selection || [], this.selectionSpec);
+		options = _.reduce(args, function (options, arg) {
 	        var parser = _.find(self.parsers, function (parser) {
 	            return parser(arg, options.errors, options);
 	        });
@@ -3693,12 +3723,11 @@ var ShapedScripts =
 	        }
 
 	        return options;
-	    }, {errors: []});
+		}, options);
 	    if (options.errors.length > 0) {
 	        throw options.errors.join('\n');
 	    }
 	    delete options.errors;
-	    options.selected = this.selectionSpec && processSelection(selection || [], this.selectionSpec);
 	    this.handler(options);
 	};
 
