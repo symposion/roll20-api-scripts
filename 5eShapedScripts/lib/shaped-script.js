@@ -925,6 +925,56 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
     };
 
+    this.handleFX = function (options, msg) {
+        var parts = options.fx.split(',');
+        if (parts.length !== 3 || _.isEmpty(parts[0])) {
+            logger.warn('FX roll template variable is not formated correctly: [$$$]', options.fx);
+            return;
+        }
+
+
+        var fxType        = parts[0],
+            sourceTokenId = parts[2] !== '0' ? parts[2] : null,
+            targetTokenId = parts[1] !== '0' ? parts[1] : null,
+            fxCoords      = [],
+            pageId;
+
+        if (targetTokenId) {
+            var targetToken = roll20.getObj('graphic', targetTokenId);
+            pageId = targetToken.get('_pageid');
+            fxCoords.push({x: targetToken.get('left'), y: targetToken.get('top')});
+        }
+        else {
+            pageId = roll20.getCurrentPage(msg.playerid).id;
+        }
+
+
+        var casterTokens = roll20.findObjs({type: 'graphic', pageid: pageId, represents: options.character.id});
+
+        //If there are multiple tokens for the character on this page, then try and find one of them that is selected
+        if (casterTokens.length > 1) {
+            var selected = _.findWhere(casterTokens, {id: sourceTokenId});
+            if (selected) {
+                casterTokens = [selected];
+            }
+        }
+
+        if (sourceTokenId) {
+            if (!casterTokens[0]) {
+                logger.warn('Character $$$ has no token on current page, cannot draw FX for spell', options.character.id);
+                return;
+            }
+            fxCoords.unshift({x: casterTokens[0].get('left'), y: casterTokens[0].get('top')});
+        }
+
+        if (!fxCoords.length) {
+            logger.warn('Neither source nor target was specified for FX on spell $$$, ignoring', options.title);
+        }
+        else {
+            roll20.spawnFx(fxCoords, fxType, pageId);
+        }
+    };
+
     this.getRollValue = function (msg, rollOutputExpr) {
         var rollIndex = rollOutputExpr.match(/\$\[\[(\d+)\]\]/)[1];
         return msg.inlinerolls[rollIndex].results.total;
@@ -1166,6 +1216,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         roll20.on('change:token', this.handleChangeToken.bind(this));
         this.registerChatWatcher(this.handleDeathSave, ['deathSavingThrow', 'character', 'roll1']);
         this.registerChatWatcher(this.handleAmmo, ['ammoName', 'character']);
+        this.registerChatWatcher(this.handleFX, ['fx', 'character']);
         this.registerChatWatcher(this.handleHD, ['character', 'title']);
     };
 

@@ -1,4 +1,4 @@
-/* globals state, createObj, findObjs, getObj, getAttrByName, sendChat, on, log */
+/* globals state, createObj, findObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
 'use strict';
 var _ = require('underscore');
 //noinspection JSUnusedGlobalSymbols
@@ -63,6 +63,38 @@ module.exports = {
         return _.filter(this.findObjs({type: 'attribute', characterid: characterId}), function (attr) {
             return attr.get('name').indexOf(prefix) === 0;
         });
+    },
+
+    getCurrentPage: function (playerId) {
+        var pageId;
+        if (this.playerIsGM(playerId)) {
+            pageId = this.getObj('player', playerId).get('lastpage');
+        }
+        else {
+            pageId = this.getCampaign().get('playerspecificpages')[playerId] || this.getCampaign().get('playerpageid');
+        }
+        return pageId ? this.getObj('page', pageId) : null;
+    },
+
+    spawnFx: function (pointsArray, fxType, pageId) {
+        switch (pointsArray.length) {
+            case 1:
+                spawnFx(pointsArray[0].x, pointsArray[0].y, fxType, pageId);
+                break;
+            case 2:
+                spawnFxBetweenPoints(pointsArray[0], pointsArray[1], fxType, pageId);
+                break;
+            default:
+                throw new Error('Wrong number of points supplied to spawnFx: $$$', pointsArray);
+        }
+    },
+
+    playerIsGM: function (playerId) {
+        return playerIsGM(playerId);
+    },
+
+    getCampaign: function () {
+        return Campaign(); //jshint ignore: line
     },
 
     sendChat: function (sendAs, message, callback, options) {
