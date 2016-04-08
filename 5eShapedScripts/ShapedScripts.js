@@ -3166,7 +3166,7 @@ var ShapedScripts =
 					var configured = _.chain(cache[repeatingSection])
 					.map(function (repeatingId, repeatingName) {
 						var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId + '_' + abilityName + '}';
-						return {name: repeatingName, action: repeatingAction};
+						return {name: utils.toTitleCase(repeatingName), action: repeatingAction};
 					})
 					.map(getAbilityMaker(character))
 					.value();
