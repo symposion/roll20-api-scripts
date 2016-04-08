@@ -13,7 +13,7 @@ var ShapedScripts = require('./shaped-script');
 var shaped = new ShapedScripts(logger, myState, roll20, parseModule.getParser(mmFormat, logger), el, reporter);
 var _ = require('underscore');
 
-logger.wrapModule(el);
+//logger.wrapModule(el);
 logger.wrapModule(roll20);
 
 var jsonValidator = new JSONValidator(require('../resources/mmFormatSpec.json'));

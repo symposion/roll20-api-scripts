@@ -60,7 +60,7 @@ var ShapedScripts =
 		var shaped = new ShapedScripts(logger, myState, roll20, parseModule.getParser(mmFormat, logger), el, reporter);
 		var _ = __webpack_require__(2);
 
-		logger.wrapModule(el);
+		//logger.wrapModule(el);
 	logger.wrapModule(roll20);
 
 		var jsonValidator = new JSONValidator(__webpack_require__(4));
@@ -2067,7 +2067,7 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 		var mpp = __webpack_require__(13);
 
-		var version        = '0.7.1',
+		var version        = '0.7.2',
 			schemaVersion  = 0.5,
 			configDefaults = {
 	        logLevel: 'INFO',
@@ -2986,23 +2986,40 @@ var ShapedScripts =
 			};
 
 			this.handleFX = function (options, msg) {
-				var parts = options.fx.split(',');
-				if (parts.length !== 3 || _.isEmpty(parts[0])) {
+				var parts = options.fx.split(' ');
+				if (parts.length < 2 || _.some(parts.slice(0, 2), _.isEmpty)) {
 					logger.warn('FX roll template variable is not formated correctly: [$$$]', options.fx);
 					return;
 				}
 
 
-				var fxType        = parts[0],
-					sourceTokenId = parts[2] !== '0' ? parts[2] : null,
-					targetTokenId = parts[1] !== '0' ? parts[1] : null,
-					fxCoords      = [],
+				var fxType         = parts[0],
+					pointsOfOrigin = parts[1],
+					targetTokenId,
+					//sourceTokenId,
+					sourceCoords   = {},
+					targetCoords   = {},
+					fxCoords       = [],
 					pageId;
+
+				//noinspection FallThroughInSwitchStatementJS
+				switch (pointsOfOrigin) {
+					case 'sourceToTarget':
+					case 'source':
+						targetTokenId = parts[2]; //jshint ignore: line
+						fxCoords.push(sourceCoords, targetCoords);
+						break;
+					case 'targetToSource':
+					case 'target':
+						targetTokenId = parts[2];
+						fxCoords.push(targetCoords, sourceCoords);
+				}
 
 				if (targetTokenId) {
 					var targetToken = roll20.getObj('graphic', targetTokenId);
 					pageId = targetToken.get('_pageid');
-					fxCoords.push({x: targetToken.get('left'), y: targetToken.get('top')});
+					targetCoords.x = targetToken.get('left');
+					targetCoords.y = targetToken.get('top');
 				}
 				else {
 					pageId = roll20.getCurrentPage(msg.playerid).id;
@@ -3011,28 +3028,30 @@ var ShapedScripts =
 
 				var casterTokens = roll20.findObjs({type: 'graphic', pageid: pageId, represents: options.character.id});
 
-				//If there are multiple tokens for the character on this page, then try and find one of them that is selected
-				if (casterTokens.length > 1) {
-					var selected = _.findWhere(casterTokens, {id: sourceTokenId});
-					if (selected) {
-						casterTokens = [selected];
-					}
+				if (casterTokens.length) {
+					//If there are multiple tokens for the character on this page, then try and find one of them that is selected
+					//This doesn't work without a selected token, and the only way we can get this is to use @{selected} which is a pain
+					//for people who want to launch without a token selected
+					// if(casterTokens.length > 1) {
+					//     var selected = _.findWhere(casterTokens, {id: sourceTokenId});
+					//     if (selected) {
+					//         casterTokens = [selected];
+					//     }
+					// }
+					sourceCoords.x = casterTokens[0].get('left');
+					sourceCoords.y = casterTokens[0].get('top');
 				}
 
-				if (sourceTokenId) {
-					if (!casterTokens[0]) {
-						logger.warn('Character $$$ has no token on current page, cannot draw FX for spell', options.character.id);
-						return;
-					}
-					fxCoords.unshift({x: casterTokens[0].get('left'), y: casterTokens[0].get('top')});
+
+				if (!fxCoords[0]) {
+					logger.warn('Couldn\'t find required point for fx for character $$$, casterTokens: $$$, fxSpec: $$$ ', options.character.id, casterTokens, options.fx);
+					return;
+				}
+				else if (!fxCoords[1]) {
+					fxCoords = fxCoords.slice(0, 1);
 				}
 
-				if (!fxCoords.length) {
-					logger.warn('Neither source nor target was specified for FX on spell $$$, ignoring', options.title);
-				}
-				else {
-					roll20.spawnFx(fxCoords, fxType, pageId);
-				}
+				roll20.spawnFx(fxCoords, fxType, pageId);
 			};
 
 			this.getRollValue = function (msg, rollOutputExpr) {

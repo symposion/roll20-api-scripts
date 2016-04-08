@@ -28,6 +28,11 @@
         "higherLevelDice": "1",
         "higherLevelDie": "d6"
       },
+      "fx": {
+        "type": "explode",
+        "color": "fire",
+        "pointsOfOrigin": "target"
+      },
       "effects": "The fire spreads around corners. It ignites flammable objects in the area that aren't being worn or carried."
     }
   ]
