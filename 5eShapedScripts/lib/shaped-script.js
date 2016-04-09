@@ -6,6 +6,7 @@ var parseModule = require('./parser');
 var cp = require('./command-parser');
 var utils = require('./utils');
 var mpp = require('./monster-post-processor');
+var at = require('./advantage-tracker.js');
 
 var version        = '0.7.2',
     schemaVersion  = 0.5,
@@ -749,6 +750,20 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
             logWrap: 'importDataWrapper'
         };
     };
+    
+    this.applyAdvantageTracker = function (options) {        
+        var type = 'normal';
+        if (options.advantage) {
+            type = 'advantage';
+        } else if (options.disadvantage) {
+            type = 'disadvantage';
+        }
+        
+        at.setMarkers(type, at.buildResources(at.getSelectedCharacters(options.selected.character)));
+
+        //roll20.log('in AT listener');
+        //roll20.log(at.buildResources(at.getSelectedCharacters(options.selected.character)));
+    };
 
     /////////////////////////////////////////////////
     // Event Handlers
@@ -825,6 +840,8 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
             }
         });
     };
+    
+
 
 
     this.registerChatWatcher = function (handler, triggerFields) {
@@ -1202,7 +1219,17 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
                   min: 1,
                   max: 1
               }
-          })
+         })
+          .addCommand('at', this.applyAdvantageTracker.bind(this))
+              .option('advantage', booleanValidator)
+              .option('disadvantage', booleanValidator)
+              .option('normal', booleanValidator)
+              .withSelection({
+            character: {
+                min: 1,
+                max: Infinity
+            }
+        })
           .addCommand('abilities', this.addAbility.bind(this))
           .withSelection({
               character: {
@@ -1260,6 +1287,13 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         roll20.on('chat:message', this.handleInput.bind(this));
         roll20.on('add:token', this.handleAddToken.bind(this));
         roll20.on('change:token', this.handleChangeToken.bind(this));
+        roll20.on('add:graphic', at.updateToken);
+        roll20.on('change:graphic', at.updateToken);
+        roll20.on('change:attribute', function (msg) {
+                    if (msg.get('name') === 'roll_setting') {
+                        at.updateSetting(msg);
+                    }
+                });
         this.registerChatWatcher(this.handleDeathSave, ['deathSavingThrow', 'character', 'roll1']);
         this.registerChatWatcher(this.handleAmmo, ['ammoName', 'character']);
         this.registerChatWatcher(this.handleFX, ['fx', 'character']);

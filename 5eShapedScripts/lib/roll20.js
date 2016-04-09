@@ -1,4 +1,4 @@
-/* globals state, createObj, findObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
+/* globals state, createObj, findObjs, filterObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
 'use strict';
 var _ = require('underscore');
 //noinspection JSUnusedGlobalSymbols
@@ -17,6 +17,10 @@ module.exports = {
 
     findObjs: function (attributes) {
         return findObjs(attributes);
+    },
+    
+    filterObjs: function (callback) {
+        return filterObjs(callback);
     },
 
     getObj: function (type, id) {
