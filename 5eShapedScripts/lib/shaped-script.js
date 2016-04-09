@@ -629,7 +629,14 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
     this.getTokenRetrievalStrategy = function (token) {
         return function (name, errors) {
-            return token && roll20.getObj('character', token.get('represents'));
+            if (token) {
+                var character = roll20.getObj('character', token.get('represents'));
+                if (character && roll20.getAttrByName(character.id, 'locked')) {
+                    errors.push('Character with name ' + character.get('name') + ' and id ' + character.id + ' was locked and cannot be overwritten');
+                    return null;
+                }
+                return character;
+            }
         };
     };
 
@@ -639,6 +646,10 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
             errors.push('More than one existing character found with name "' + name + '". Can\'t replace');
         }
         else {
+            if (chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
+                errors.push('Character with name ' + chars[0].get('name') + ' and id ' + chars[0].id + ' was locked and cannot be overwritten');
+                return null;
+            }
             return chars[0];
         }
     };
@@ -1134,7 +1145,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         actions: new RepeatingAbilityMaker('action', 'action', 'Actions'),
         reactions: new RepeatingAbilityMaker('reaction', 'action', 'Reactions'),
         legendaries: new RepeatingAbilityMaker('legendaryaction', 'action', 'Legendary Actions'),
-        lairs: new RepeatingAbilityMaker('lairaction', 'action', 'Lair Actions'),
+        //lairs: new RepeatingAbilityMaker('lairaction', 'action', 'Lair Actions'),
         initiative: new RollAbilityMaker('initiative', 'Init'),
         saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
         savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),

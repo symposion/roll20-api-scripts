@@ -1,38 +1,33 @@
+'use strict';
 var _ = require('underscore');
 
 /* jshint camelcase : false */
 function getRenameMapper(newName) {
-    'use strict';
     return function (key, value, output) {
         output[newName] = value;
     };
 }
 
 var identityMapper     = function (key, value, output) {
-        'use strict';
         output[key] = value;
     },
     booleanMapper      = function (key, value, output) {
-        'use strict';
         if (value) {
             output[key] = 'Yes';
         }
     },
     camelCaseFixMapper = function (key, value, output) {
-        'use strict';
         var newKey = key.replace(/[A-Z]/g, function (letter) {
             return '_' + letter.toLowerCase();
         });
         output[newKey] = value;
     },
     castingStatMapper  = function (key, value, output) {
-        'use strict';
         if (value) {
             output.add_casting_modifier = 'Yes';
         }
     },
     componentMapper    = function (key, value, output) {
-        'use strict';
         output.components = _.chain(value)
           .map(function (value, key) {
               if (key !== 'materialMaterial') {
@@ -64,11 +59,9 @@ var identityMapper     = function (key, value, output) {
         higherLevelSecondaryDie: getRenameMapper('second_higher_level_die'),
         condition: getRenameMapper('saving_throw_condition'),
         castingStat: castingStatMapper
-    }
-  ;
+    };
 
 function getObjectMapper(mappings) {
-    'use strict';
     return function (key, value, output) {
         _.each(value, function (propVal, propName) {
             var mapper = mappings[propName];
@@ -90,11 +83,9 @@ var spellMapper = getObjectMapper({
     castingTime: camelCaseFixMapper,
     target: identityMapper,
     description: function (key, value, output) {
-        'use strict';
         output.content = value + (output.content ? '\n' + output.content : '');
     },
     higherLevel: function (key, value, output) {
-        'use strict';
         output.content = (output.content ? output.content + '\n' : '') + value;
     },
     ritual: booleanMapper,
@@ -111,6 +102,12 @@ var spellMapper = getObjectMapper({
         bonus: getRenameMapper('heal_bonus')
     }),
     components: componentMapper,
+    prepared: function (key, value, output) {
+        if (value) {
+            output.is_prepared = 'on';
+        }
+
+    },
     classes: _.noop,
     aoe: _.noop,
     source: _.noop,
@@ -138,13 +135,15 @@ var monsterMapper = getObjectMapper({
     charisma: identityMapper,
     skills: getRenameMapper('skills_srd'),
     spells: function (key, value, output) {
-        'use strict';
         var splitSpells = _.partition(value, _.isObject);
         if (!_.isEmpty(splitSpells[1])) {
             output.spells_srd = splitSpells[1].join(', ');
         }
         if (!_.isEmpty(splitSpells[0])) {
             output.spells = splitSpells[0];
+            _.each(output.spells, function (spell) {
+                spell.prepared = true;
+            });
         }
     },
     savingThrows: getRenameMapper('saving_throws_srd'),
@@ -176,7 +175,6 @@ var pronounTokens = {
 module.exports = {
 
     convertMonster: function (npcObject) {
-        'use strict';
 
         var output = {};
         monsterMapper(null, npcObject, output);
@@ -243,8 +241,6 @@ module.exports = {
 
 
     convertSpells: function (spellObjects, pronounInfo) {
-        'use strict';
-
 
         return _.map(spellObjects, function (spellObject) {
             var converted = {};

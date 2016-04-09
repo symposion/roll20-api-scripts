@@ -2689,7 +2689,14 @@ var ShapedScripts =
 
 			this.getTokenRetrievalStrategy = function (token) {
 				return function (name, errors) {
-					return token && roll20.getObj('character', token.get('represents'));
+					if (token) {
+						var character = roll20.getObj('character', token.get('represents'));
+						if (character && roll20.getAttrByName(character.id, 'locked')) {
+							errors.push('Character with name ' + character.get('name') + ' and id ' + character.id + ' was locked and cannot be overwritten');
+							return null;
+						}
+						return character;
+					}
 				};
 			};
 
@@ -2699,6 +2706,10 @@ var ShapedScripts =
 					errors.push('More than one existing character found with name "' + name + '". Can\'t replace');
 				}
 				else {
+					if (chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
+						errors.push('Character with name ' + chars[0].get('name') + ' and id ' + chars[0].id + ' was locked and cannot be overwritten');
+						return null;
+					}
 					return chars[0];
 				}
 			};
@@ -3194,7 +3205,7 @@ var ShapedScripts =
 				actions: new RepeatingAbilityMaker('action', 'action', 'Actions'),
 				reactions: new RepeatingAbilityMaker('reaction', 'action', 'Reactions'),
 				legendaries: new RepeatingAbilityMaker('legendaryaction', 'action', 'Legendary Actions'),
-				lairs: new RepeatingAbilityMaker('lairaction', 'action', 'Lair Actions'),
+				//lairs: new RepeatingAbilityMaker('lairaction', 'action', 'Lair Actions'),
 				initiative: new RollAbilityMaker('initiative', 'Init'),
 				saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
 				savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
@@ -3330,41 +3341,36 @@ var ShapedScripts =
 	/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
+		'use strict';
 		var _ = __webpack_require__(2);
 
 	/* jshint camelcase : false */
 	function getRenameMapper(newName) {
-	    'use strict';
 	    return function (key, value, output) {
 	        output[newName] = value;
 	    };
 	}
 
 	var identityMapper     = function (key, value, output) {
-	        'use strict';
 	        output[key] = value;
 	    },
 	    booleanMapper      = function (key, value, output) {
-	        'use strict';
 	        if (value) {
 	            output[key] = 'Yes';
 	        }
 	    },
 	    camelCaseFixMapper = function (key, value, output) {
-	        'use strict';
 	        var newKey = key.replace(/[A-Z]/g, function (letter) {
 	            return '_' + letter.toLowerCase();
 	        });
 	        output[newKey] = value;
 	    },
 	    castingStatMapper  = function (key, value, output) {
-	        'use strict';
 	        if (value) {
 	            output.add_casting_modifier = 'Yes';
 	        }
 	    },
 	    componentMapper    = function (key, value, output) {
-	        'use strict';
 	        output.components = _.chain(value)
 	          .map(function (value, key) {
 	              if (key !== 'materialMaterial') {
@@ -3396,11 +3402,9 @@ var ShapedScripts =
 	        higherLevelSecondaryDie: getRenameMapper('second_higher_level_die'),
 	        condition: getRenameMapper('saving_throw_condition'),
 	        castingStat: castingStatMapper
-	    }
-	  ;
+		};
 
 	function getObjectMapper(mappings) {
-	    'use strict';
 	    return function (key, value, output) {
 	        _.each(value, function (propVal, propName) {
 	            var mapper = mappings[propName];
@@ -3422,11 +3426,9 @@ var ShapedScripts =
 	    castingTime: camelCaseFixMapper,
 	    target: identityMapper,
 	    description: function (key, value, output) {
-	        'use strict';
 	        output.content = value + (output.content ? '\n' + output.content : '');
 	    },
 	    higherLevel: function (key, value, output) {
-	        'use strict';
 	        output.content = (output.content ? output.content + '\n' : '') + value;
 	    },
 	    ritual: booleanMapper,
@@ -3443,6 +3445,12 @@ var ShapedScripts =
 	        bonus: getRenameMapper('heal_bonus')
 	    }),
 	    components: componentMapper,
+		prepared: function (key, value, output) {
+			if (value) {
+				output.is_prepared = 'on';
+			}
+
+		},
 	    classes: _.noop,
 	    aoe: _.noop,
 	    source: _.noop,
@@ -3470,13 +3478,15 @@ var ShapedScripts =
 	    charisma: identityMapper,
 	    skills: getRenameMapper('skills_srd'),
 	    spells: function (key, value, output) {
-	        'use strict';
 	        var splitSpells = _.partition(value, _.isObject);
 	        if (!_.isEmpty(splitSpells[1])) {
 	            output.spells_srd = splitSpells[1].join(', ');
 	        }
 	        if (!_.isEmpty(splitSpells[0])) {
 	            output.spells = splitSpells[0];
+				_.each(output.spells, function (spell) {
+					spell.prepared = true;
+				});
 	        }
 	    },
 	    savingThrows: getRenameMapper('saving_throws_srd'),
@@ -3508,7 +3518,6 @@ var ShapedScripts =
 	module.exports = {
 
 	    convertMonster: function (npcObject) {
-	        'use strict';
 
 	        var output = {};
 	        monsterMapper(null, npcObject, output);
@@ -3575,8 +3584,6 @@ var ShapedScripts =
 
 
 	    convertSpells: function (spellObjects, pronounInfo) {
-	        'use strict';
-
 
 	        return _.map(spellObjects, function (spellObject) {
 	            var converted = {};

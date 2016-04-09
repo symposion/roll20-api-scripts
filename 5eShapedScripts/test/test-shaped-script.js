@@ -241,6 +241,7 @@ function runImportMonsterTest(sandbox, monsters, options, preConfigure, expectat
     'use strict';
     sandbox.stub(roll20, 'createObj');
     sandbox.stub(roll20, 'findObjs');
+    sandbox.stub(roll20, 'getAttrByName');
     sandbox.stub(roll20, 'sendChat');
     sandbox.stub(roll20, 'getObj');
     var shapedScript = new ShapedScripts(logger, {}, roll20, null, null, new Reporter());
@@ -268,6 +269,7 @@ function runImportMonsterTest(sandbox, monsters, options, preConfigure, expectat
         attributes[name] = attr;
         return attr;
     });
+    roll20.getAttrByName.withArgs(character.id, 'locked').returns(null);
 
     shapedScript.importMonsters(monsters, options, token, []);
     expect(attributes.import_data_present.props.current).to.equal('on');
