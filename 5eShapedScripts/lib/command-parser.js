@@ -31,7 +31,7 @@ var getObjectParser = function (specObject) {
         var argParts = arg.split(/\s+/);
         var newObject = utils.createObjectFromPath(argParts[0], argParts.slice(1).join(' '));
 
-        var comparison = {spec: specObject, actual: newObject};
+        var comparison = { spec: specObject, actual: newObject };
         while (comparison.spec) {
             var key = _.keys(comparison.actual)[0];
             var spec = comparison.spec[key];
@@ -130,7 +130,7 @@ Command.prototype.optionLookup = function (groupName, lookup) {
 Command.prototype.handle = function (args, selection) {
     'use strict';
     var self = this;
-    var options = {errors: []};
+    var options = { errors: [] };
     options.selected = this.selectionSpec && processSelection(selection || [], this.selectionSpec);
     options = _.reduce(args, function (options, arg) {
         var parser = _.find(self.parsers, function (parser) {
@@ -172,7 +172,7 @@ function processSelection(selection, constraints) {
     return _.reduce(constraints, function (result, constraintDetails, type) {
 
         var objects = _.chain(selection)
-          .where({_type: type === 'character' ? 'graphic' : type})
+          .where({ _type: type === 'character' ? 'graphic' : type })
           .map(function (selected) {
               return roll20.getObj(selected._type, selected._id);
           })

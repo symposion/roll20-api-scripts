@@ -17,7 +17,7 @@ class AdvantageTracker {
 
   getSelectedCharacters(selected) {
     return _.chain(selected)
-      .map(function(s) {
+      .map(function (s) {
         return s.get('_id');
       })
       .value();
@@ -34,7 +34,7 @@ class AdvantageTracker {
     isDisadvantage = '@{roll_disadvantage}' === setting;
 
     if (this.myState.config.advTrackerSettings.showMarkers) {
-      _.each(br[0].tokens, function(t) {
+      _.each(br[0].tokens, function (t) {
         t.set('status_' + disadvantageMarker, isDisadvantage);
         t.set('status_' + advantageMarker, isAdvantage);
       });
@@ -70,15 +70,15 @@ class AdvantageTracker {
 
   buildResources(ids) {
     return _.chain(ids)
-      .map(function(cid) {
+      .map(function (cid) {
         return roll20.getObj('character', cid);
       })
       .reject(_.isUndefined)
       //.filter(this.npcCheckFunc)
-      .map(function(c) {
+      .map(function (c) {
         return {
           character: c,
-          tokens: roll20.filterObjs(function(o) {
+          tokens: roll20.filterObjs(function (o) {
             return 'graphic' === o.get('_type') &&
               c.id === o.get('represents');
           })
@@ -135,9 +135,9 @@ class AdvantageTracker {
       isAdvantage = 'advantage' === type,
       isDisadvantage = 'disadvantage' === type;
 
-    _.each(resources, function(r) {
+    _.each(resources, function (r) {
       if (self.myState.config.advTrackerSettings.showMarkers) {
-        _.each(r.tokens, function(t) {
+        _.each(r.tokens, function (t) {
           t.set('status_' + disadvantageMarker, isDisadvantage);
           t.set('status_' + advantageMarker, isAdvantage);
         });

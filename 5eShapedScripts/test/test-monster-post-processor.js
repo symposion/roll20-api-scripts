@@ -37,59 +37,59 @@ var reformattedInnateTrait = 'Innate Spellcasting. The draw\'s innate spellcasti
   '1/day each: Darkness, Faerie Fire, Levitate (self only)';
 
 var spellList = [
-    'Dancing Lights',
-    'Mage Hand',
-    'Prestidigitation',
-    'Ray of Frost',
-    'Darkness',
-    'Detect Magic',
-    'Faerie Fire',
-    'Levitate',
-    'Magic Missile',
-    'Shield',
-    'Thunderwave',
-    'Detect Thoughts',
-    'Invisibility',
-    'Melf\'s Acid Arrow',
-    'Mirror Image',
-    'Animate Dead',
-    'Counterspell',
-    'Dispel Magic',
-    'Fireball',
-    'Blight',
-    'Dimension Door',
-    'Cloudkill',
-    'Scrying',
-    'Disintegrate',
-    'Globe of Invulnerability',
-    'Finger of Death',
-    'Planeshift',
-    'Dominate Monster',
-    'Power Word Stun',
-    'Power Word Kill'
+  'Dancing Lights',
+  'Mage Hand',
+  'Prestidigitation',
+  'Ray of Frost',
+  'Darkness',
+  'Detect Magic',
+  'Faerie Fire',
+  'Levitate',
+  'Magic Missile',
+  'Shield',
+  'Thunderwave',
+  'Detect Thoughts',
+  'Invisibility',
+  'Melf\'s Acid Arrow',
+  'Mirror Image',
+  'Animate Dead',
+  'Counterspell',
+  'Dispel Magic',
+  'Fireball',
+  'Blight',
+  'Dimension Door',
+  'Cloudkill',
+  'Scrying',
+  'Disintegrate',
+  'Globe of Invulnerability',
+  'Finger of Death',
+  'Planeshift',
+  'Dominate Monster',
+  'Power Word Stun',
+  'Power Word Kill'
 ];
 
 
 describe('monster-post-processor', function () {
-    'use strict';
+  'use strict';
 
 
-    it('extracts spell details', function () {
-        var monster = {
-            traits: [
-                {name: 'Spellcasting', text: spellcastingTrait},
-                {name: 'Innate Spellcasting', text: innateTrait}
-            ]
-        };
-        var reformedMonster = {
-            traits: [
-                {name: 'Spellcasting', text: reformattedTrait},
-                {name: 'Innate Spellcasting', text: reformattedInnateTrait}
-            ],
-            spells: _.map(spellList, _.partial(el.entityLookup.findEntity, 'spells'))
-        };
-        mpp([monster], el.entityLookup);
-        //noinspection JSUnresolvedVariable
-        expect(monster).to.deep.equal(reformedMonster);
-    });
+  it('extracts spell details', function () {
+    var monster = {
+      traits: [
+        { name: 'Spellcasting', text: spellcastingTrait },
+        { name: 'Innate Spellcasting', text: innateTrait }
+      ]
+    };
+    var reformedMonster = {
+      traits: [
+        { name: 'Spellcasting', text: reformattedTrait },
+        { name: 'Innate Spellcasting', text: reformattedInnateTrait }
+      ],
+      spells: _.map(spellList, _.partial(el.entityLookup.findEntity, 'spells'))
+    };
+    mpp([monster], el.entityLookup);
+    //noinspection JSUnresolvedVariable
+    expect(monster).to.deep.equal(reformedMonster);
+  });
 });

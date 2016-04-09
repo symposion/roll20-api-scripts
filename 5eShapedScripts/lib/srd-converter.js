@@ -8,58 +8,58 @@ function getRenameMapper(newName) {
     };
 }
 
-var identityMapper     = function (key, value, output) {
-        output[key] = value;
-    },
-    booleanMapper      = function (key, value, output) {
-        if (value) {
-            output[key] = 'Yes';
+var identityMapper = function (key, value, output) {
+      output[key] = value;
+  },
+  booleanMapper = function (key, value, output) {
+      if (value) {
+          output[key] = 'Yes';
+      }
+  },
+  camelCaseFixMapper = function (key, value, output) {
+      var newKey = key.replace(/[A-Z]/g, function (letter) {
+          return '_' + letter.toLowerCase();
+      });
+      output[newKey] = value;
+  },
+  castingStatMapper = function (key, value, output) {
+      if (value) {
+          output.add_casting_modifier = 'Yes';
+      }
+  },
+  componentMapper = function (key, value, output) {
+      output.components = _.chain(value)
+        .map(function (value, key) {
+            if (key !== 'materialMaterial') {
+                return key.toUpperCase().slice(0, 1);
         }
-    },
-    camelCaseFixMapper = function (key, value, output) {
-        var newKey = key.replace(/[A-Z]/g, function (letter) {
-            return '_' + letter.toLowerCase();
-        });
-        output[newKey] = value;
-    },
-    castingStatMapper  = function (key, value, output) {
-        if (value) {
-            output.add_casting_modifier = 'Yes';
+            else {
+                output.materials = value;
         }
-    },
-    componentMapper    = function (key, value, output) {
-        output.components = _.chain(value)
-          .map(function (value, key) {
-              if (key !== 'materialMaterial') {
-                  return key.toUpperCase().slice(0, 1);
-              }
-              else {
-                  output.materials = value;
-              }
 
-          })
-          .compact()
-          .value()
-          .join(' ');
-    },
-    saveAttackMappings = {
-        ability: getRenameMapper('saving_throw_vs_ability'),
-        type: identityMapper,
-        damage: identityMapper,
-        damageBonus: camelCaseFixMapper,
-        damageType: camelCaseFixMapper,
-        saveSuccess: getRenameMapper('saving_throw_success'),
-        saveFailure: getRenameMapper('saving_throw_failure'),
-        higherLevelDice: camelCaseFixMapper,
-        higherLevelDie: camelCaseFixMapper,
-        secondaryDamage: getRenameMapper('second_damage'),
-        secondaryDamageBonus: getRenameMapper('second_damage_bonus'),
-        secondaryDamageType: getRenameMapper('second_damage_type'),
-        higherLevelSecondaryDice: getRenameMapper('second_higher_level_dice'),
-        higherLevelSecondaryDie: getRenameMapper('second_higher_level_die'),
-        condition: getRenameMapper('saving_throw_condition'),
-        castingStat: castingStatMapper
-    };
+        })
+        .compact()
+        .value()
+        .join(' ');
+  },
+  saveAttackMappings = {
+      ability: getRenameMapper('saving_throw_vs_ability'),
+      type: identityMapper,
+      damage: identityMapper,
+      damageBonus: camelCaseFixMapper,
+      damageType: camelCaseFixMapper,
+      saveSuccess: getRenameMapper('saving_throw_success'),
+      saveFailure: getRenameMapper('saving_throw_failure'),
+      higherLevelDice: camelCaseFixMapper,
+      higherLevelDie: camelCaseFixMapper,
+      secondaryDamage: getRenameMapper('second_damage'),
+      secondaryDamageBonus: getRenameMapper('second_damage_bonus'),
+      secondaryDamageType: getRenameMapper('second_damage_type'),
+      higherLevelSecondaryDice: getRenameMapper('second_higher_level_dice'),
+      higherLevelSecondaryDie: getRenameMapper('second_higher_level_die'),
+      condition: getRenameMapper('saving_throw_condition'),
+      castingStat: castingStatMapper
+  };
 
 function getObjectMapper(mappings) {
     return function (key, value, output) {
@@ -179,25 +179,25 @@ module.exports = {
         var output = {};
         monsterMapper(null, npcObject, output);
 
-        var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', {variable: 'data'});
-        var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', {variable: 'data'});
+        var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', { variable: 'data' });
+        var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', { variable: 'data' });
         var lairRegionalTemplate = function (item) {
             return '**' + item;
         };
 
-        var simpleSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', {variable: 'data'});
+        var simpleSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>', { variable: 'data' });
         var legendarySectionTemplate = _.template('<%=data.title%>\nThe <%=data.name%> can take <%=data.legendaryPoints%> legendary actions, ' +
           'choosing from the options below. It can take only one legendary action at a time and only at the end of another creature\'s turn.' +
-          ' The <%=data.name%> regains spent legendary actions at the start of its turn.\n<% print(data.items.join("\\n")) %>', {variable: 'data'});
-        var regionalSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>\n**<%=data.regionalEffectsFade%>', {variable: 'data'});
+          ' The <%=data.name%> regains spent legendary actions at the start of its turn.\n<% print(data.items.join("\\n")) %>', { variable: 'data' });
+        var regionalSectionTemplate = _.template('<%=data.title%>\n<% print(data.items.join("\\n")); %>\n**<%=data.regionalEffectsFade%>', { variable: 'data' });
 
         var srdContentSections = [
-            {prop: 'traits', itemTemplate: actionTraitTemplate, sectionTemplate: simpleSectionTemplate},
-            {prop: 'actions', itemTemplate: actionTraitTemplate, sectionTemplate: simpleSectionTemplate},
-            {prop: 'reactions', itemTemplate: actionTraitTemplate, sectionTemplate: simpleSectionTemplate},
-            {prop: 'legendaryActions', itemTemplate: legendaryTemplate, sectionTemplate: legendarySectionTemplate},
-            {prop: 'lairActions', itemTemplate: lairRegionalTemplate, sectionTemplate: simpleSectionTemplate},
-            {prop: 'regionalEffects', itemTemplate: lairRegionalTemplate, sectionTemplate: regionalSectionTemplate}
+            { prop: 'traits', itemTemplate: actionTraitTemplate, sectionTemplate: simpleSectionTemplate },
+            { prop: 'actions', itemTemplate: actionTraitTemplate, sectionTemplate: simpleSectionTemplate },
+            { prop: 'reactions', itemTemplate: actionTraitTemplate, sectionTemplate: simpleSectionTemplate },
+            { prop: 'legendaryActions', itemTemplate: legendaryTemplate, sectionTemplate: legendarySectionTemplate },
+            { prop: 'lairActions', itemTemplate: lairRegionalTemplate, sectionTemplate: simpleSectionTemplate },
+            { prop: 'regionalEffects', itemTemplate: lairRegionalTemplate, sectionTemplate: regionalSectionTemplate }
         ];
 
         var makeDataObject = function (propertyName, itemList) {

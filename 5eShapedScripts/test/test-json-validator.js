@@ -7,24 +7,24 @@ var glob = require('glob');
 var fs = require('fs');
 
 describe('json-validator', function () {
-    'use strict';
+  'use strict';
 
-    var jv = new JSONValidator(spec);
+  var jv = new JSONValidator(spec);
 
-    it('validates correctly', function () {
-        expect(jv.validate(data)).to.deep.equal({});
+  it('validates correctly', function () {
+    expect(jv.validate(data)).to.deep.equal({});
+  });
+
+
+  glob.sync('../../roll20/data/monsterSourceFiles/*.json').forEach(function (jsonFile) {
+    describe('JSON file: ' + jsonFile, function () {
+      var monsters = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+      it('validates ' + jsonFile + ' correctly', function () {
+        expect(jv.validate(monsters)).to.deep.equal({});
+      });
     });
 
-
-    glob.sync('../../roll20/data/monsterSourceFiles/*.json').forEach(function (jsonFile) {
-        describe('JSON file: ' + jsonFile, function () {
-            var monsters = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
-            it('validates ' + jsonFile + ' correctly', function () {
-                expect(jv.validate(monsters)).to.deep.equal({});
-            });
-        });
-
-    });
+  });
 
 
 });

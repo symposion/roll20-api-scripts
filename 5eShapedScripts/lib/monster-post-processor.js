@@ -48,7 +48,7 @@ var innateHandler = {
 
 
 function processSpellcastingTrait(monster, traitName, traitHandler, entityLookup) {
-    var trait = _.findWhere(monster.traits, {name: traitName});
+    var trait = _.findWhere(monster.traits, { name: traitName });
     if (trait) {
         var spellList = trait.text.substring(trait.text.indexOf(':') + 1).replace('\n', ' ');
         var castingDetails = trait.text.substring(0, trait.text.indexOf(':'));
