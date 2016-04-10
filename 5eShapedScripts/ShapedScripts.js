@@ -2072,7 +2072,7 @@ var ShapedScripts =
 		var mpp = __webpack_require__(13);
 		var AdvantageTracker = __webpack_require__(14);
 
-		var version = '0.7.2',
+		var version = '0.7.3',
 			schemaVersion = 0.6,
 			configDefaults = {
 				logLevel: 'INFO',
@@ -3285,7 +3285,7 @@ var ShapedScripts =
 							max: Infinity
 						}
 					})
-					.addCommand('import-monster', this.importMonstersFromJson.bind(this))
+					.addCommand(['import-monster', 'monster'], this.importMonstersFromJson.bind(this))
 					.option('all', booleanValidator)
 					.optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monsters'))
 					.option('overwrite', booleanValidator)
@@ -3296,7 +3296,7 @@ var ShapedScripts =
 							max: 1
 						}
 					})
-					.addCommand('import-spell', this.importSpellsFromJson.bind(this))
+					.addCommand(['import-spell', 'spell'], this.importSpellsFromJson.bind(this))
 					.optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spells'))
 					.withSelection({
 						character: {
@@ -3656,10 +3656,10 @@ var ShapedScripts =
 					_.each(pronounTokens, function (pronounType, token) {
 						var replacement = pronounInfo[pronounType];
 						converted.emote = converted.emote.replace(token, replacement);
-	        });
+					});
 				}
 				return converted;
-			});
+	        });
 
 		}
 		/* jshint camelcase : true */
@@ -3885,9 +3885,9 @@ var ShapedScripts =
 
 		var commands = {};
 		return {
-			addCommand: function (cmdString, handler) {
+			addCommand: function (cmds, handler) {
 				var command = new Command(this, handler);
-				commands[cmdString] = command;
+				_.each(_.isArray(cmds) ? cmds : [cmds], cmdString => commands[cmdString] = command);
 				return command;
 			},
 
@@ -3956,10 +3956,10 @@ var ShapedScripts =
 			levelDetails.newText = levelDetails.uses === 0 ? 'At will' : levelDetails.uses + '/day';
 			if (levelDetails.spells.length > 1) {
 				levelDetails.newText += ' each';
-	    }
+			}
 			levelDetails.newText += ': ';
 			levelDetails.newText += levelDetails.spells.join(', ');
-		}
+	    }
 
 	};
 
@@ -4003,7 +4003,7 @@ var ShapedScripts =
 									return this.name;
 								}
 							};
-	          })
+						})
 						.each(function (spell) {
 							spell.object = entityLookup.findEntity('spells', spell.name, true);
 							if (spell.object) {
@@ -4013,10 +4013,10 @@ var ShapedScripts =
 								};
 							}
 						})
-	          .value();
-				})
+						.value();
+	          })
 				.each(traitHandler.setLevelDetailsString)
-				.value();
+	          .value();
 
 
 			trait.text = castingDetails + ':\n' + _.pluck(spellDetailsByLevel, 'newText').join('\n');
@@ -4034,8 +4034,8 @@ var ShapedScripts =
 
 			if (!_.isEmpty(spells)) {
 				monster.spells = spells;
+			}
 	    }
-		}
 		return [];
 	}
 

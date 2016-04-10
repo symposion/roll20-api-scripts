@@ -8,7 +8,7 @@ var utils = require('./utils');
 var mpp = require('./monster-post-processor');
 var AdvantageTracker = require('./advantage-tracker');
 
-var version = '0.7.2',
+var version = '0.7.3',
   schemaVersion = 0.6,
   configDefaults = {
     logLevel: 'INFO',
@@ -1221,7 +1221,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           max: Infinity
         }
       })
-      .addCommand('import-monster', this.importMonstersFromJson.bind(this))
+      .addCommand(['import-monster', 'monster'], this.importMonstersFromJson.bind(this))
       .option('all', booleanValidator)
       .optionLookup('monsters', entityLookup.findEntity.bind(entityLookup, 'monsters'))
       .option('overwrite', booleanValidator)
@@ -1232,7 +1232,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           max: 1
         }
       })
-      .addCommand('import-spell', this.importSpellsFromJson.bind(this))
+      .addCommand(['import-spell', 'spell'], this.importSpellsFromJson.bind(this))
       .optionLookup('spells', entityLookup.findEntity.bind(entityLookup, 'spells'))
       .withSelection({
         character: {
