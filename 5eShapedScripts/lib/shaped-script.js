@@ -10,7 +10,7 @@ var AdvantageTracker = require('./advantage-tracker');
 var ConfigUI = require('./config-ui');
 
 var version = '0.7.3',
-  schemaVersion = 0.6,
+  schemaVersion = 0.7,
   configDefaults = {
     logLevel: 'INFO',
     tokenSettings: {
@@ -33,8 +33,20 @@ var version = '0.7.3',
         link: false,
         showPlayers: false
       },
+      aura1: {
+        radius: '',
+        color: '#FFFF99',
+        square: false
+      },
+      aura2: {
+        radius: '',
+        color: '#59e594',
+        square: false
+      },
       showName: true,
-      showNameToPlayers: false
+      showNameToPlayers: false,
+      showAura1ToPlayers: true,
+      showAura2ToPlayers: true
     },
     newCharSettings: {
       sheetOutput: '@{output_to_all}',
@@ -130,6 +142,13 @@ var booleanValidator = function(value) {
     };
   },
 
+  colorValidator = function(value) {
+    return {
+      converted: value,
+      valid: /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(value)
+    };
+  },
+
   sheetOutputValidator = getOptionList({
     public: '@{output_to_all}',
     whisper: '@{output_to_gm}'
@@ -139,6 +158,11 @@ var booleanValidator = function(value) {
     max: booleanValidator,
     link: booleanValidator,
     showPlayers: booleanValidator
+  },
+  auraValidator = {
+    radius: integerValidator,
+    color: colorValidator,
+    square: booleanValidator
   },
   regExpValidator = function(value) {
     try {
@@ -228,8 +252,12 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       bar1: barValidator,
       bar2: barValidator,
       bar3: barValidator,
+      aura1: auraValidator,
+      aura2: auraValidator,
       showName: booleanValidator,
-      showNameToPlayers: booleanValidator
+      showNameToPlayers: booleanValidator,
+      showAura1ToPlayers: booleanValidator,
+      showAura2ToPlayers: booleanValidator
     },
     newCharSettings: {
       sheetOutput: sheetOutputValidator,
@@ -559,8 +587,18 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           }
         });
 
+      _.chain(settings)
+        .pick(['aura1', 'aura2'])
+        .each(function(aura, auraName) {
+          token.set(auraName + '_radius', aura.radius);
+          token.set(auraName + '_color', aura.color);
+          token.set(auraName + '_square', aura.square);
+        });
+
       token.set('showname', settings.showName);
       token.set('showplayers_name', settings.showNameToPlayers);
+      token.set('showplayers_aura1', settings.showAura1ToPlayers);
+      token.set('showplayers_aura2', settings.showAura2ToPlayers);
     };
   };
 
@@ -1129,6 +1167,10 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           break;
         case 0.5:
           _.defaults(myState.config, utils.deepClone(configDefaults));
+          myState.version = schemaVersion;
+          break;
+        case 0.6:
+          _.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
           myState.version = schemaVersion;
           break;
         default:

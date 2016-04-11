@@ -2101,7 +2101,7 @@ var ShapedScripts =
 		var ConfigUI = __webpack_require__(15);
 
 		var version = '0.7.3',
-			schemaVersion = 0.6,
+			schemaVersion = 0.7,
 			configDefaults = {
 				logLevel: 'INFO',
 				tokenSettings: {
@@ -2124,8 +2124,20 @@ var ShapedScripts =
 						link: false,
 						showPlayers: false
 					},
+					aura1: {
+						radius: '',
+						color: '#FFFF99',
+						square: false
+					},
+					aura2: {
+						radius: '',
+						color: '#59e594',
+						square: false
+					},
 					showName: true,
-					showNameToPlayers: false
+					showNameToPlayers: false,
+					showAura1ToPlayers: true,
+					showAura2ToPlayers: true
 				},
 				newCharSettings: {
 					sheetOutput: '@{output_to_all}',
@@ -2221,6 +2233,13 @@ var ShapedScripts =
 				};
 			},
 
+			colorValidator = function(value) {
+				return {
+					converted: value,
+					valid: /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(value)
+				};
+			},
+
 			sheetOutputValidator = getOptionList({
 				public: '@{output_to_all}',
 				whisper: '@{output_to_gm}'
@@ -2230,6 +2249,11 @@ var ShapedScripts =
 				max: booleanValidator,
 				link: booleanValidator,
 				showPlayers: booleanValidator
+			},
+			auraValidator = {
+				radius: integerValidator,
+				color: colorValidator,
+				square: booleanValidator
 			},
 			regExpValidator = function(value) {
 				try {
@@ -2244,7 +2268,7 @@ var ShapedScripts =
 				return {
 					converted: null,
 					valid: false
-	    };
+				};
 			};
 
 
@@ -2319,8 +2343,12 @@ var ShapedScripts =
 					bar1: barValidator,
 					bar2: barValidator,
 					bar3: barValidator,
+					aura1: auraValidator,
+					aura2: auraValidator,
 					showName: booleanValidator,
-					showNameToPlayers: booleanValidator
+					showNameToPlayers: booleanValidator,
+					showAura1ToPlayers: booleanValidator,
+					showAura2ToPlayers: booleanValidator
 				},
 				newCharSettings: {
 					sheetOutput: sheetOutputValidator,
@@ -2650,8 +2678,18 @@ var ShapedScripts =
 							}
 						});
 
+					_.chain(settings)
+						.pick(['aura1', 'aura2'])
+						.each(function(aura, auraName) {
+							token.set(auraName + '_radius', aura.radius);
+							token.set(auraName + '_color', aura.color);
+							token.set(auraName + '_square', aura.square);
+						});
+
 					token.set('showname', settings.showName);
 					token.set('showplayers_name', settings.showNameToPlayers);
+					token.set('showplayers_aura1', settings.showAura1ToPlayers);
+					token.set('showplayers_aura2', settings.showAura2ToPlayers);
 				};
 			};
 
@@ -3224,6 +3262,10 @@ var ShapedScripts =
 							_.defaults(myState.config, utils.deepClone(configDefaults));
 							myState.version = schemaVersion;
 							break;
+						case 0.6:
+							_.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
+							myState.version = schemaVersion;
+							break;
 						default:
 							if(!myState.version) {
 								_.defaults(myState, {
@@ -3530,7 +3572,7 @@ var ShapedScripts =
 					_.each(pronounTokens, function(pronounType, token) {
 						var replacement = pronounInfo[pronounType];
 						converted.emote = converted.emote.replace(token, replacement);
-	        });
+					});
 				}
 				return converted;
 			});
@@ -3831,7 +3873,7 @@ var ShapedScripts =
 			levelDetails.newText = levelDetails.uses === 0 ? 'At will' : levelDetails.uses + '/day';
 			if(levelDetails.spells.length > 1) {
 				levelDetails.newText += ' each';
-	    }
+			}
 			levelDetails.newText += ': ';
 			levelDetails.newText += levelDetails.spells.join(', ');
 		}
@@ -3878,7 +3920,7 @@ var ShapedScripts =
 									return this.name;
 								}
 							};
-	          })
+						})
 						.each(function(spell) {
 							spell.object = entityLookup.findEntity('spells', spell.name, true);
 							if(spell.object) {
@@ -3888,7 +3930,7 @@ var ShapedScripts =
 								};
 							}
 						})
-	          .value();
+						.value();
 				})
 				.each(traitHandler.setLevelDetailsString)
 				.value();
