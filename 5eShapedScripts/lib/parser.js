@@ -39,11 +39,11 @@ function getParser(formatSpec, logger) {
   //noinspection JSUnusedGlobalSymbols
   var parserModule = {
 
-    makeContentModelParser: function (fieldSpec, ordered) {
+    makeContentModelParser: function(fieldSpec, ordered) {
       var module = this;
       return {
 
-        parse: function (stateManager, textLines, resume) {
+        parse: function(stateManager, textLines, resume) {
 
           var parseState = stateManager.enterChildParser(this, resume),
             someMatch = false,
@@ -53,8 +53,8 @@ function getParser(formatSpec, logger) {
           parseState.subParsers = parseState.subParsers || module.makeParserList(fieldSpec.contentModel);
 
 
-          if (parseState.resumeParser) {
-            if (!parseState.resumeParser.resumeParse(stateManager, textLines)) {
+          if(parseState.resumeParser) {
+            if(!parseState.resumeParser.resumeParse(stateManager, textLines)) {
               stateManager.leaveChildParser(this);
               return false;
             }
@@ -63,11 +63,11 @@ function getParser(formatSpec, logger) {
 
           }
 
-          var parseRunner = function (parser, index, parsers) {
+          var parseRunner = function(parser, index, parsers) {
 
-            if (!parser.parse(stateManager, textLines)) {
+            if(!parser.parse(stateManager, textLines)) {
 
-              if (parser.required === 0 || !ordered) {
+              if(parser.required === 0 || !ordered) {
                 //No match but it's ok to keep looking
                 //through the rest of the content model for one
                 return false;
@@ -77,11 +77,11 @@ function getParser(formatSpec, logger) {
             }
             else {
               parser.justMatched = true;
-              if (parser.required > 0) {
+              if(parser.required > 0) {
                 parser.required--;
               }
               parser.allowed--;
-              if (ordered) {
+              if(ordered) {
                 //Set all the previous parsers to be exhausted since we've matched
                 //this one and we're in a strictly ordered content model.
                 _.each(parsers.slice(0, index), _.partial(_.extend, _, { allowed: 0 }));
@@ -95,7 +95,7 @@ function getParser(formatSpec, logger) {
             stopParser = _.find(parseState.subParsers, parseRunner);
             logger.debug('Stopped at parser $$$', stopParser);
             canContinue = stopParser && stopParser.justMatched;
-            if (stopParser) {
+            if(stopParser) {
               someMatch = someMatch || stopParser.justMatched;
               stopParser.justMatched = false;
             }
@@ -103,38 +103,38 @@ function getParser(formatSpec, logger) {
             //Lose any parsers that have used up all their cardinality already
             parseState.subParsers = _.reject(parseState.subParsers, { allowed: 0 });
 
-          } while (!_.isEmpty(parseState.subParsers) && !_.isEmpty(textLines) && canContinue);
+          } while(!_.isEmpty(parseState.subParsers) && !_.isEmpty(textLines) && canContinue);
 
           stateManager.leaveChildParser(this, someMatch ? parseState : undefined);
 
           return someMatch;
         },
 
-        resumeParse: function (stateManager, textLines) {
+        resumeParse: function(stateManager, textLines) {
           return this.parse(stateManager, textLines, true);
         },
-        complete: function (parseState, finalText) {
+        complete: function(parseState, finalText) {
           var missingContent = _.filter(parseState.subParsers, 'required');
-          if (!_.isEmpty(missingContent)) {
+          if(!_.isEmpty(missingContent)) {
             throw new MissingContentError(missingContent);
           }
         }
       };
     },
 
-    matchParseToken: function (myParseState, textLines) {
-      if (_.isEmpty(textLines) || this.bare) {
+    matchParseToken: function(myParseState, textLines) {
+      if(_.isEmpty(textLines) || this.bare) {
         return !_.isEmpty(textLines);
       }
 
       var re = new RegExp('^(.*?)(' + this.parseToken + ')(?:[\\s.]+|$)', 'i');
       var match = textLines[0].match(re);
-      if (match) {
+      if(match) {
         logger.debug('Found match $$$', match[0]);
         myParseState.forPrevious = match[1];
         myParseState.text = '';
         textLines[0] = textLines[0].slice(match[0].length).trim();
-        if (!textLines[0]) {
+        if(!textLines[0]) {
           textLines.shift();
         }
       }
@@ -142,13 +142,13 @@ function getParser(formatSpec, logger) {
       return !!match;
     },
 
-    matchValue: function (myParseState, textLines) {
-      if (this.pattern && this.bare) {
+    matchValue: function(myParseState, textLines) {
+      if(this.pattern && this.bare) {
         //If this is not a bare value then we can take all the text up to next
         //token and just validate it at the end. If it is, then the pattern itself
         //defines whether this field matches and we must run it immediately.
 
-        if (_.isEmpty(textLines)) {
+        if(_.isEmpty(textLines)) {
           return false;
         }
         textLines[0] = textLines[0].trim();
@@ -158,19 +158,19 @@ function getParser(formatSpec, logger) {
         logger.debug('$$$ attempting to match value [$$$] against regexp $$$', this.name, textLines[0], re.toString());
         var match = textLines[0].match(re);
 
-        if (match) {
+        if(match) {
           logger.debug('Successful match! $$$', match);
           myParseState.text = match[matchGroup];
-          if (!myParseState.forPrevious && this.forPreviousMatchGroup) {
+          if(!myParseState.forPrevious && this.forPreviousMatchGroup) {
             logger.debug('Setting forPrevious to  $$$', match[this.forPreviousMatchGroup]);
             myParseState.forPrevious = match[this.forPreviousMatchGroup];
           }
           textLines[0] = textLines[0].slice(match.index + match[0].length);
-          if (this.forNextMatchGroup && match[this.forNextMatchGroup]) {
+          if(this.forNextMatchGroup && match[this.forNextMatchGroup]) {
             textLines[0] = match[this.forNextMatchGroup] + textLines[0];
           }
 
-          if (!textLines[0]) {
+          if(!textLines[0]) {
             myParseState.text += '\n';
             textLines.shift();
           }
@@ -189,46 +189,46 @@ function getParser(formatSpec, logger) {
 
     },
 
-    orderedContent: function (fieldSpec) {
+    orderedContent: function(fieldSpec) {
       return this.makeContentModelParser(fieldSpec, true);
     },
 
-    unorderedContent: function (fieldSpec) {
+    unorderedContent: function(fieldSpec) {
       return this.makeContentModelParser(fieldSpec, false);
     },
 
-    string: function (fieldSpec) {
+    string: function(fieldSpec) {
       return this.makeSimpleValueParser();
     },
 
 
-    enumType: function (fieldSpec) {
+    enumType: function(fieldSpec) {
       var parser = this.makeSimpleValueParser();
 
-      if (fieldSpec.bare) {
-        parser.matchValue = function (myParseState, textLines) {
+      if(fieldSpec.bare) {
+        parser.matchValue = function(myParseState, textLines) {
           var parser = this;
           var firstMatch = _.chain(fieldSpec.enumValues)
-            .map(function (enumValue) {
+            .map(function(enumValue) {
               logger.debug('Attempting to parse as enum property $$$', enumValue);
               var pattern = '^(.*?)(' + enumValue + ')(?:[\\s.]+|$)';
               var re = new RegExp(pattern, parser.caseSensitive ? '' : 'i');
               return textLines[0].match(re);
             })
             .compact()
-            .sortBy(function (match) {
+            .sortBy(function(match) {
               return match[1].length;
             })
             .first()
             .value();
 
 
-          if (firstMatch) {
+          if(firstMatch) {
             logger.debug('Finished trying to parse as enum property, match: $$$', firstMatch);
             myParseState.text = firstMatch[2];
             myParseState.forPrevious = firstMatch[1];
             textLines[0] = textLines[0].slice(firstMatch.index + firstMatch[0].length);
-            if (!textLines[0]) {
+            if(!textLines[0]) {
               textLines.shift();
             }
             return true;
@@ -240,19 +240,19 @@ function getParser(formatSpec, logger) {
       return parser;
     },
 
-    number: function (fieldSpec) {
+    number: function(fieldSpec) {
       var parser = this.makeSimpleValueParser();
-      parser.typeConvert = function (textValue) {
+      parser.typeConvert = function(textValue) {
         var parts = textValue.split('/');
         var intVal;
-        if (parts.length > 1) {
+        if(parts.length > 1) {
           intVal = parts[0] / parts[1];
         }
         else {
           intVal = parseInt(textValue);
         }
 
-        if (_.isNaN(intVal)) {
+        if(_.isNaN(intVal)) {
           throw new BadValueError(fieldSpec.name, textValue, '[Integer]');
         }
         return intVal;
@@ -261,21 +261,21 @@ function getParser(formatSpec, logger) {
     },
 
 
-    ability: function (fieldSpec) {
+    ability: function(fieldSpec) {
       var parser = this.number();
-      parser.matchValue = function (parseState, textLines) {
-        if (_.isEmpty(textLines)) {
+      parser.matchValue = function(parseState, textLines) {
+        if(_.isEmpty(textLines)) {
           return false;
         }
         var re = new RegExp('^([\\sa-z\\(\\)]*)(\\d+(?:\\s?\\([\\-+\\d]+\\))?)', 'i');
         logger.debug('Attempting to match value [$$$] against regexp $$$', textLines[0].trim(), re.toString());
         var match = textLines[0].trim().match(re);
 
-        if (match) {
+        if(match) {
           logger.debug('Successful match $$$', match);
           parseState.text = match[2];
           textLines[0] = match[1] + textLines[0].slice(match.index + match[0].length);
-          if (!textLines[0]) {
+          if(!textLines[0]) {
             textLines.shift();
           }
           return true;
@@ -286,21 +286,21 @@ function getParser(formatSpec, logger) {
       return parser;
     },
 
-    heading: function (fieldSpec) {
+    heading: function(fieldSpec) {
       fieldSpec.bare = true;
       var parser = this.makeSimpleValueParser();
       parser.skipOutput = true;
       return parser;
     },
 
-    makeSimpleValueParser: function () {
+    makeSimpleValueParser: function() {
       var module = this;
       return {
-        parse: function (stateManager, textLines) {
+        parse: function(stateManager, textLines) {
           var parseState = stateManager.enterChildParser(this);
           var match = this.matchParseToken(parseState, textLines) &&
             this.matchValue(parseState, textLines);
-          if (match) {
+          if(match) {
             stateManager.completeCurrentStack(parseState.forPrevious);
             delete parseState.forPrevious;
             stateManager.leaveChildParser(this, parseState);
@@ -310,22 +310,22 @@ function getParser(formatSpec, logger) {
           }
           return match;
         },
-        complete: function (parseState, finalText) {
+        complete: function(parseState, finalText) {
           parseState.text += finalText ? finalText : '';
-          if (parseState.text) {
+          if(parseState.text) {
             parseState.value = this.extractValue(parseState.text);
             parseState.value = this.typeConvert(parseState.value);
             parseState.setOutputValue();
           }
         },
-        extractValue: function (text) {
+        extractValue: function(text) {
           text = text.trim();
-          if (this.pattern && !this.bare) {
+          if(this.pattern && !this.bare) {
 
 
             var regExp = new RegExp(this.pattern, this.caseSensitive ? '' : 'i');
             var match = text.match(regExp);
-            if (match) {
+            if(match) {
               var matchGroup = this.matchGroup || 0;
               return match[matchGroup];
             }
@@ -337,11 +337,11 @@ function getParser(formatSpec, logger) {
             return text;
           }
         },
-        typeConvert: function (textValue) {
+        typeConvert: function(textValue) {
           return textValue;
         },
-        resumeParse: function (stateManager, textLines) {
-          if (_.isEmpty(textLines)) {
+        resumeParse: function(stateManager, textLines) {
+          if(_.isEmpty(textLines)) {
             return false;
           }
           var parseState = stateManager.enterChildParser(this, true);
@@ -354,56 +354,56 @@ function getParser(formatSpec, logger) {
       };
     },
 
-    makeBaseParseState: function (skipOutput, propertyPath, outputObject, completedObjects) {
+    makeBaseParseState: function(skipOutput, propertyPath, outputObject, completedObjects) {
       return {
         text: '',
-        getObjectValue: function () {
+        getObjectValue: function() {
           var value = outputObject;
           var segments = _.clone(propertyPath);
-          while (segments.length) {
+          while(segments.length) {
             var prop = segments.shift();
-            if (prop.flatten) {
+            if(prop.flatten) {
               continue;
             }
             value = value[prop.name];
-            if (_.isArray(value)) {
+            if(_.isArray(value)) {
               value = _.last(value);
             }
           }
           return value;
         },
-        setOutputValue: function () {
-          if (skipOutput) {
+        setOutputValue: function() {
+          if(skipOutput) {
             return;
           }
           var outputTo = outputObject;
           var segments = _.clone(propertyPath);
-          while (segments.length > 0) {
+          while(segments.length > 0) {
             var prop = segments.shift();
-            if (prop.flatten) {
+            if(prop.flatten) {
               continue;
             }
 
             var currentValue = outputTo[prop.name];
             var newValue = segments.length === 0 ? this.value : {};
 
-            if (_.isUndefined(currentValue) && prop.allowed > 1) {
+            if(_.isUndefined(currentValue) && prop.allowed > 1) {
               currentValue = [];
               outputTo[prop.name] = currentValue;
             }
 
-            if (_.isArray(currentValue)) {
+            if(_.isArray(currentValue)) {
               var arrayItem = _.find(currentValue, _.partial(_.negate(_.contains), completedObjects));
-              if (!arrayItem) {
+              if(!arrayItem) {
                 currentValue.push(newValue);
                 arrayItem = _.last(currentValue);
               }
               newValue = arrayItem;
             }
-            else if (_.isUndefined(currentValue)) {
+            else if(_.isUndefined(currentValue)) {
               outputTo[prop.name] = newValue;
             }
-            else if (segments.length === 0) {
+            else if(segments.length === 0) {
               throw new Error('Simple value property somehow already had value when we came to set it');
             }
             else {
@@ -414,52 +414,52 @@ function getParser(formatSpec, logger) {
           }
         },
         logWrap: 'parseState[' + _.pluck(propertyPath, 'name').join('/') + ']',
-        toJSON: function () {
+        toJSON: function() {
           return _.extend(_.clone(this), { propertyPath: propertyPath });
         }
       };
     },
 
-    makeParseStateManager: function () {
+    makeParseStateManager: function() {
       var incompleteParserStack = [];
       var currentPropertyPath = [];
       var completedObjects = [];
       var module = this;
       return {
         outputObject: {},
-        leaveChildParser: function (parser, state) {
+        leaveChildParser: function(parser, state) {
           currentPropertyPath.pop();
-          if (state) {
+          if(state) {
             state.resumeParser = _.isEmpty(incompleteParserStack) ? null : _.last(incompleteParserStack).parser;
             incompleteParserStack.push({ parser: parser, state: state });
           }
         },
-        completeCurrentStack: function (finalText) {
-          while (!_.isEmpty(incompleteParserStack)) {
+        completeCurrentStack: function(finalText) {
+          while(!_.isEmpty(incompleteParserStack)) {
             var incomplete = incompleteParserStack.shift();
             incomplete.parser.complete(incomplete.state, finalText);
             var value = incomplete.state.getObjectValue();
-            if (_.isObject(value) && !incomplete.parser.flatten) {
+            if(_.isObject(value) && !incomplete.parser.flatten) {
               //Crude but this list is unlikely to get that big
               completedObjects.push(value);
             }
           }
         },
-        enterChildParser: function (parser, resume) {
+        enterChildParser: function(parser, resume) {
           currentPropertyPath.push({
             name: parser.name,
             allowed: parser.allowed,
             flatten: parser.flatten
           });
 
-          if (!resume || _.isEmpty(incompleteParserStack) || parser !== _.last(incompleteParserStack).parser) {
+          if(!resume || _.isEmpty(incompleteParserStack) || parser !== _.last(incompleteParserStack).parser) {
             return module.makeBaseParseState(parser.skipOutput, _.clone(currentPropertyPath), this.outputObject, completedObjects);
           }
 
           return incompleteParserStack.pop().state;
         },
         logWrap: 'parserState',
-        toJSON: function () {
+        toJSON: function() {
           return _.extend(_.clone(this), {
             incompleteParsers: incompleteParserStack,
             propertyPath: currentPropertyPath
@@ -470,13 +470,15 @@ function getParser(formatSpec, logger) {
     },
 
     parserId: 0,
-    parserAttributes: ['forPreviousMatchGroup', 'forNextMatchGroup',
+    parserAttributes: [
+      'forPreviousMatchGroup', 'forNextMatchGroup',
       'parseToken', 'flatten', 'pattern', 'matchGroup', 'bare', 'caseSensitive',
-      'name', 'skipOutput'],
-    getParserFor: function (fieldSpec) {
+      'name', 'skipOutput'
+    ],
+    getParserFor: function(fieldSpec) {
       logger.debug('Making parser for field $$$', fieldSpec);
       var parserBuilder = this[fieldSpec.type];
-      if (!parserBuilder) {
+      if(!parserBuilder) {
         throw new Error('Can\'t make parser for type ' + fieldSpec.type);
       }
       var parser = parserBuilder.call(this, fieldSpec);
@@ -492,11 +494,11 @@ function getParser(formatSpec, logger) {
     },
 
 
-    makeParserList: function (contentModelArray) {
+    makeParserList: function(contentModelArray) {
       var module = this;
       return _.chain(contentModelArray)
         .reject('noParse')
-        .reduce(function (parsers, fieldSpec) {
+        .reduce(function(parsers, fieldSpec) {
           parsers.push(module.getParserFor(fieldSpec));
           return parsers;
         }, [])
@@ -510,7 +512,7 @@ function getParser(formatSpec, logger) {
 
   var parser = parserModule.getParserFor(formatSpec);
   return {
-    parse: function (text) {
+    parse: function(text) {
       logger.debug('Text: $$$', text);
 
       var textLines = _.chain(text.split('\n'))
@@ -520,13 +522,13 @@ function getParser(formatSpec, logger) {
       logger.debug(parser);
       var stateManager = parserModule.makeParseStateManager();
       var success = parser.parse(stateManager, textLines);
-      while (success && !_.isEmpty(textLines)) {
+      while(success && !_.isEmpty(textLines)) {
         parser.resumeParse(stateManager, textLines);
       }
 
       stateManager.completeCurrentStack(textLines.join('\n'));
 
-      if (success && textLines.length === 0) {
+      if(success && textLines.length === 0) {
         stateManager.outputObject.version = formatSpec.formatVersion;
         logger.info(stateManager.outputObject);
         return stateManager.outputObject;
@@ -554,7 +556,7 @@ function MissingContentError(missingFieldParsers) {
   'use strict';
   this.missingFieldParsers = missingFieldParsers;
   //noinspection JSUnusedGlobalSymbols
-  this.message = _.reduce(this.missingFieldParsers, function (memo, parser) {
+  this.message = _.reduce(this.missingFieldParsers, function(memo, parser) {
       return memo + '<li>Field ' + parser.parseToken + ' should have appeared ' + parser.required + ' more times</li>';
     }, '<ul>') + '</ul>';
 }
@@ -569,7 +571,8 @@ function BadValueError(name, value, pattern) {
   this.value = value;
   this.pattern = pattern;
   //noinspection JSUnusedGlobalSymbols
-  this.message = 'Bad value [' + this.value + '] for field [' + this.name + ']. Should have matched pattern: ' + this.pattern;
+  this.message = 'Bad value [' + this.value + '] for field [' + this.name + ']. Should have matched pattern: ' +
+    this.pattern;
 }
 BadValueError.prototype = new ParserError();
 

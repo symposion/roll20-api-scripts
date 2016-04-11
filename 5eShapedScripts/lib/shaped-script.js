@@ -96,12 +96,12 @@ var configToAttributeLookup = {
 };
 
 var booleanValidator = function(value) {
-  var converted = value === 'true' || (value === 'false' ? false : value);
-  return {
-    valid: typeof value === 'boolean' || value === 'true' || value === 'false',
-    converted: converted
-  };
-},
+    var converted = value === 'true' || (value === 'false' ? false : value);
+    return {
+      valid: typeof value === 'boolean' || value === 'true' || value === 'false',
+      converted: converted
+    };
+  },
 
   stringValidator = function(value) {
     return {
@@ -112,7 +112,7 @@ var booleanValidator = function(value) {
 
   getOptionList = function(options) {
     return function(value) {
-      if (value === undefined) {
+      if(value === undefined) {
         return options;
       }
       return {
@@ -148,7 +148,7 @@ var booleanValidator = function(value) {
         valid: true
       };
     }
-    catch (e) {
+    catch(e) {
     }
     return {
       converted: null,
@@ -194,7 +194,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
     try {
       logger.debug(msg);
-      if (msg.type !== 'api') {
+      if(msg.type !== 'api') {
         this.triggerChatWatchers(msg);
         return;
       }
@@ -202,8 +202,8 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       this.getCommandProcessor().processCommand(msg);
 
     }
-    catch (e) {
-      if (typeof e === 'string' || e instanceof parseModule.ParserError) {
+    catch(e) {
+      if(typeof e === 'string' || e instanceof parseModule.ParserError) {
         reportError(e);
         logger.error('Error: $$$', e.toString());
       }
@@ -295,13 +295,13 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     utils.deepExtend(myState.config, options);
 
     var menu;
-    if (options.advTrackerSettings) {
+    if(options.advTrackerSettings) {
       menu = ConfigUI.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
     }
-    else if (options.tokenSettings) {
+    else if(options.tokenSettings) {
       menu = ConfigUI.getConfigOptionGroupTokens(myState.config, configOptionsSpec);
     }
-    else if (options.newCharSettings) {
+    else if(options.newCharSettings) {
       menu = ConfigUI.getConfigOptionGroupNewCharSettings(myState.config, configOptionsSpec);
     }
     else {
@@ -316,7 +316,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     _.each(options.selected.graphic, function(token) {
       var represents = token.get('represents');
       var character = roll20.getObj('character', represents);
-      if (character) {
+      if(character) {
         self.getTokenConfigurer(token)(character);
       }
     });
@@ -327,32 +327,34 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     var self = this;
     _.each(options.selected.graphic, function(token) {
       var text = token.get('gmnotes');
-      if (text) {
+      if(text) {
         text = sanitise(unescape(text), logger);
         var monsters = parser.parse(text).monsters;
         mpp(monsters, entityLookup);
-        self.importMonsters(monsters, options, token, [function(character) {
-          character.set('gmnotes', text.replace(/\n/g, '<br>'));
-        }]);
+        self.importMonsters(monsters, options, token, [
+          function(character) {
+            character.set('gmnotes', text.replace(/\n/g, '<br>'));
+          }
+        ]);
       }
     });
   };
 
   this.importMonstersFromJson = function(options) {
 
-    if (options.all) {
+    if(options.all) {
       options.monsters = entityLookup.getAll('monsters');
       delete options.all;
     }
 
-    if (_.isEmpty(options.monsters)) {
+    if(_.isEmpty(options.monsters)) {
       this.showEntityPicker('monster', 'monsters');
     }
     else {
       this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
       options.monsters = options.monsters.slice(20);
       var self = this;
-      if (!_.isEmpty(options.monsters)) {
+      if(!_.isEmpty(options.monsters)) {
         setTimeout(function() {
           self.importMonstersFromJson(options);
         }, 200);
@@ -364,16 +366,16 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   this.importMonsters = function(monsters, options, token, characterProcessors) {
     var characterRetrievalStrategies = [];
 
-    if (token) {
+    if(token) {
       characterProcessors.push(this.getAvatarCopier(token).bind(this));
-      if (_.size(monsters) === 1) {
+      if(_.size(monsters) === 1) {
         characterProcessors.push(this.getTokenConfigurer(token).bind(this));
-        if (options.replace || options.overwrite) {
+        if(options.replace || options.overwrite) {
           characterRetrievalStrategies.push(this.getTokenRetrievalStrategy(token).bind(this));
         }
       }
     }
-    if (options.replace) {
+    if(options.replace) {
       characterRetrievalStrategies.push(this.nameRetrievalStrategy);
     }
 
@@ -388,7 +390,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           return result || strategy(monsterData.name, errors);
         }, null);
 
-        if (!character) {
+        if(!character) {
           logger.error('Failed to find or create character for monster $$$', monsterData.name);
           return null;
         }
@@ -405,20 +407,21 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       .compact()
       .value();
 
-    if (!_.isEmpty(importedList)) {
+    if(!_.isEmpty(importedList)) {
       var monsterList = importedList.join('</li><li>');
       report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
     }
-    if (!_.isEmpty(errors)) {
+    if(!_.isEmpty(errors)) {
       var errorList = errors.join('</li><li>');
       reportError('The following errors occurred on import:  <ul><li>' + errorList + '</li></ul>');
     }
   };
 
   this.importSpellsFromJson = function(options) {
-    if (_.isEmpty(options.spells)) {
+    if(_.isEmpty(options.spells)) {
       this.showEntityPicker('spell', 'spells');
-    } else {
+    }
+    else {
       this.addSpellsToCharacter(options.selected.character, options.spells);
     }
   };
@@ -426,16 +429,19 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   this.showEntityPicker = function(entityName, entityNamePlural) {
     var list = entityLookup.getKeys(entityNamePlural, true);
 
-    if (!_.isEmpty(list)) {
+    if(!_.isEmpty(list)) {
       // title case the  names for better display
       list.forEach(function(part, index) {
         list[index] = utils.toTitleCase(part);
       });
       // create a clickable button with a roll query to select an entity from the loaded json
 
-      report(utils.toTitleCase(entityName) + ' Importer', '<a href="!shaped-import-' + entityName + ' --?{Pick a ' + entityName + '|' + list.join('|') + '}">Click to select a ' + entityName + '</a>');
-    } else {
-      reportError('Could not find any ' + entityNamePlural + '.<br/>Please ensure you have a properly formatted ' + entityNamePlural + ' json file.');
+      report(utils.toTitleCase(entityName) + ' Importer', '<a href="!shaped-import-' + entityName + ' --?{Pick a ' +
+        entityName + '|' + list.join('|') + '}">Click to select a ' + entityName + '</a>');
+    }
+    else {
+      reportError('Could not find any ' + entityNamePlural + '.<br/>Please ensure you have a properly formatted ' +
+        entityNamePlural + ' json file.');
     }
   };
 
@@ -445,8 +451,8 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     var defaultIndex = Math.min(myState.config.defaultGenderIndex, myState.config.genderPronouns.length);
     var defaultPronounInfo = myState.config.genderPronouns[defaultIndex];
     var pronounInfo = _.clone(_.find(myState.config.genderPronouns, function(pronounDetails) {
-      return new RegExp(pronounDetails.matchPattern, 'i').test(gender);
-    }) || defaultPronounInfo);
+        return new RegExp(pronounDetails.matchPattern, 'i').test(gender);
+      }) || defaultPronounInfo);
 
     _.defaults(pronounInfo, defaultPronounInfo);
 
@@ -455,10 +461,10 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       spells: srdConverter.convertSpells(spells, pronounInfo)
     };
     this.getImportDataWrapper(character).mergeImportData(importData);
-    if (!noreport) {
+    if(!noreport) {
       report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function(spell) {
-        return spell.name;
-      }).join('</li><li>') + '</li></ul>');
+          return spell.name;
+        }).join('</li><li>') + '</li></ul>');
     }
   };
 
@@ -474,7 +480,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     var expandedSpells = converted.spells;
     delete converted.spells;
     this.getImportDataWrapper(character).setNewImportData({ npc: converted });
-    if (expandedSpells) {
+    if(expandedSpells) {
       this.addSpellsToCharacter(character, expandedSpells, true);
     }
     return character;
@@ -483,10 +489,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   this.getTokenRetrievalStrategy = function(token) {
     return function(name, errors) {
-      if (token) {
+      if(token) {
         var character = roll20.getObj('character', token.get('represents'));
-        if (character && roll20.getAttrByName(character.id, 'locked')) {
-          errors.push('Character with name ' + character.get('name') + ' and id ' + character.id + ' was locked and cannot be overwritten');
+        if(character && roll20.getAttrByName(character.id, 'locked')) {
+          errors.push('Character with name ' + character.get('name') + ' and id ' + character.id +
+            ' was locked and cannot be overwritten');
           return null;
         }
         return character;
@@ -496,12 +503,13 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   this.nameRetrievalStrategy = function(name, errors) {
     var chars = roll20.findObjs({ type: 'character', name: name });
-    if (chars.length > 1) {
+    if(chars.length > 1) {
       errors.push('More than one existing character found with name "' + name + '". Can\'t replace');
     }
     else {
-      if (chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
-        errors.push('Character with name ' + chars[0].get('name') + ' and id ' + chars[0].id + ' was locked and cannot be overwritten');
+      if(chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
+        errors.push('Character with name ' + chars[0].get('name') + ' and id ' + chars[0].id +
+          ' was locked and cannot be overwritten');
         return null;
       }
       return chars[0];
@@ -509,8 +517,9 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   };
 
   this.creationRetrievalStrategy = function(name, errors) {
-    if (!_.isEmpty(roll20.findObjs({ type: 'character', name: name }))) {
-      errors.push('Can\'t create new character with name "' + name + '" because one already exists with that name. Perhaps you want --replace?');
+    if(!_.isEmpty(roll20.findObjs({ type: 'character', name: name }))) {
+      errors.push('Can\'t create new character with name "' + name +
+        '" because one already exists with that name. Perhaps you want --replace?');
     }
     else {
       return roll20.createObj('character', { name: name });
@@ -528,22 +537,22 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       token.set('represents', character.id);
       token.set('name', character.get('name'));
       var settings = myState.config.tokenSettings;
-      if (settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
+      if(settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
         token.set('name', token.get('name') + ' %%NUMBERED%%');
       }
 
       _.chain(settings)
         .pick(['bar1', 'bar2', 'bar3'])
         .each(function(bar, barName) {
-          if (!_.isEmpty(bar.attribute)) {
+          if(!_.isEmpty(bar.attribute)) {
             var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
-            if (attribute) {
+            if(attribute) {
               token.set(barName + '_value', attribute.get('current'));
-              if (bar.max) {
+              if(bar.max) {
                 token.set(barName + '_max', attribute.get('max'));
               }
               token.set('showplayers_' + barName, bar.showPlayers);
-              if (bar.link) {
+              if(bar.link) {
                 token.set(barName + '_link', attribute.id);
               }
             }
@@ -560,31 +569,31 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
     return {
       setNewImportData: function(importData) {
-        if (_.isEmpty(importData)) {
+        if(_.isEmpty(importData)) {
           return;
         }
         roll20.setAttrByName(character.id, 'import_data', JSON.stringify(importData));
         roll20.setAttrByName(character.id, 'import_data_present', 'on');
       },
       mergeImportData: function(importData) {
-        if (_.isEmpty(importData)) {
+        if(_.isEmpty(importData)) {
           return;
         }
         var attr = roll20.getOrCreateAttr(character.id, 'import_data');
         var dataPresentAttr = roll20.getOrCreateAttr(character.id, 'import_data_present');
         var current = {};
         try {
-          if (!_.isEmpty(attr.get('current').trim())) {
+          if(!_.isEmpty(attr.get('current').trim())) {
             current = JSON.parse(attr.get('current'));
           }
         }
-        catch (e) {
+        catch(e) {
           logger.warn('Existing import_data attribute value was not valid JSON: [$$$]', attr.get('current'));
         }
         _.each(importData, function(value, key) {
           var currentVal = current[key];
-          if (currentVal) {
-            if (!_.isArray(currentVal)) {
+          if(currentVal) {
+            if(!_.isArray(currentVal)) {
               current[key] = [currentVal];
             }
             current[key] = current[key].concat(value);
@@ -606,9 +615,10 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   this.applyAdvantageTracker = function(options) {
     var type = 'normal';
-    if (options.advantage) {
+    if(options.advantage) {
       type = 'advantage';
-    } else if (options.disadvantage) {
+    }
+    else if(options.disadvantage) {
       type = 'disadvantage';
     }
 
@@ -623,11 +633,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   /////////////////////////////////////////////////
   this.handleAddToken = function(token) {
     var represents = token.get('represents');
-    if (_.isEmpty(represents)) {
+    if(_.isEmpty(represents)) {
       return;
     }
     var character = roll20.getObj('character', represents);
-    if (!character) {
+    if(!character) {
       return;
     }
     addedTokenIds.push(token.id);
@@ -636,15 +646,15 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     setTimeout((function(id, self) {
       return function() {
         var token = roll20.getObj('graphic', id);
-        if (token) {
+        if(token) {
           self.handleChangeToken(token);
         }
       };
-    } (token.id, this)), 100);
+    }(token.id, this)), 100);
   };
 
   this.handleChangeToken = function(token) {
-    if (_.contains(addedTokenIds, token.id)) {
+    if(_.contains(addedTokenIds, token.id)) {
       addedTokenIds = _.without(addedTokenIds, token.id);
       this.rollHPForToken(token);
     }
@@ -660,28 +670,28 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   this.rollHPForToken = function(token) {
     var hpBar = this.getHPBar();
     logger.debug('HP bar is $$$', hpBar);
-    if (!hpBar || !myState.config.rollHPOnDrop) {
+    if(!hpBar || !myState.config.rollHPOnDrop) {
       return;
     }
 
     var represents = token.get('represents');
-    if (!represents) {
+    if(!represents) {
       return;
     }
     var character = roll20.getObj('character', represents);
-    if (!character) {
+    if(!character) {
       return;
     }
     var hpBarLink = token.get(hpBar + '_link');
-    if (hpBarLink) {
+    if(hpBarLink) {
       return;
     }
 
     var self = this;
     roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function(results) {
-      if (results && results.length === 1) {
+      if(results && results.length === 1) {
         var message = self.processInlinerolls(results[0]);
-        if (!results[0].inlinerolls || !results[0].inlinerolls[0]) {
+        if(!results[0].inlinerolls || !results[0].inlinerolls[0]) {
           logger.warn('HP roll didn\'t have the expected structure. This is what we got back: $$$', results[0]);
         }
         else {
@@ -697,7 +707,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   this.registerChatWatcher = function(handler, triggerFields) {
     var matchers = [];
-    if (triggerFields && !_.isEmpty(triggerFields)) {
+    if(triggerFields && !_.isEmpty(triggerFields)) {
       matchers.push(function(msg, options) {
         return _.intersection(triggerFields, _.keys(options)).length === triggerFields.length;
       });
@@ -708,9 +718,9 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   this.triggerChatWatchers = function(msg) {
     var options = this.getRollTemplateOptions(msg);
     _.each(chatWatchers, function(watcher) {
-      if (_.every(watcher.matchers, function(matcher) {
-        return matcher(msg, options);
-      })) {
+      if(_.every(watcher.matchers, function(matcher) {
+          return matcher(msg, options);
+        })) {
         watcher.handler(options, msg);
       }
     });
@@ -723,7 +733,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
    */
   this.handleAmmo = function(options, msg) {
 
-    if (!roll20.getAttrByName(options.character.id, 'ammo_auto_use')) {
+    if(!roll20.getAttrByName(options.character.id, 'ammo_auto_use')) {
       return;
     }
 
@@ -744,18 +754,18 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       })
       .value();
 
-    if (!ammoAttr) {
+    if(!ammoAttr) {
       logger.error('No ammo attribute found corresponding to name $$$', options.ammoName);
       return;
     }
 
     var ammoUsed = 1;
-    if (options.ammo) {
+    if(options.ammo) {
       var rollRef = options.ammo.match(/\$\[\[(\d+)\]\]/);
-      if (rollRef) {
+      if(rollRef) {
         var rollExpr = msg.inlinerolls[rollRef[1]].expression;
         var match = rollExpr.match(/\d+-(\d+)/);
-        if (match) {
+        if(match) {
           ammoUsed = match[1];
         }
       }
@@ -768,20 +778,21 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   this.handleHD = function(options, msg) {
     var match = options.title.match(/(\d+)d(\d+) Hit Dice/);
-    if (match && myState.config.autoHD) {
+    if(match && myState.config.autoHD) {
       var hdCount = match[1];
       var hdSize = match[2];
       var hdAttr = roll20.getAttrObjectByName(options.character.id, 'hd_d' + hdSize);
       var hpAttr = roll20.getAttrObjectByName(options.character.id, 'HP');
       var newHp = Math.min(parseInt(hpAttr.get('current')) + this.getRollValue(msg, options.roll1), hpAttr.get('max'));
 
-      if (hdAttr) {
-        if (hdCount <= hdAttr.get('current')) {
+      if(hdAttr) {
+        if(hdCount <= hdAttr.get('current')) {
           hdAttr.set('current', hdAttr.get('current') - hdCount);
           hpAttr.set('current', newHp);
         }
         else {
-          report('HD Police', options.characterName + ' can\'t use ' + hdCount + 'd' + hdSize + ' hit dice because they only have ' + hdAttr.get('current') + ' left');
+          report('HD Police', options.characterName + ' can\'t use ' + hdCount + 'd' + hdSize +
+            ' hit dice because they only have ' + hdAttr.get('current') + ' left');
         }
       }
 
@@ -796,7 +807,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       return ++val;
     };
     //TODO: Advantage?
-    if (roll20.getAttrByName(options.character.id, 'roll_setting') !== '@{roll_2}') {
+    if(roll20.getAttrByName(options.character.id, 'roll_setting') !== '@{roll_2}') {
       var result = this.getRollValue(msg, options.roll1);
       var attributeToIncrement = result >= 10 ? 'death_saving_throw_successes' : 'death_saving_throw_failures';
       roll20.processAttrValue(options.character.id, attributeToIncrement, increment);
@@ -806,7 +817,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   this.handleFX = function(options, msg) {
     var parts = options.fx.split(' ');
-    if (parts.length < 2 || _.some(parts.slice(0, 2), _.isEmpty)) {
+    if(parts.length < 2 || _.some(parts.slice(0, 2), _.isEmpty)) {
       logger.warn('FX roll template variable is not formated correctly: [$$$]', options.fx);
       return;
     }
@@ -815,14 +826,14 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     var fxType = parts[0],
       pointsOfOrigin = parts[1],
       targetTokenId,
-      //sourceTokenId,
+    //sourceTokenId,
       sourceCoords = {},
       targetCoords = {},
       fxCoords = [],
       pageId;
 
     //noinspection FallThroughInSwitchStatementJS
-    switch (pointsOfOrigin) {
+    switch(pointsOfOrigin) {
       case 'sourceToTarget':
       case 'source':
         targetTokenId = parts[2]; //jshint ignore: line
@@ -834,7 +845,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         fxCoords.push(targetCoords, sourceCoords);
     }
 
-    if (targetTokenId) {
+    if(targetTokenId) {
       var targetToken = roll20.getObj('graphic', targetTokenId);
       pageId = targetToken.get('_pageid');
       targetCoords.x = targetToken.get('left');
@@ -847,7 +858,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
     var casterTokens = roll20.findObjs({ type: 'graphic', pageid: pageId, represents: options.character.id });
 
-    if (casterTokens.length) {
+    if(casterTokens.length) {
       //If there are multiple tokens for the character on this page, then try and find one of them that is selected
       //This doesn't work without a selected token, and the only way we can get this is to use @{selected} which is a pain
       //for people who want to launch without a token selected
@@ -862,11 +873,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     }
 
 
-    if (!fxCoords[0]) {
+    if(!fxCoords[0]) {
       logger.warn('Couldn\'t find required point for fx for character $$$, casterTokens: $$$, fxSpec: $$$ ', options.character.id, casterTokens, options.fx);
       return;
     }
-    else if (!fxCoords[1]) {
+    else if(!fxCoords[1]) {
       fxCoords = fxCoords.slice(0, 1);
     }
 
@@ -883,12 +894,12 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
    * @returns {*}
    */
   this.getRollTemplateOptions = function(msg) {
-    if (msg.rolltemplate === '5e-shaped') {
+    if(msg.rolltemplate === '5e-shaped') {
       var regex = /\{\{(.*?)\}\}/g;
       var match;
       var options = {};
-      while (!!(match = regex.exec(msg.content))) {
-        if (match[1]) {
+      while(!!(match = regex.exec(msg.content))) {
+        if(match[1]) {
           var splitAttr = match[1].split('=');
           var propertyName = splitAttr[0].replace(/_([a-z])/g, function(match, letter) {
             return letter.toUpperCase();
@@ -896,7 +907,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           options[propertyName] = splitAttr.length === 2 ? splitAttr[1] : '';
         }
       }
-      if (options.characterName) {
+      if(options.characterName) {
         options.character = roll20.findObjs({
           _type: 'character',
           name: options.characterName
@@ -908,7 +919,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   };
 
   this.processInlinerolls = function(msg) {
-    if (_.has(msg, 'inlinerolls')) {
+    if(_.has(msg, 'inlinerolls')) {
       return _.chain(msg.inlinerolls)
         .reduce(function(previous, current, index) {
           previous['$[[' + index + ']]'] = current.results.total || 0;
@@ -918,13 +929,14 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           return previous.replace(index.toString(), current);
         }, msg.content)
         .value();
-    } else {
+    }
+    else {
       return msg.content;
     }
   };
 
   this.addAbility = function(options) {
-    if (_.isEmpty(options.abilities)) {
+    if(_.isEmpty(options.abilities)) {
       //TODO report some sort of error?
       return;
     }
@@ -939,7 +951,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         .value();
 
 
-      if (_.isEmpty(operationMessages)) {
+      if(_.isEmpty(operationMessages)) {
         return '<li>' + character.get('name') + ': Nothing to do</li>';
       }
 
@@ -984,7 +996,8 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
       var configured = _.chain(cache[repeatingSection])
         .map(function(repeatingId, repeatingName) {
-          var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId + '_' + abilityName + '}';
+          var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId +
+            '_' + abilityName + '}';
           return { name: utils.toTitleCase(repeatingName), action: repeatingAction };
         })
         .map(getAbilityMaker(character))
@@ -1025,13 +1038,13 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     var maker = staticAbilityOptions[optionName];
 
     //Makes little sense to add named spells to multiple characters at once
-    if (!maker && existingOptions.selected.character.length === 1) {
+    if(!maker && existingOptions.selected.character.length === 1) {
 
       existingOptions.spellToRepeatingIdLookup = existingOptions.spellToRepeatingIdLookup ||
         roll20.getRepeatingSectionItemIdsByName(existingOptions.selected.character[0].id, 'spell');
 
       var repeatingId = existingOptions.spellToRepeatingIdLookup[optionName.toLowerCase()];
-      if (repeatingId) {
+      if(repeatingId) {
         maker = new RollAbilityMaker('repeating_spell_' + repeatingId + '_spell', utils.toTitleCase(optionName));
       }
     }
@@ -1101,11 +1114,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   this.checkInstall = function() {
     logger.info('-=> ShapedScripts v$$$ <=-', version);
-    if (myState.version !== schemaVersion) {
+    if(myState.version !== schemaVersion) {
       logger.info('  > Updating Schema to v$$$ from $$$<', schemaVersion, myState && myState.version);
       logger.info('Preupgrade state: $$$', myState);
       //noinspection FallThroughInSwitchStatementJS
-      switch (myState && myState.version) {
+      switch(myState && myState.version) {
         case 0.1:
         case 0.2:
         case 0.3:
@@ -1119,7 +1132,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           myState.version = schemaVersion;
           break;
         default:
-          if (!myState.version) {
+          if(!myState.version) {
             _.defaults(myState, {
               version: schemaVersion,
               config: utils.deepClone(configDefaults)
@@ -1151,7 +1164,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       at.updateToken(token);
     });
     roll20.on('change:attribute', function(msg) {
-      if (msg.get('name') === 'roll_setting') {
+      if(msg.get('name') === 'roll_setting') {
         at.updateSetting(msg);
       }
     });

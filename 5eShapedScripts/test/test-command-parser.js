@@ -2,7 +2,7 @@
 var expect = require('chai').expect;
 var cp = require('../lib/command-parser');
 
-var testValidator = function (value) {
+var testValidator = function(value) {
   'use strict';
   return {
     converted: value,
@@ -10,22 +10,24 @@ var testValidator = function (value) {
   };
 };
 
-describe('command-parser', function () {
+describe('command-parser', function() {
   'use strict';
 
-  describe('#command', function () {
+  describe('#command', function() {
 
-    it('parse options correctly', function () {
+    it('parse options correctly', function() {
       var result = {};
       cp('shaped')
-        .addCommand('config', function (object) {
+        .addCommand('config', function(object) {
           result = object;
         })
         .option('foo', {
-          subOne: [{
-            tinky: testValidator,
-            blort: testValidator
-          }],
+          subOne: [
+            {
+              tinky: testValidator,
+              blort: testValidator
+            }
+          ],
           subTwo: testValidator,
           subThree: {
             wibble: testValidator,

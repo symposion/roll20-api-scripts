@@ -23,11 +23,13 @@ class ConfigUi {
       ConfigUi.makeToggleSetting(config, 'tokenSettings.showName', 'Show Name Tag') +
       ConfigUi.makeToggleSetting(config, 'tokenSettings.showNameToPlayers', 'Show Name to Players');
 
-    for (var i = 1; i <= 3; i++) {
-      retVal += ConfigUi.makeInputSetting(config, 'tokenSettings.bar' + i + '.attribute', 'Bar ' + i + ' Attribute', 'Bar ' + i + ' Attribute (empty to unset)');
+    for(var i = 1; i <= 3; i++) {
+      retVal += ConfigUi.makeInputSetting(config, 'tokenSettings.bar' + i + '.attribute', 'Bar ' + i +
+        ' Attribute', 'Bar ' + i + ' Attribute (empty to unset)');
       retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.max', 'Bar ' + i + ' Set Max');
       retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.link', 'Bar ' + i + ' Link');
-      retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.showPlayers', 'Bar ' + i + ' Show Players');
+      retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.showPlayers', 'Bar ' + i +
+        ' Show Players');
     }
 
     retVal += '</table>';
@@ -55,14 +57,19 @@ class ConfigUi {
   static makeInputSetting(config, path, title, prompt) {
     var currentVal = utils.getObjectFromPath(config, path);
     var emptyHint = '[not set]';
-    if (currentVal) { emptyHint = currentVal; }
+    if(currentVal) {
+      emptyHint = currentVal;
+    }
 
-    return ConfigUi.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal + '}', emptyHint, 'click to edit', emptyHint === '[not set]' ? '#f84545' : '#02baf2');
+    return ConfigUi.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
+      '}', emptyHint, 'click to edit', emptyHint === '[not set]' ? '#f84545' : '#02baf2');
   }
 
   static makeToggleSetting(config, path, title, optionsSpec) {
     var currentVal = utils.getObjectFromPath(config, path);
-    if (optionsSpec) { currentVal = _.invert(optionsSpec)[currentVal] === 'true'; }
+    if(optionsSpec) {
+      currentVal = _.invert(optionsSpec)[currentVal] === 'true';
+    }
 
     return ConfigUi.makeOptionRow(title, path, !currentVal, ConfigUi.makeBoolText(currentVal), 'click to toggle', currentVal ? '#65c4bd' : '#f84545');
   }
@@ -75,25 +82,27 @@ class ConfigUi {
     optionList.splice(optionList.indexOf(currentVal), 1);
     optionList.unshift(currentVal);
 
-    return ConfigUi.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') + '}', ConfigUi.makeText(currentVal), 'click to change', '#02baf2');
+    return ConfigUi.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') +
+      '}', ConfigUi.makeText(currentVal), 'click to change', '#02baf2');
   }
 
   static makeOptionRow(optionTitle, path, command, linkText, tooltip, buttonColor) {
     return '<tr style="border: 1px solid gray"><td>' +
       optionTitle + '</td>' +
       '</td><td style="text-align:right"> ' +
-      '<a style="text-align: center; width: 80px; background-color: ' + buttonColor + '" title="' + tooltip + '" href="!shaped-config --' + path + ' ' + command + '">' +
+      '<a style="text-align: center; width: 80px; background-color: ' + buttonColor + '" title="' + tooltip +
+      '" href="!shaped-config --' + path + ' ' + command + '">' +
       linkText + '</a></td></tr>';
   }
 
   static makeText(value) {
-    return '<span style=" padding: 0px 2px;">' + value + '</span>';
+    return '<span style=" padding: 0 2px;">' + value + '</span>';
   }
 
   static makeBoolText(value) {
     return value === true ?
-      '<span style=" padding: 0px 2px;">on</span>' :
-      '<span style=" padding: 0px 2px;">off</span>';
+      '<span style=" padding: 0 2px;">on</span>' :
+      '<span style=" padding: 0 2px;">off</span>';
   }
 }
 

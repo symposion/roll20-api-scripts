@@ -11,11 +11,11 @@ function Roll20Object(type) {
 }
 
 //noinspection JSUnusedGlobalSymbols
-Roll20Object.prototype.get = function (propName) {
+Roll20Object.prototype.get = function(propName) {
   return this.props[propName];
 };
 
-Roll20Object.prototype.set = function (propName, value) {
+Roll20Object.prototype.set = function(propName, value) {
   this.props[propName] = value;
 };
 

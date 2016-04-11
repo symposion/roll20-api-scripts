@@ -3,34 +3,34 @@ var _ = require('underscore');
 
 /* jshint camelcase : false */
 function getRenameMapper(newName) {
-    return function (key, value, output) {
+    return function(key, value, output) {
         output[newName] = value;
     };
 }
 
-var identityMapper = function (key, value, output) {
+var identityMapper = function(key, value, output) {
       output[key] = value;
   },
-  booleanMapper = function (key, value, output) {
-      if (value) {
+  booleanMapper = function(key, value, output) {
+      if(value) {
           output[key] = 'Yes';
       }
   },
-  camelCaseFixMapper = function (key, value, output) {
-      var newKey = key.replace(/[A-Z]/g, function (letter) {
+  camelCaseFixMapper = function(key, value, output) {
+      var newKey = key.replace(/[A-Z]/g, function(letter) {
           return '_' + letter.toLowerCase();
       });
       output[newKey] = value;
   },
-  castingStatMapper = function (key, value, output) {
-      if (value) {
+  castingStatMapper = function(key, value, output) {
+      if(value) {
           output.add_casting_modifier = 'Yes';
       }
   },
-  componentMapper = function (key, value, output) {
+  componentMapper = function(key, value, output) {
       output.components = _.chain(value)
-        .map(function (value, key) {
-            if (key !== 'materialMaterial') {
+        .map(function(value, key) {
+            if(key !== 'materialMaterial') {
                 return key.toUpperCase().slice(0, 1);
         }
             else {
@@ -62,11 +62,12 @@ var identityMapper = function (key, value, output) {
   };
 
 function getObjectMapper(mappings) {
-    return function (key, value, output) {
-        _.each(value, function (propVal, propName) {
+    return function(key, value, output) {
+        _.each(value, function(propVal, propName) {
             var mapper = mappings[propName];
-            if (!mapper) {
-                throw 'Unrecognised property when attempting to convert to srd format: [' + propName + '] ' + JSON.stringify(output);
+            if(!mapper) {
+                throw 'Unrecognised property when attempting to convert to srd format: [' + propName + '] ' +
+                JSON.stringify(output);
             }
             mapper(propName, propVal, output);
         });
@@ -82,10 +83,10 @@ var spellMapper = getObjectMapper({
     range: identityMapper,
     castingTime: camelCaseFixMapper,
     target: identityMapper,
-    description: function (key, value, output) {
+    description: function(key, value, output) {
         output.content = value + (output.content ? '\n' + output.content : '');
     },
-    higherLevel: function (key, value, output) {
+    higherLevel: function(key, value, output) {
         output.content = (output.content ? output.content + '\n' : '') + value;
     },
     ritual: booleanMapper,
@@ -102,8 +103,8 @@ var spellMapper = getObjectMapper({
         bonus: getRenameMapper('heal_bonus')
     }),
     components: componentMapper,
-    prepared: function (key, value, output) {
-        if (value) {
+    prepared: function(key, value, output) {
+        if(value) {
             output.is_prepared = 'on';
         }
 
@@ -134,14 +135,14 @@ var monsterMapper = getObjectMapper({
     wisdom: identityMapper,
     charisma: identityMapper,
     skills: getRenameMapper('skills_srd'),
-    spells: function (key, value, output) {
+    spells: function(key, value, output) {
         var splitSpells = _.partition(value, _.isObject);
-        if (!_.isEmpty(splitSpells[1])) {
+        if(!_.isEmpty(splitSpells[1])) {
             output.spells_srd = splitSpells[1].join(', ');
         }
-        if (!_.isEmpty(splitSpells[0])) {
+        if(!_.isEmpty(splitSpells[0])) {
             output.spells = splitSpells[0];
-            _.each(output.spells, function (spell) {
+            _.each(output.spells, function(spell) {
                 spell.prepared = true;
             });
         }
@@ -174,14 +175,14 @@ var pronounTokens = {
 
 module.exports = {
 
-    convertMonster: function (npcObject) {
+    convertMonster: function(npcObject) {
 
         var output = {};
         monsterMapper(null, npcObject, output);
 
         var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', { variable: 'data' });
         var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', { variable: 'data' });
-        var lairRegionalTemplate = function (item) {
+        var lairRegionalTemplate = function(item) {
             return '**' + item;
         };
 
@@ -200,9 +201,9 @@ module.exports = {
             { prop: 'regionalEffects', itemTemplate: lairRegionalTemplate, sectionTemplate: regionalSectionTemplate }
         ];
 
-        var makeDataObject = function (propertyName, itemList) {
+        var makeDataObject = function(propertyName, itemList) {
             return {
-                title: propertyName.replace(/([A-Z])/g, ' $1').replace(/^[a-z]/, function (letter) {
+                title: propertyName.replace(/([A-Z])/g, ' $1').replace(/^[a-z]/, function(letter) {
                     return letter.toUpperCase();
                 }),
                 name: output.character_name,
@@ -216,14 +217,14 @@ module.exports = {
         output.edit_mode = 'off';
 
         output.content_srd = _.chain(srdContentSections)
-          .map(function (sectionSpec) {
+          .map(function(sectionSpec) {
               var items = output[sectionSpec.prop];
               delete output[sectionSpec.prop];
               return _.map(items, sectionSpec.itemTemplate);
           })
-          .map(function (sectionItems, sectionIndex) {
+          .map(function(sectionItems, sectionIndex) {
               var sectionSpec = srdContentSections[sectionIndex];
-              if (!_.isEmpty(sectionItems)) {
+              if(!_.isEmpty(sectionItems)) {
                   return sectionSpec.sectionTemplate(makeDataObject(sectionSpec.prop, sectionItems));
               }
 
@@ -240,13 +241,13 @@ module.exports = {
     },
 
 
-    convertSpells: function (spellObjects, pronounInfo) {
+    convertSpells: function(spellObjects, pronounInfo) {
 
-        return _.map(spellObjects, function (spellObject) {
+        return _.map(spellObjects, function(spellObject) {
             var converted = {};
             spellMapper(null, spellObject, converted);
-            if (converted.emote) {
-                _.each(pronounTokens, function (pronounType, token) {
+            if(converted.emote) {
+                _.each(pronounTokens, function(pronounType, token) {
                     var replacement = pronounInfo[pronounType];
                     converted.emote = converted.emote.replace(token, replacement);
                 });

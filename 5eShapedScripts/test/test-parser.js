@@ -24,14 +24,14 @@ var el = require('./dummy-entity-lookup');
  */
 
 
-describe('Monster Manual tests', function () {
+describe('Monster Manual tests', function() {
   'use strict';
 
   var parser;
 
-  before(function () {
+  before(function() {
     return fs.readFileAsync('./resources/mmFormatSpec.json', 'utf-8')
-      .then(function (specText) {
+      .then(function(specText) {
         var parsed = JSON.parse(specText);
         parser = parseModule.getParser(parsed, logger);
       });
@@ -40,12 +40,12 @@ describe('Monster Manual tests', function () {
 
 
   var files = glob.sync('./test/data/*.txt');
-  files.forEach(function (file) {
-    it('correctly parses ' + file.replace(/\.txt$/, ''), function () {
+  files.forEach(function(file) {
+    it('correctly parses ' + file.replace(/\.txt$/, ''), function() {
       return Promise.join(runTestForFile(parser, file),
         getExpectedOutputForFile(file),
-        function (test, expected) {
-          if (!expected) {
+        function(test, expected) {
+          if(!expected) {
             fs.writeFileSync(file.replace(/\.txt$/, '.json'), JSON.stringify(test, undefined, 2), 'utf8');
           }
           else {
@@ -61,7 +61,7 @@ describe('Monster Manual tests', function () {
 
 function runTestForFile(parser, file) {
   'use strict';
-  return fs.readFileAsync(file, 'utf-8').then(function (statblockText) {
+  return fs.readFileAsync(file, 'utf-8').then(function(statblockText) {
     return runParse(parser, statblockText);
   });
 }
@@ -71,7 +71,7 @@ function getExpectedOutputForFile(file) {
 
   var filename = file.replace(/\.txt$/, '.json');
   return fs.readFileAsync(filename, 'utf-8')
-    .catch(function (e) {
+    .catch(function(e) {
       return null;
     })
     .then(JSON.parse);
@@ -86,7 +86,7 @@ function runParse(parser, statBlockText) {
     mpp(parsed.monsters, el.entityLookup);
     return parsed;
   }
-  catch (e) {
+  catch(e) {
     console.log(e.stack);
     return e;
   }

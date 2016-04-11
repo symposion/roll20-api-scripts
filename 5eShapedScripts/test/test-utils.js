@@ -2,13 +2,13 @@
 var expect = require('chai').expect;
 var utils = require('../lib/utils');
 
-describe('utils', function () {
+describe('utils', function() {
   'use strict';
 
-  describe('#deepExtend', function () {
+  describe('#deepExtend', function() {
 
 
-    it('parse options correctly', function () {
+    it('parse options correctly', function() {
       var result = utils.deepExtend({ foo: 'bar', blort: ['wibble'] }, {
         foo: 'barprime',
         blort: [undefined, 'bumble'],
@@ -27,15 +27,15 @@ describe('utils', function () {
     });
 
 
-    it('should extend arrays properly', function () {
+    it('should extend arrays properly', function() {
       var result = utils.deepExtend({ foo: ['one', 'two'] }, { foo: [undefined, undefined, 'three'] });
       expect(result).to.deep.equal({ foo: ['one', 'two', 'three'] });
     });
   });
 
-  describe('#createObjectFromPath', function () {
+  describe('#createObjectFromPath', function() {
 
-    it('create from path correctly', function () {
+    it('create from path correctly', function() {
       var result = utils.createObjectFromPath('foo.bar[1].blort[2]', 'testVal');
       var expected = {
         foo: {

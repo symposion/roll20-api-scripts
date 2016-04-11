@@ -70,11 +70,11 @@ var spellList = [
 ];
 
 
-describe('monster-post-processor', function () {
+describe('monster-post-processor', function() {
   'use strict';
 
 
-  it('extracts spell details', function () {
+  it('extracts spell details', function() {
     var monster = {
       traits: [
         { name: 'Spellcasting', text: spellcastingTrait },

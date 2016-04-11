@@ -4,10 +4,10 @@ var srdConverter = require('../lib/srd-converter');
 var fs = require('fs');
 var glob = require('glob');
 
-describe('srd-converter', function () {
+describe('srd-converter', function() {
   'use strict';
 
-  describe('#convertMonster', function () {
+  describe('#convertMonster', function() {
     var fullObject = {
       name: 'Wobbler',
       traits: [
@@ -53,7 +53,7 @@ describe('srd-converter', function () {
     };
 
 
-    it('correctly concatenates a full object', function () {
+    it('correctly concatenates a full object', function() {
       //noinspection JSUnresolvedVariable
       var converted = srdConverter.convertMonster(fullObject);
       converted.should.have.property('content_srd',
@@ -76,7 +76,7 @@ describe('srd-converter', function () {
       converted.should.not.have.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
-    it('correctly adds extra fields', function () {
+    it('correctly adds extra fields', function() {
       //noinspection JSUnresolvedVariable
       var converted = srdConverter.convertMonster(fullObject);
       converted.should.have.property('is_npc', 1);
@@ -84,21 +84,21 @@ describe('srd-converter', function () {
       converted.should.not.contain.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
-    it('correctly concatenates an empty object', function () {
+    it('correctly concatenates an empty object', function() {
       //noinspection JSUnresolvedVariable
       var converted = srdConverter.convertMonster(emptyObject);
       converted.should.have.property('content_srd', '');
       converted.should.not.contain.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
-    it('correctly concatenates an object with empty arrays', function () {
+    it('correctly concatenates an object with empty arrays', function() {
       //noinspection JSUnresolvedVariable
       var converted = srdConverter.convertMonster(emptyArrayObject);
       converted.should.have.property('content_srd', '');
       converted.should.not.have.any.keys('traits', 'actions', 'reactions', 'legendaryActions', 'legendary_actions');
     });
 
-    it('correctly concatenates a medium object', function () {
+    it('correctly concatenates a medium object', function() {
       //noinspection JSUnresolvedVariable
       var converted = srdConverter.convertMonster(someMissing);
       converted.should.have.property('content_srd',
@@ -111,28 +111,28 @@ describe('srd-converter', function () {
     });
   });
 
-  describe('#convertSpell', function () {
+  describe('#convertSpell', function() {
     try {
       var spells = JSON.parse(fs.readFileSync('../../roll20/data/spells/spellData.json', 'utf-8'));
 
-      it('should parse spell correctly', function () {
+      it('should parse spell correctly', function() {
         srdConverter.convertSpells(spells, 'female');
       });
     }
-    catch (e) {
+    catch(e) {
       //Test file not present, ignore
-      if (e.code !== 'ENOENT') {
+      if(e.code !== 'ENOENT') {
         throw e;
       }
     }
   });
 
-  describe('#convertJsonMonster', function () {
-    glob.sync('../../roll20/data/monsterSourceFiles/*.json').forEach(function (jsonFile) {
-      describe('JSON file: ' + jsonFile, function () {
+  describe('#convertJsonMonster', function() {
+    glob.sync('../../roll20/data/monsterSourceFiles/*.json').forEach(function(jsonFile) {
+      describe('JSON file: ' + jsonFile, function() {
         JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
-          .monsters.forEach(function (monster) {
-          it('convert ' + monster.name, function () {
+          .monsters.forEach(function(monster) {
+          it('convert ' + monster.name, function() {
             srdConverter.convertMonster(monster);
           });
         });

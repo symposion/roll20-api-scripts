@@ -17,7 +17,7 @@ class AdvantageTracker {
 
   getSelectedCharacters(selected) {
     return _.chain(selected)
-      .map(function (s) {
+      .map(function(s) {
         return s.get('_id');
       })
       .value();
@@ -33,8 +33,8 @@ class AdvantageTracker {
     isAdvantage = '@{roll_advantage}' === setting;
     isDisadvantage = '@{roll_disadvantage}' === setting;
 
-    if (this.myState.config.advTrackerSettings.showMarkers) {
-      _.each(br[0].tokens, function (t) {
+    if(this.myState.config.advTrackerSettings.showMarkers) {
+      _.each(br[0].tokens, function(t) {
         t.set('status_' + disadvantageMarker, isDisadvantage);
         t.set('status_' + advantageMarker, isAdvantage);
       });
@@ -43,13 +43,13 @@ class AdvantageTracker {
 
   updateToken(token) {
     this.logger.debug('AT: Updating New Token');
-    if (!this.myState.config.advTrackerSettings.showMarkers) {
+    if(!this.myState.config.advTrackerSettings.showMarkers) {
       return;
     }
 
     var character, setting, isAdvantage, isDisadvantage;
 
-    if (token.get('represents') === '') {
+    if(token.get('represents') === '') {
       return;
     }
 
@@ -58,8 +58,8 @@ class AdvantageTracker {
     isAdvantage = '@{roll_advantage}' === setting;
     isDisadvantage = '@{roll_disadvantage}' === setting;
 
-    if (ignoreNpc) {
-      if (roll20.getAttrByName(character.id, 'is_npc') === '1') {
+    if(ignoreNpc) {
+      if(roll20.getAttrByName(character.id, 'is_npc') === '1') {
         return;
       }
     }
@@ -70,15 +70,15 @@ class AdvantageTracker {
 
   buildResources(ids) {
     return _.chain(ids)
-      .map(function (cid) {
+      .map(function(cid) {
         return roll20.getObj('character', cid);
       })
       .reject(_.isUndefined)
       //.filter(this.npcCheckFunc)
-      .map(function (c) {
+      .map(function(c) {
         return {
           character: c,
-          tokens: roll20.filterObjs(function (o) {
+          tokens: roll20.filterObjs(function(o) {
             return 'graphic' === o.get('_type') &&
               c.id === o.get('represents');
           })
@@ -88,7 +88,7 @@ class AdvantageTracker {
   }
 
   setAttribute(options) {
-    if (!options.current && options.current !== '') {
+    if(!options.current && options.current !== '') {
       roll20.log('Error setting empty value: ');// + name);
       return;
     }
@@ -99,13 +99,14 @@ class AdvantageTracker {
       name: options.name
     })[0];
 
-    if (!attr) {
+    if(!attr) {
       roll20.createObj('attribute', {
         name: options.name,
         current: options.current,
         characterid: options.characterId
       });
-    } else if (!attr.get('current') || attr.get('current').toString() !== options.current) {
+    }
+    else if(!attr.get('current') || attr.get('current').toString() !== options.current) {
       attr.set({
         current: options.current
       });
@@ -135,16 +136,16 @@ class AdvantageTracker {
       isAdvantage = 'advantage' === type,
       isDisadvantage = 'disadvantage' === type;
 
-    _.each(resources, function (r) {
-      if (self.myState.config.advTrackerSettings.showMarkers) {
-        _.each(r.tokens, function (t) {
+    _.each(resources, function(r) {
+      if(self.myState.config.advTrackerSettings.showMarkers) {
+        _.each(r.tokens, function(t) {
           t.set('status_' + disadvantageMarker, isDisadvantage);
           t.set('status_' + advantageMarker, isAdvantage);
         });
       }
 
       setting = roll20.getAttrByName(r.character.get('_id'), 'roll_setting');
-      if (setting === valByType[type]) {
+      if(setting === valByType[type]) {
         return;
       }
 
@@ -154,12 +155,12 @@ class AdvantageTracker {
         current: valByType[type]
       });
 
-      if (valByType[type] === '@{roll_advantage}') {
+      if(valByType[type] === '@{roll_advantage}') {
         rollInfo = '{{advantage=1}}';
         preroll = 2;
         postroll = 'kh1';
       }
-      if (valByType[type] === '@{roll_disadvantage}') {
+      if(valByType[type] === '@{roll_disadvantage}') {
         rollInfo = '{{disadvantage=1}}';
         preroll = 2;
         postroll = 'kl1';

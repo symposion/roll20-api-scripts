@@ -31,7 +31,7 @@ function sanitise(statblock, logger) {
   //In this case we can fix the title case stuff, because we can find the word boundaries. That will at least meaning
   //that the core statblock parsing will work. If this happens inside the lowercase body text, however, there's nothing
   //we can do about it because you need to understand the natural language to reinsert the word breaks properly.
-  statblock = statblock.replace(/([A-Z])(\s[a-z]){2,}/g, function (match, p1) {
+  statblock = statblock.replace(/([A-Z])(\s[a-z]){2,}/g, function(match, p1) {
     return p1 + match.slice(1).replace(/\s([a-z])/g, '$1');
   });
 
@@ -41,12 +41,12 @@ function sanitise(statblock, logger) {
   statblock = statblock.replace(/([A-Z][a-z]+)(?=[A-Z])/g, '$1 ');
 
   //This covers abilites that end up as 'C O N' or similar
-  statblock = statblock.replace(/^[A-Z]\s?[A-Z]\s?[A-Z](?=\s|$)/mg, function (match) {
+  statblock = statblock.replace(/^[A-Z]\s?[A-Z]\s?[A-Z](?=\s|$)/mg, function(match) {
     return match.replace(/\s/g, '');
   });
 
-  statblock = statblock.replace(/^[A-Z ]+$/m, function (match) {
-    return match.replace(/([A-Z])([A-Z]+)(?=\s|$)/g, function (match, p1, p2) {
+  statblock = statblock.replace(/^[A-Z ]+$/m, function(match) {
+    return match.replace(/([A-Z])([A-Z]+)(?=\s|$)/g, function(match, p1, p2) {
       return p1 + p2.toLowerCase();
     });
   });
@@ -118,7 +118,7 @@ function sanitise(statblock, logger) {
     'spe ll': 'spell'
   };
   var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
-  statblock = statblock.replace(re, function (matched) {
+  statblock = statblock.replace(re, function(matched) {
     return replaceObj[matched];
   });
 
