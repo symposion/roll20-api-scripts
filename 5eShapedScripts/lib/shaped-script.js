@@ -1058,18 +1058,19 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
 
   var staticAbilityOptions = {
     DELETE: abilityDeleter,
+    initiative: new RollAbilityMaker('initiative', 'Init'),
+    abilitychecks: new RollAbilityMaker('ability_checks_macro', 'Ability Checks'),
+    abilitychecksquery: new RollAbilityMaker('ability_checks_query_macro', 'Ability Checks'),
+    savingthrows: new RollAbilityMaker('saving_throw_macro', 'Saving Throws'),
+    savingthrowsquery: new RollAbilityMaker('saving_throw_query_macro', 'Saving Throws'),
     attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks'),
-    features: new RepeatingAbilityMaker('classfeature', 'classfeature', 'Class Features'),
+    statblock: new RollAbilityMaker('statblock', 'Statblock'),
     traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
     actions: new RepeatingAbilityMaker('action', 'action', 'Actions'),
     reactions: new RepeatingAbilityMaker('reaction', 'action', 'Reactions'),
-    legendaries: new RepeatingAbilityMaker('legendaryaction', 'action', 'Legendary Actions'),
-    //lairs: new RepeatingAbilityMaker('lairaction', 'action', 'Lair Actions'),
-    initiative: new RollAbilityMaker('initiative', 'Init'),
-    saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
-    savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
-    skills: new RollAbilityMaker('ability_checks_macro', 'Skills'),
-    skillsquery: new RollAbilityMaker('ability_checks_query_macro', 'Skills')
+    legendaryactions: new RepeatingAbilityMaker('legendaryaction', 'action', 'Legendary Actions'),
+    lairactionss: new RepeatingAbilityMaker('lairaction', 'action', 'Lair Actions'),
+    regionaleffects: new RepeatingAbilityMaker('regionaleffect', 'action', 'Regional Effects')
   };
 
   var abilityLookup = function(optionName, existingOptions) {
