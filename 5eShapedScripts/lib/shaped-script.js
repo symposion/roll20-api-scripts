@@ -160,7 +160,7 @@ var booleanValidator = function(value) {
     showPlayers: booleanValidator
   },
   auraValidator = {
-    radius: integerValidator,
+    radius: stringValidator,
     color: colorValidator,
     square: booleanValidator
   },
@@ -321,19 +321,23 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   /////////////////////////////////////////
   this.configure = function(options) {
     utils.deepExtend(myState.config, options);
+    
+    var cui = new ConfigUI();
+    
+    logger.debug('options: ' + options);
 
     var menu;
-    if(options.advTrackerSettings) {
-      menu = ConfigUI.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
+    if(options.advTrackerSettings || options.atMenu) {      
+      menu = cui.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
     }
-    else if(options.tokenSettings) {
-      menu = ConfigUI.getConfigOptionGroupTokens(myState.config, configOptionsSpec);
+    else if(options.tokenSettings || options.tsMenu) {
+      menu = cui.getConfigOptionGroupTokens(myState.config, configOptionsSpec);
     }
-    else if(options.newCharSettings) {
-      menu = ConfigUI.getConfigOptionGroupNewCharSettings(myState.config, configOptionsSpec);
+    else if(options.newCharSettings || options.ncMenu) {
+      menu = cui.getConfigOptionGroupNewCharSettings(myState.config, configOptionsSpec);
     }
     else {
-      menu = ConfigUI.getConfigOptionsAll(myState.config, configOptionsSpec);
+      menu = cui.getConfigOptionsMenu();
     }
 
     report('Configuration', menu);
@@ -1106,6 +1110,9 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     return cp('shaped')
       .addCommand('config', this.configure.bind(this))
       .options(configOptionsSpec)
+      .option('atMenu', booleanValidator)
+      .option('tsMenu', booleanValidator)
+      .option('ncMenu', booleanValidator)
       .addCommand('import-statblock', self.importStatblock.bind(self))
       .option('overwrite', booleanValidator)
       .option('replace', booleanValidator)
