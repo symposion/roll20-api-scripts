@@ -1061,8 +1061,8 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     initiative: new RollAbilityMaker('initiative', 'Init'),
     abilitychecks: new RollAbilityMaker('ability_checks_macro', 'Ability Checks'),
     abilitychecksquery: new RollAbilityMaker('ability_checks_query_macro', 'Ability Checks'),
-    abilchecks: new RollAbilityMaker('ability_checks_macro', 'AbilChcks'),
-    abilchecksquery: new RollAbilityMaker('ability_checks_query_macro', 'AbilChcks'),
+    abilchecks: new RollAbilityMaker('ability_checks_macro', 'AbilChecks'),
+    abilchecksquery: new RollAbilityMaker('ability_checks_query_macro', 'AbilChecks'),
     savingthrows: new RollAbilityMaker('saving_throw_macro', 'Saving Throws'),
     savingthrowsquery: new RollAbilityMaker('saving_throw_query_macro', 'Saving Throws'),
     saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
@@ -1070,11 +1070,18 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks'),
     statblock: new RollAbilityMaker('statblock', 'Statblock'),
     traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
+    'traits-macro': new RollAbilityMaker('traits_macro', 'Traits'),
     actions: new RepeatingAbilityMaker('action', 'action', 'Actions'),
+    'actions-macro': new RollAbilityMaker('actions_macro', 'Actions'),
     reactions: new RepeatingAbilityMaker('reaction', 'action', 'Reactions'),
+    'reactions-macro': new RollAbilityMaker('reactions_macro', 'Reactions'),
     legendaryactions: new RepeatingAbilityMaker('legendaryaction', 'action', 'Legendary Actions'),
-    lairactionss: new RepeatingAbilityMaker('lairaction', 'action', 'Lair Actions'),
-    regionaleffects: new RepeatingAbilityMaker('regionaleffect', 'action', 'Regional Effects')
+    'legendaryactions-macro': new RollAbilityMaker('legendaryactions_macro', 'Legendary Actions'),
+    legendarya: new RepeatingAbilityMaker('legendaryaction', 'action', 'LegendaryA'),
+    lairactions: new RollAbilityMaker('lairactions_macro', 'Lair Actions'),
+    laira: new RollAbilityMaker('lairactions_macro', 'LairA'),
+    regionaleffects: new RollAbilityMaker('regionaleffects_macro', 'Regional Effects'),
+    regionale: new RollAbilityMaker('regionaleffects_macro', 'RegionalE')
   };
 
   var abilityLookup = function(optionName, existingOptions) {
