@@ -1162,15 +1162,9 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         case 0.3:
           _.extend(myState.config.genderPronouns, utils.deepClone(configDefaults.genderPronouns)); //jshint ignore: line
         case 0.4:
-          _.defaults(myState.config, utils.deepClone(configDefaults));
-          myState.version = schemaVersion;
-          break;
         case 0.5:
-          _.defaults(myState.config, utils.deepClone(configDefaults));
-          myState.version = schemaVersion;
-          break;
         case 0.6:
-          _.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
+          _.defaults(myState.config, utils.deepClone(configDefaults));
           myState.version = schemaVersion;
           break;
         default:

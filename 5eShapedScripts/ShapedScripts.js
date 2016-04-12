@@ -70,40 +70,40 @@ var ShapedScripts =
 		], EntityLookup.jsonValidatorAsVersionChecker(jsonValidator));
 		el.configureEntity('spells', [el.getMonsterSpellUpdater()], EntityLookup.getVersionChecker('0.2'));
 
-		roll20.on('ready', function() {
+		roll20.on('ready', function () {
 			shaped.checkInstall();
 			shaped.registerEventHandlers();
 		});
 
 		module.exports = {
-			addEntities: function(entities) {
+			addEntities: function (entities) {
 				try {
-					if(typeof entities === 'string') {
+					if (typeof entities === 'string') {
 						entities = JSON.parse(entities);
 					}
 					var result = el.addEntities(entities);
-					var summary = _.mapObject(result, function(resultObject, type) {
-						if(type === 'errors') {
+					var summary = _.mapObject(result, function (resultObject, type) {
+						if (type === 'errors') {
 							return resultObject.length;
 						}
 						else {
-							return _.mapObject(resultObject, function(operationResultArray) {
+							return _.mapObject(resultObject, function (operationResultArray) {
 								return operationResultArray.length;
 							});
 						}
 					});
 					logger.info('Summary of adding entities to the lookup: $$$', summary);
 					logger.info('Details: $$$', result);
-					if(!_.isEmpty(result.errors)) {
+					if (!_.isEmpty(result.errors)) {
 						var message = _.chain(result.errors)
 							.groupBy('entity')
-							.mapObject(function(entityErrors) {
+							.mapObject(function (entityErrors) {
 								return _.chain(entityErrors)
 									.pluck('errors')
 									.flatten()
 									.value();
 							})
-							.map(function(errors, entityName) {
+							.map(function (errors, entityName) {
 								return '<li>' + entityName + ':<ul><li>' + errors.join('</li><li>') + '</li></ul></li>';
 							})
 							.value();
@@ -111,7 +111,7 @@ var ShapedScripts =
 						reporter.reportError('JSON import error:<ul>' + message + '</ul>');
 					}
 				}
-				catch(e) {
+				catch (e) {
 					reporter.reportError('JSON parse error, please see log for more information');
 					logger.error(e.toString());
 					logger.error(e.stack);
@@ -122,7 +122,7 @@ var ShapedScripts =
 
 /***/ },
 /* 1 */
-	/***/ function(module, exports, __webpack_require__) {
+	/***/ function (module, exports, __webpack_require__) {
 
 		/* globals state, createObj, findObjs, filterObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
 		'use strict';
@@ -130,33 +130,33 @@ var ShapedScripts =
 	//noinspection JSUnusedGlobalSymbols
 	module.exports = {
 
-		getState: function(module) {
-			if(!state[module]) {
+		getState: function (module) {
+			if (!state[module]) {
 				state[module] = {};
 			}
 			return state[module];
 		},
 
-		createObj: function(type, attributes) {
+		createObj: function (type, attributes) {
 			return createObj(type, attributes);
 		},
 
-		findObjs: function(attributes) {
+		findObjs: function (attributes) {
 			return findObjs(attributes);
 		},
 
-		filterObjs: function(callback) {
+		filterObjs: function (callback) {
 			return filterObjs(callback);
 		},
 
-		getObj: function(type, id) {
+		getObj: function (type, id) {
 			return getObj(type, id);
 		},
 
-		getOrCreateObj: function(type, attributes) {
+		getOrCreateObj: function (type, attributes) {
 			var newAttributes = _.extend(_.clone(attributes), { type: type });
 			var existing = this.findObjs(newAttributes);
-			switch(existing.length) {
+			switch (existing.length) {
 				case 0:
 					return this.createObj(type, newAttributes);
 				case 1:
@@ -167,50 +167,50 @@ var ShapedScripts =
 			}
 		},
 
-		getAttrByName: function(character, attrName) {
+		getAttrByName: function (character, attrName) {
 			return getAttrByName(character, attrName);
 		},
 
-		getAttrObjectByName: function(character, attrName) {
+		getAttrObjectByName: function (character, attrName) {
 			var attr = this.findObjs({ type: 'attribute', characterid: character, name: attrName });
 			return attr && attr.length > 0 ? attr[0] : null;
 		},
 
-		getOrCreateAttr: function(characterId, attrName) {
+		getOrCreateAttr: function (characterId, attrName) {
 			return this.getOrCreateObj('attribute', { characterid: characterId, name: attrName });
 		},
 
-		setAttrByName: function(characterId, attrName, value) {
+		setAttrByName: function (characterId, attrName, value) {
 			this.getOrCreateAttr(characterId, attrName).set('current', value);
 		},
 
-		processAttrValue: function(characterId, attrName, cb) {
+		processAttrValue: function (characterId, attrName, cb) {
 			var attribute = this.getOrCreateAttr(characterId, attrName);
 			attribute.set('current', cb(attribute.get('current')));
 		},
 
-		getRepeatingSectionAttrs: function(characterId, sectionName) {
+		getRepeatingSectionAttrs: function (characterId, sectionName) {
 			var prefix = 'repeating_' + sectionName;
-			return _.filter(this.findObjs({ type: 'attribute', characterid: characterId }), function(attr) {
+			return _.filter(this.findObjs({ type: 'attribute', characterid: characterId }), function (attr) {
 				return attr.get('name').indexOf(prefix) === 0;
 			});
 		},
 
-		getRepeatingSectionItemIdsByName: function(characterId, sectionName) {
+		getRepeatingSectionItemIdsByName: function (characterId, sectionName) {
 			var re = new RegExp('repeating_' + sectionName + '_([^_]+)_name$');
 			return _.reduce(this.getRepeatingSectionAttrs(characterId, sectionName),
-				function(lookup, attr) {
+				function (lookup, attr) {
 					var match = attr.get('name').match(re);
-					if(match) {
+					if (match) {
 						lookup[attr.get('current').toLowerCase()] = match[1];
 					}
 					return lookup;
 				}, {});
 		},
 
-		getCurrentPage: function(playerId) {
+		getCurrentPage: function (playerId) {
 			var pageId;
-			if(this.playerIsGM(playerId)) {
+			if (this.playerIsGM(playerId)) {
 				pageId = this.getObj('player', playerId).get('lastpage');
 			}
 			else {
@@ -219,8 +219,8 @@ var ShapedScripts =
 			return pageId ? this.getObj('page', pageId) : null;
 		},
 
-		spawnFx: function(pointsArray, fxType, pageId) {
-			switch(pointsArray.length) {
+		spawnFx: function (pointsArray, fxType, pageId) {
+			switch (pointsArray.length) {
 				case 1:
 					spawnFx(pointsArray[0].x, pointsArray[0].y, fxType, pageId);
 					break;
@@ -232,23 +232,23 @@ var ShapedScripts =
 			}
 		},
 
-		playerIsGM: function(playerId) {
+		playerIsGM: function (playerId) {
 			return playerIsGM(playerId);
 		},
 
-		getCampaign: function() {
+		getCampaign: function () {
 			return Campaign(); //jshint ignore: line
 		},
 
-		sendChat: function(sendAs, message, callback, options) {
+		sendChat: function (sendAs, message, callback, options) {
 			return sendChat(sendAs, message, callback, options);
 		},
 
-		on: function(event, callback) {
+		on: function (event, callback) {
 			return on(event, callback);
 		},
 
-		log: function(msg) {
+		log: function (msg) {
 			return log(msg);
 		},
 
@@ -258,7 +258,7 @@ var ShapedScripts =
 
 /***/ },
 /* 2 */
-	/***/ function(module, exports) {
+	/***/ function (module, exports) {
 
 		module.exports = _;
 
@@ -308,11 +308,11 @@ var ShapedScripts =
 		//noinspection JSUnusedGlobalSymbols
 		var parserModule = {
 
-			makeContentModelParser: function(fieldSpec, ordered) {
+			makeContentModelParser: function (fieldSpec, ordered) {
 				var module = this;
 				return {
 
-					parse: function(stateManager, textLines, resume) {
+					parse: function (stateManager, textLines, resume) {
 
 						var parseState = stateManager.enterChildParser(this, resume),
 							someMatch = false,
@@ -322,8 +322,8 @@ var ShapedScripts =
 						parseState.subParsers = parseState.subParsers || module.makeParserList(fieldSpec.contentModel);
 
 
-						if(parseState.resumeParser) {
-							if(!parseState.resumeParser.resumeParse(stateManager, textLines)) {
+						if (parseState.resumeParser) {
+							if (!parseState.resumeParser.resumeParse(stateManager, textLines)) {
 								stateManager.leaveChildParser(this);
 								return false;
 							}
@@ -332,11 +332,11 @@ var ShapedScripts =
 
 						}
 
-						var parseRunner = function(parser, index, parsers) {
+						var parseRunner = function (parser, index, parsers) {
 
-							if(!parser.parse(stateManager, textLines)) {
+							if (!parser.parse(stateManager, textLines)) {
 
-								if(parser.required === 0 || !ordered) {
+								if (parser.required === 0 || !ordered) {
 									//No match but it's ok to keep looking
 									//through the rest of the content model for one
 									return false;
@@ -346,11 +346,11 @@ var ShapedScripts =
 							}
 							else {
 								parser.justMatched = true;
-								if(parser.required > 0) {
+								if (parser.required > 0) {
 									parser.required--;
 								}
 								parser.allowed--;
-								if(ordered) {
+								if (ordered) {
 									//Set all the previous parsers to be exhausted since we've matched
 									//this one and we're in a strictly ordered content model.
 									_.each(parsers.slice(0, index), _.partial(_.extend, _, { allowed: 0 }));
@@ -364,7 +364,7 @@ var ShapedScripts =
 							stopParser = _.find(parseState.subParsers, parseRunner);
 							logger.debug('Stopped at parser $$$', stopParser);
 							canContinue = stopParser && stopParser.justMatched;
-							if(stopParser) {
+							if (stopParser) {
 								someMatch = someMatch || stopParser.justMatched;
 								stopParser.justMatched = false;
 							}
@@ -372,38 +372,38 @@ var ShapedScripts =
 							//Lose any parsers that have used up all their cardinality already
 							parseState.subParsers = _.reject(parseState.subParsers, { allowed: 0 });
 
-						} while(!_.isEmpty(parseState.subParsers) && !_.isEmpty(textLines) && canContinue);
+						} while (!_.isEmpty(parseState.subParsers) && !_.isEmpty(textLines) && canContinue);
 
 						stateManager.leaveChildParser(this, someMatch ? parseState : undefined);
 
 						return someMatch;
 					},
 
-					resumeParse: function(stateManager, textLines) {
+					resumeParse: function (stateManager, textLines) {
 						return this.parse(stateManager, textLines, true);
 	        },
-					complete: function(parseState, finalText) {
+					complete: function (parseState, finalText) {
 						var missingContent = _.filter(parseState.subParsers, 'required');
-						if(!_.isEmpty(missingContent)) {
+						if (!_.isEmpty(missingContent)) {
 							throw new MissingContentError(missingContent);
 						}
 					}
 				};
 			},
 
-			matchParseToken: function(myParseState, textLines) {
-				if(_.isEmpty(textLines) || this.bare) {
+			matchParseToken: function (myParseState, textLines) {
+				if (_.isEmpty(textLines) || this.bare) {
 					return !_.isEmpty(textLines);
 				}
 
 				var re = new RegExp('^(.*?)(' + this.parseToken + ')(?:[\\s.]+|$)', 'i');
 				var match = textLines[0].match(re);
-				if(match) {
+				if (match) {
 					logger.debug('Found match $$$', match[0]);
 					myParseState.forPrevious = match[1];
 					myParseState.text = '';
 					textLines[0] = textLines[0].slice(match[0].length).trim();
-					if(!textLines[0]) {
+					if (!textLines[0]) {
 						textLines.shift();
 					}
 				}
@@ -411,13 +411,13 @@ var ShapedScripts =
 				return !!match;
 			},
 
-			matchValue: function(myParseState, textLines) {
-				if(this.pattern && this.bare) {
+			matchValue: function (myParseState, textLines) {
+				if (this.pattern && this.bare) {
 					//If this is not a bare value then we can take all the text up to next
 					//token and just validate it at the end. If it is, then the pattern itself
 					//defines whether this field matches and we must run it immediately.
 
-					if(_.isEmpty(textLines)) {
+					if (_.isEmpty(textLines)) {
 						return false;
 					}
 					textLines[0] = textLines[0].trim();
@@ -427,19 +427,19 @@ var ShapedScripts =
 					logger.debug('$$$ attempting to match value [$$$] against regexp $$$', this.name, textLines[0], re.toString());
 					var match = textLines[0].match(re);
 
-					if(match) {
+					if (match) {
 						logger.debug('Successful match! $$$', match);
 						myParseState.text = match[matchGroup];
-						if(!myParseState.forPrevious && this.forPreviousMatchGroup) {
+						if (!myParseState.forPrevious && this.forPreviousMatchGroup) {
 							logger.debug('Setting forPrevious to  $$$', match[this.forPreviousMatchGroup]);
 							myParseState.forPrevious = match[this.forPreviousMatchGroup];
 						}
 						textLines[0] = textLines[0].slice(match.index + match[0].length);
-						if(this.forNextMatchGroup && match[this.forNextMatchGroup]) {
+						if (this.forNextMatchGroup && match[this.forNextMatchGroup]) {
 							textLines[0] = match[this.forNextMatchGroup] + textLines[0];
 						}
 
-						if(!textLines[0]) {
+						if (!textLines[0]) {
 							myParseState.text += '\n';
 							textLines.shift();
 						}
@@ -458,46 +458,46 @@ var ShapedScripts =
 
 			},
 
-			orderedContent: function(fieldSpec) {
+			orderedContent: function (fieldSpec) {
 				return this.makeContentModelParser(fieldSpec, true);
 			},
 
-			unorderedContent: function(fieldSpec) {
+			unorderedContent: function (fieldSpec) {
 				return this.makeContentModelParser(fieldSpec, false);
 			},
 
-			string: function(fieldSpec) {
+			string: function (fieldSpec) {
 				return this.makeSimpleValueParser();
 			},
 
 
-			enumType: function(fieldSpec) {
+			enumType: function (fieldSpec) {
 				var parser = this.makeSimpleValueParser();
 
-				if(fieldSpec.bare) {
-					parser.matchValue = function(myParseState, textLines) {
+				if (fieldSpec.bare) {
+					parser.matchValue = function (myParseState, textLines) {
 						var parser = this;
 						var firstMatch = _.chain(fieldSpec.enumValues)
-							.map(function(enumValue) {
+							.map(function (enumValue) {
 								logger.debug('Attempting to parse as enum property $$$', enumValue);
 								var pattern = '^(.*?)(' + enumValue + ')(?:[\\s.]+|$)';
 								var re = new RegExp(pattern, parser.caseSensitive ? '' : 'i');
 								return textLines[0].match(re);
 							})
 							.compact()
-							.sortBy(function(match) {
+							.sortBy(function (match) {
 								return match[1].length;
 							})
 							.first()
 							.value();
 
 
-						if(firstMatch) {
+						if (firstMatch) {
 							logger.debug('Finished trying to parse as enum property, match: $$$', firstMatch);
 							myParseState.text = firstMatch[2];
 							myParseState.forPrevious = firstMatch[1];
 							textLines[0] = textLines[0].slice(firstMatch.index + firstMatch[0].length);
-							if(!textLines[0]) {
+							if (!textLines[0]) {
 								textLines.shift();
 	            }
 							return true;
@@ -509,19 +509,19 @@ var ShapedScripts =
 				return parser;
 			},
 
-			number: function(fieldSpec) {
+			number: function (fieldSpec) {
 				var parser = this.makeSimpleValueParser();
-				parser.typeConvert = function(textValue) {
+				parser.typeConvert = function (textValue) {
 					var parts = textValue.split('/');
 					var intVal;
-					if(parts.length > 1) {
+					if (parts.length > 1) {
 						intVal = parts[0] / parts[1];
 					}
 					else {
 						intVal = parseInt(textValue);
 					}
 
-					if(_.isNaN(intVal)) {
+					if (_.isNaN(intVal)) {
 						throw new BadValueError(fieldSpec.name, textValue, '[Integer]');
 					}
 					return intVal;
@@ -530,21 +530,21 @@ var ShapedScripts =
 			},
 
 
-			ability: function(fieldSpec) {
+			ability: function (fieldSpec) {
 				var parser = this.number();
-				parser.matchValue = function(parseState, textLines) {
-					if(_.isEmpty(textLines)) {
+				parser.matchValue = function (parseState, textLines) {
+					if (_.isEmpty(textLines)) {
 						return false;
 					}
 					var re = new RegExp('^([\\sa-z\\(\\)]*)(\\d+(?:\\s?\\([\\-+\\d]+\\))?)', 'i');
 					logger.debug('Attempting to match value [$$$] against regexp $$$', textLines[0].trim(), re.toString());
 					var match = textLines[0].trim().match(re);
 
-					if(match) {
+					if (match) {
 						logger.debug('Successful match $$$', match);
 						parseState.text = match[2];
 						textLines[0] = match[1] + textLines[0].slice(match.index + match[0].length);
-						if(!textLines[0]) {
+						if (!textLines[0]) {
 							textLines.shift();
 						}
 						return true;
@@ -555,21 +555,21 @@ var ShapedScripts =
 				return parser;
 			},
 
-			heading: function(fieldSpec) {
+			heading: function (fieldSpec) {
 				fieldSpec.bare = true;
 				var parser = this.makeSimpleValueParser();
 				parser.skipOutput = true;
 				return parser;
 			},
 
-			makeSimpleValueParser: function() {
+			makeSimpleValueParser: function () {
 				var module = this;
 				return {
-					parse: function(stateManager, textLines) {
+					parse: function (stateManager, textLines) {
 						var parseState = stateManager.enterChildParser(this);
 						var match = this.matchParseToken(parseState, textLines) &&
 							this.matchValue(parseState, textLines);
-						if(match) {
+						if (match) {
 							stateManager.completeCurrentStack(parseState.forPrevious);
 							delete parseState.forPrevious;
 							stateManager.leaveChildParser(this, parseState);
@@ -579,22 +579,22 @@ var ShapedScripts =
 						}
 						return match;
 	        },
-					complete: function(parseState, finalText) {
+					complete: function (parseState, finalText) {
 						parseState.text += finalText ? finalText : '';
-						if(parseState.text) {
+						if (parseState.text) {
 							parseState.value = this.extractValue(parseState.text);
 							parseState.value = this.typeConvert(parseState.value);
 							parseState.setOutputValue();
 						}
 					},
-					extractValue: function(text) {
+					extractValue: function (text) {
 						text = text.trim();
-						if(this.pattern && !this.bare) {
+						if (this.pattern && !this.bare) {
 
 
 							var regExp = new RegExp(this.pattern, this.caseSensitive ? '' : 'i');
 							var match = text.match(regExp);
-							if(match) {
+							if (match) {
 								var matchGroup = this.matchGroup || 0;
 								return match[matchGroup];
 							}
@@ -606,11 +606,11 @@ var ShapedScripts =
 							return text;
 						}
 					},
-					typeConvert: function(textValue) {
+					typeConvert: function (textValue) {
 						return textValue;
 					},
-					resumeParse: function(stateManager, textLines) {
-						if(_.isEmpty(textLines)) {
+					resumeParse: function (stateManager, textLines) {
+						if (_.isEmpty(textLines)) {
 							return false;
 						}
 						var parseState = stateManager.enterChildParser(this, true);
@@ -623,56 +623,56 @@ var ShapedScripts =
 				};
 			},
 
-			makeBaseParseState: function(skipOutput, propertyPath, outputObject, completedObjects) {
+			makeBaseParseState: function (skipOutput, propertyPath, outputObject, completedObjects) {
 				return {
 					text: '',
-					getObjectValue: function() {
+					getObjectValue: function () {
 						var value = outputObject;
 						var segments = _.clone(propertyPath);
-						while(segments.length) {
+						while (segments.length) {
 							var prop = segments.shift();
-							if(prop.flatten) {
+							if (prop.flatten) {
 								continue;
 							}
 							value = value[prop.name];
-							if(_.isArray(value)) {
+							if (_.isArray(value)) {
 								value = _.last(value);
 							}
 						}
 						return value;
 	        },
-					setOutputValue: function() {
-						if(skipOutput) {
+					setOutputValue: function () {
+						if (skipOutput) {
 							return;
 						}
 						var outputTo = outputObject;
 						var segments = _.clone(propertyPath);
-						while(segments.length > 0) {
+						while (segments.length > 0) {
 							var prop = segments.shift();
-							if(prop.flatten) {
+							if (prop.flatten) {
 								continue;
 							}
 
 							var currentValue = outputTo[prop.name];
 							var newValue = segments.length === 0 ? this.value : {};
 
-							if(_.isUndefined(currentValue) && prop.allowed > 1) {
+							if (_.isUndefined(currentValue) && prop.allowed > 1) {
 								currentValue = [];
 								outputTo[prop.name] = currentValue;
 							}
 
-							if(_.isArray(currentValue)) {
+							if (_.isArray(currentValue)) {
 								var arrayItem = _.find(currentValue, _.partial(_.negate(_.contains), completedObjects));
-								if(!arrayItem) {
+								if (!arrayItem) {
 									currentValue.push(newValue);
 									arrayItem = _.last(currentValue);
 								}
 								newValue = arrayItem;
 							}
-							else if(_.isUndefined(currentValue)) {
+							else if (_.isUndefined(currentValue)) {
 								outputTo[prop.name] = newValue;
 							}
-							else if(segments.length === 0) {
+							else if (segments.length === 0) {
 								throw new Error('Simple value property somehow already had value when we came to set it');
 							}
 							else {
@@ -683,52 +683,52 @@ var ShapedScripts =
 						}
 	        },
 					logWrap: 'parseState[' + _.pluck(propertyPath, 'name').join('/') + ']',
-					toJSON: function() {
+					toJSON: function () {
 						return _.extend(_.clone(this), { propertyPath: propertyPath });
 					}
 				};
 			},
 
-			makeParseStateManager: function() {
+			makeParseStateManager: function () {
 				var incompleteParserStack = [];
 				var currentPropertyPath = [];
 				var completedObjects = [];
 				var module = this;
 				return {
 					outputObject: {},
-					leaveChildParser: function(parser, state) {
+					leaveChildParser: function (parser, state) {
 						currentPropertyPath.pop();
-						if(state) {
+						if (state) {
 							state.resumeParser = _.isEmpty(incompleteParserStack) ? null : _.last(incompleteParserStack).parser;
 							incompleteParserStack.push({ parser: parser, state: state });
 						}
 					},
-					completeCurrentStack: function(finalText) {
-						while(!_.isEmpty(incompleteParserStack)) {
+					completeCurrentStack: function (finalText) {
+						while (!_.isEmpty(incompleteParserStack)) {
 							var incomplete = incompleteParserStack.shift();
 							incomplete.parser.complete(incomplete.state, finalText);
 							var value = incomplete.state.getObjectValue();
-							if(_.isObject(value) && !incomplete.parser.flatten) {
+							if (_.isObject(value) && !incomplete.parser.flatten) {
 								//Crude but this list is unlikely to get that big
 								completedObjects.push(value);
 	            }
 						}
 	        },
-					enterChildParser: function(parser, resume) {
+					enterChildParser: function (parser, resume) {
 						currentPropertyPath.push({
 							name: parser.name,
 							allowed: parser.allowed,
 							flatten: parser.flatten
 						});
 
-						if(!resume || _.isEmpty(incompleteParserStack) || parser !== _.last(incompleteParserStack).parser) {
+						if (!resume || _.isEmpty(incompleteParserStack) || parser !== _.last(incompleteParserStack).parser) {
 							return module.makeBaseParseState(parser.skipOutput, _.clone(currentPropertyPath), this.outputObject, completedObjects);
 						}
 
 						return incompleteParserStack.pop().state;
 	        },
 					logWrap: 'parserState',
-					toJSON: function() {
+					toJSON: function () {
 						return _.extend(_.clone(this), {
 							incompleteParsers: incompleteParserStack,
 							propertyPath: currentPropertyPath
@@ -744,10 +744,10 @@ var ShapedScripts =
 				'parseToken', 'flatten', 'pattern', 'matchGroup', 'bare', 'caseSensitive',
 				'name', 'skipOutput'
 			],
-			getParserFor: function(fieldSpec) {
+			getParserFor: function (fieldSpec) {
 				logger.debug('Making parser for field $$$', fieldSpec);
 				var parserBuilder = this[fieldSpec.type];
-				if(!parserBuilder) {
+				if (!parserBuilder) {
 					throw new Error('Can\'t make parser for type ' + fieldSpec.type);
 				}
 				var parser = parserBuilder.call(this, fieldSpec);
@@ -763,11 +763,11 @@ var ShapedScripts =
 			},
 
 
-			makeParserList: function(contentModelArray) {
+			makeParserList: function (contentModelArray) {
 				var module = this;
 				return _.chain(contentModelArray)
 					.reject('noParse')
-					.reduce(function(parsers, fieldSpec) {
+					.reduce(function (parsers, fieldSpec) {
 						parsers.push(module.getParserFor(fieldSpec));
 						return parsers;
 					}, [])
@@ -781,7 +781,7 @@ var ShapedScripts =
 
 		var parser = parserModule.getParserFor(formatSpec);
 		return {
-			parse: function(text) {
+			parse: function (text) {
 				logger.debug('Text: $$$', text);
 
 				var textLines = _.chain(text.split('\n'))
@@ -791,13 +791,13 @@ var ShapedScripts =
 				logger.debug(parser);
 				var stateManager = parserModule.makeParseStateManager();
 				var success = parser.parse(stateManager, textLines);
-				while(success && !_.isEmpty(textLines)) {
+				while (success && !_.isEmpty(textLines)) {
 					parser.resumeParse(stateManager, textLines);
 				}
 
 				stateManager.completeCurrentStack(textLines.join('\n'));
 
-				if(success && textLines.length === 0) {
+				if (success && textLines.length === 0) {
 					stateManager.outputObject.version = formatSpec.formatVersion;
 					logger.info(stateManager.outputObject);
 					return stateManager.outputObject;
@@ -825,7 +825,7 @@ var ShapedScripts =
 		'use strict';
 		this.missingFieldParsers = missingFieldParsers;
 		//noinspection JSUnusedGlobalSymbols
-		this.message = _.reduce(this.missingFieldParsers, function(memo, parser) {
+		this.message = _.reduce(this.missingFieldParsers, function (memo, parser) {
 				return memo + '<li>Field ' + parser.parseToken + ' should have appeared ' + parser.required +
 					' more times</li>';
 			}, '<ul>') + '</ul>';
@@ -1308,37 +1308,37 @@ var ShapedScripts =
 				prefixString: ''
 			},
 
-			stringify = function(object) {
-				if(object === undefined) {
+			stringify = function (object) {
+				if (object === undefined) {
 					return object;
 				}
 
-				return typeof object === 'string' ? object : JSON.stringify(object, function(key, value) {
-					if(key !== 'logWrap' && key !== 'isLogWrapped') {
+				return typeof object === 'string' ? object : JSON.stringify(object, function (key, value) {
+					if (key !== 'logWrap' && key !== 'isLogWrapped') {
 						return value;
 					}
 				});
 			},
 
-			shouldLog = function(level) {
+			shouldLog = function (level) {
 				var logLevel = logger.INFO;
-				if(config && config.logLevel) {
+				if (config && config.logLevel) {
 					logLevel = logger[config.logLevel];
 				}
 
 				return level <= logLevel;
 			},
 
-			outputLog = function(level, message) {
+			outputLog = function (level, message) {
 
-				if(!shouldLog(level)) {
+				if (!shouldLog(level)) {
 					return;
 				}
 
 				var args = arguments.length > 2 ? _.toArray(arguments).slice(2) : [];
 				message = stringify(message);
-				if(message) {
-					message = message.replace(/\$\$\$/g, function() {
+				if (message) {
+					message = message.replace(/\$\$\$/g, function () {
 						return stringify(args.shift());
 					});
 				}
@@ -1348,22 +1348,22 @@ var ShapedScripts =
 					message);
 			};
 
-		logger.getLabel = function(logLevel) {
-			var logPair = _.chain(logger).pairs().find(function(pair) {
+		logger.getLabel = function (logLevel) {
+			var logPair = _.chain(logger).pairs().find(function (pair) {
 				return pair[1] === logLevel;
 			}).value();
 			return logPair ? logPair[0] : 'UNKNOWN';
 		};
 
-		_.each(logger, function(level, levelName) {
+		_.each(logger, function (level, levelName) {
 			logger[levelName.toLowerCase()] = _.partial(outputLog, level);
 		});
 
-		logger.wrapModule = function(modToWrap) {
-			if(shouldLog(logger.TRACE)) {
+		logger.wrapModule = function (modToWrap) {
+			if (shouldLog(logger.TRACE)) {
 				_.chain(modToWrap)
 					.functions()
-					.each(function(funcName) {
+					.each(function (funcName) {
 						var origFunc = modToWrap[funcName];
 						modToWrap[funcName] = logger.wrapFunction(funcName, origFunc, modToWrap.logWrap);
 					});
@@ -1371,22 +1371,22 @@ var ShapedScripts =
 			}
 		};
 
-		logger.getLogTap = function(level, messageString) {
+		logger.getLogTap = function (level, messageString) {
 			return _.partial(outputLog, level, messageString);
 		};
 
-		logger.wrapFunction = function(name, func, moduleName) {
-			if(shouldLog(logger.TRACE)) {
-				if(name === 'toJSON' || moduleName === 'roll20' && name === 'log') {
+		logger.wrapFunction = function (name, func, moduleName) {
+			if (shouldLog(logger.TRACE)) {
+				if (name === 'toJSON' || moduleName === 'roll20' && name === 'log') {
 	        return func;
 				}
-				return function() {
+				return function () {
 					logger.trace('$$$.$$$ starting with this value: $$$ and args $$$', moduleName, name, this, arguments);
 					logger.prefixString = logger.prefixString + '  ';
 					var retVal = func.apply(this, arguments);
 					logger.prefixString = logger.prefixString.slice(0, -2);
 					logger.trace('$$$.$$$ ending with return value $$$', moduleName, name, retVal);
-					if(retVal && retVal.logWrap && !retVal.isLogWrapped) {
+					if (retVal && retVal.logWrap && !retVal.isLogWrapped) {
 						logger.wrapModule(retVal);
 					}
 					return retVal;
@@ -1418,14 +1418,14 @@ var ShapedScripts =
 				versionCheckers = {},
 				self = this;
 
-			this.configureEntity = function(entityName, processors, versionChecker) {
+			this.configureEntity = function (entityName, processors, versionChecker) {
 				entities[entityName] = {};
 				noWhiteSpaceEntities[entityName] = {};
 				entityProcessors[entityName] = processors;
 				versionCheckers[entityName] = versionChecker;
 			};
 
-			this.addEntities = function(entitiesObject) {
+			this.addEntities = function (entitiesObject) {
 				var results = {
 					errors: []
 				};
@@ -1433,7 +1433,7 @@ var ShapedScripts =
 
 				_.chain(entitiesObject)
 					.omit('version', 'patch')
-					.each(function(entityArray, type) {
+					.each(function (entityArray, type) {
 						results[type] = {
 							withErrors: [],
 							skipped: [],
@@ -1442,23 +1442,23 @@ var ShapedScripts =
 							added: []
 						};
 
-						if(!entities[type]) {
+						if (!entities[type]) {
 							results.errors.push({ entity: 'general', errors: ['Unrecognised entity type ' + type] });
 							return;
 						}
 
-						if(!versionCheckers[type](entitiesObject.version, results.errors)) {
+						if (!versionCheckers[type](entitiesObject.version, results.errors)) {
 							return;
 						}
 
 
-						_.each(entityArray, function(entity) {
+						_.each(entityArray, function (entity) {
 							var key = entity.name.toLowerCase();
 							var operation = !!entities[type][key] ? (entitiesObject.patch ? 'patched' : 'skipped') : 'added';
 
-							if(operation === 'patched') {
+							if (operation === 'patched') {
 								entity = patchEntity(entities[type][key], entity);
-								if(!entity) {
+								if (!entity) {
 									operation = 'deleted';
 									delete entities[type][key];
 									delete noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
@@ -1466,20 +1466,20 @@ var ShapedScripts =
 
 							}
 
-							if(_.contains(['patched', 'added'], operation)) {
+							if (_.contains(['patched', 'added'], operation)) {
 								var processed = _.reduce(entityProcessors[type], utils.executor, {
 									entity: entity,
 									type: type,
 									version: entitiesObject.version,
 									errors: []
 								});
-								if(!_.isEmpty(processed.errors)) {
+								if (!_.isEmpty(processed.errors)) {
 									processed.entity = processed.entity.name;
 									results.errors.push(processed);
 									operation = 'withErrors';
 								}
 								else {
-									if(processed.entity.name.toLowerCase() !== key) {
+									if (processed.entity.name.toLowerCase() !== key) {
 										results[type].deleted.push(key);
 										delete entities[type][key];
 										delete noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
@@ -1498,20 +1498,20 @@ var ShapedScripts =
 				return results;
 			};
 
-			this.findEntity = function(type, name, tryWithoutWhitespace) {
+			this.findEntity = function (type, name, tryWithoutWhitespace) {
 				var key = name.toLowerCase();
-				if(!entities[type]) {
+				if (!entities[type]) {
 					throw new Error('Unrecognised entity type ' + type);
 				}
 				var found = entities[type][key];
-				if(!found && tryWithoutWhitespace) {
+				if (!found && tryWithoutWhitespace) {
 					found = noWhiteSpaceEntities[type][key.replace(/\s+/g, '')];
 				}
 				return found && utils.deepClone(found);
 			};
 
-			this.getAll = function(type) {
-				if(!entities[type]) {
+			this.getAll = function (type) {
+				if (!entities[type]) {
 					throw new Error('Unrecognised entity type: ' + type);
 				}
 				return utils.deepClone(_.values(entities[type]));
@@ -1526,12 +1526,12 @@ var ShapedScripts =
 			 * @name EntityLookup#getKeys
 			 * @return {Array} An array containing all keys for the specified entity type
 			 */
-			this.getKeys = function(type, sort) {
-				if(!entities[type]) {
+			this.getKeys = function (type, sort) {
+				if (!entities[type]) {
 					throw new Error('Unrecognised entity type: ' + type);
 				}
 				var keys = _.keys(entities[type]);
-				if(sort) {
+				if (sort) {
 					keys.sort();
 				}
 				return keys;
@@ -1545,11 +1545,11 @@ var ShapedScripts =
 			 * @name EntityLookup#getSpellHydrator
 			 * @return {function}
 			 */
-			this.getSpellHydrator = function() {
-				return function(monsterInfo) {
+			this.getSpellHydrator = function () {
+				return function (monsterInfo) {
 					var monster = monsterInfo.entity;
-					if(monster.spells) {
-						monster.spells = _.map(monster.spells.split(', '), function(spellName) {
+					if (monster.spells) {
+						monster.spells = _.map(monster.spells.split(', '), function (spellName) {
 							return self.findEntity('spells', spellName) || spellName;
 						});
 					}
@@ -1557,22 +1557,22 @@ var ShapedScripts =
 				};
 			};
 
-			this.getMonsterSpellUpdater = function() {
-				return function(spellInfo) {
+			this.getMonsterSpellUpdater = function () {
+				return function (spellInfo) {
 					var spell = spellInfo.entity;
 					_.chain(entities.monsters)
 						.pluck('spells')
 						.compact()
-						.each(function(spellArray) {
-							var spellIndex = _.findIndex(spellArray, function(monsterSpell) {
-								if(typeof monsterSpell === 'string') {
+						.each(function (spellArray) {
+							var spellIndex = _.findIndex(spellArray, function (monsterSpell) {
+								if (typeof monsterSpell === 'string') {
 									return monsterSpell.toLowerCase() === spell.name.toLowerCase();
 								}
 								else {
 									return monsterSpell !== spell && monsterSpell.name.toLowerCase() === spell.name.toLowerCase();
 								}
 							});
-							if(spellIndex !== -1) {
+							if (spellIndex !== -1) {
 								spellArray[spellIndex] = spell;
 							}
 						});
@@ -1581,15 +1581,15 @@ var ShapedScripts =
 			};
 
 
-			this.toJSON = function() {
+			this.toJSON = function () {
 				return { monsterCount: _.size(entities.monsters), spellCount: _.size(entities.spells) };
 			};
 
 		}
 
 		EntityLookup.prototype.logWrap = 'entityLookup';
-		EntityLookup.jsonValidatorAsEntityProcessor = function(jsonValidator) {
-			return function(entityInfo) {
+		EntityLookup.jsonValidatorAsEntityProcessor = function (jsonValidator) {
+			return function (entityInfo) {
 				var wrapper = {
 					version: entityInfo.version
 				};
@@ -1600,13 +1600,13 @@ var ShapedScripts =
 				return entityInfo;
 			};
 	};
-		EntityLookup.jsonValidatorAsVersionChecker = function(jsonValidator) {
+		EntityLookup.jsonValidatorAsVersionChecker = function (jsonValidator) {
 			return EntityLookup.getVersionChecker(jsonValidator.getVersionNumber());
 		};
-		EntityLookup.getVersionChecker = function(requiredVersion) {
-			return function(version, errorsArray) {
+		EntityLookup.getVersionChecker = function (requiredVersion) {
+			return function (version, errorsArray) {
 				var valid = version === requiredVersion;
-				if(!valid) {
+				if (!valid) {
 					errorsArray.push({
 						entity: 'general',
 						errors: ['Incorrect entity objects version: [' + version + ']. Required is: ' + requiredVersion]
@@ -1618,11 +1618,11 @@ var ShapedScripts =
 
 
 		function patchEntity(original, patch) {
-			if(patch.remove) {
+			if (patch.remove) {
 				return undefined;
 			}
-			return _.mapObject(original, function(propVal, propName) {
-				if(propName === 'name' && patch.newName) {
+			return _.mapObject(original, function (propVal, propName) {
+				if (propName === 'name' && patch.newName) {
 					return patch.newName;
 				}
 				return patch[propName] || propVal;
@@ -1640,19 +1640,19 @@ var ShapedScripts =
 		var _ = __webpack_require__(2);
 
 	module.exports = {
-		deepExtend: function(original, newValues) {
+		deepExtend: function (original, newValues) {
 			var self = this;
-			if(!original) {
+			if (!original) {
 				original = _.isArray(newValues) ? [] : {};
 			}
-			_.each(newValues, function(value, key) {
-				if(_.isArray(original[key])) {
-					if(!_.isArray(value)) {
+			_.each(newValues, function (value, key) {
+				if (_.isArray(original[key])) {
+					if (!_.isArray(value)) {
 						original[key].push(value);
 	        }
 					else {
-						original[key] = _.map(value, function(item, index) {
-							if(_.isObject(item)) {
+						original[key] = _.map(value, function (item, index) {
+							if (_.isObject(item)) {
 								return self.deepExtend(original[key][index], item);
 	            }
 	            else {
@@ -1661,7 +1661,7 @@ var ShapedScripts =
 						});
 					}
 				}
-				else if(_.isObject(original[key])) {
+				else if (_.isObject(original[key])) {
 					original[key] = self.deepExtend(original[key], value);
 				}
 				else {
@@ -1672,13 +1672,13 @@ var ShapedScripts =
 			return original;
 		},
 
-		createObjectFromPath: function(pathString, value) {
+		createObjectFromPath: function (pathString, value) {
 			var newObject = {};
-			_.reduce(pathString.split(/\./), function(object, pathPart, index, pathParts) {
+			_.reduce(pathString.split(/\./), function (object, pathPart, index, pathParts) {
 				var match = pathPart.match(/([^.\[]*)(?:\[(\d+)\])?/);
 				var newVal = index === pathParts.length - 1 ? value : {};
 
-				if(match[2]) {
+				if (match[2]) {
 					object[match[1]] = [];
 					object[match[1]][match[2]] = newVal;
 				}
@@ -1691,13 +1691,13 @@ var ShapedScripts =
 			return newObject;
 		},
 
-		getObjectFromPath: function(obj, path) {
+		getObjectFromPath: function (obj, path) {
 			path = path.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
 			path = path.replace(/^\./, '');           // strip a leading dot
 			var a = path.split('.');
-			for(var i = 0, n = a.length; i < n; ++i) {
+			for (var i = 0, n = a.length; i < n; ++i) {
 				var k = a[i];
-				if(k in obj) {
+				if (k in obj) {
 					obj = obj[k];
 				}
 				else {
@@ -1707,12 +1707,12 @@ var ShapedScripts =
 			return obj;
 		},
 
-		deepClone: function(object) {
+		deepClone: function (object) {
 			return JSON.parse(JSON.stringify(object));
 		},
 
-		executor: function() {
-			switch(arguments.length) {
+		executor: function () {
+			switch (arguments.length) {
 				case 0:
 					return;
 				case 1:
@@ -1729,52 +1729,52 @@ var ShapedScripts =
 		 * @param {string} s - The string to be converted
 		 * @return {string} the supplied string in title case
 		 */
-		toTitleCase: function(s) {
-			return s.replace(/\w\S*/g, function(txt) {
+		toTitleCase: function (s) {
+			return s.replace(/\w\S*/g, function (txt) {
 				return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
 			});
 		},
 
-		versionCompare: function(v1, v2) {
+		versionCompare: function (v1, v2) {
 
-			if(v1 === v2) {
+			if (v1 === v2) {
 				return 0;
 			}
-			else if(v1 === undefined || v1 === null) {
+			else if (v1 === undefined || v1 === null) {
 				return -1;
 			}
-			else if(v2 === undefined || v2 === null) {
+			else if (v2 === undefined || v2 === null) {
 				return 1;
 			}
 
 			var v1parts = v1.split('.');
 			var v2parts = v2.split('.');
 
-			var isValidPart = function(x) {
+			var isValidPart = function (x) {
 				return /^\d+$/.test(x);
 			};
 
-			if(!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
+			if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
 				return NaN;
 			}
 
 			v1parts = _.map(v1parts, Number);
 			v2parts = _.map(v2parts, Number);
 
-			for(var i = 0; i < v1parts.length; ++i) {
-				if(v2parts.length === i) {
+			for (var i = 0; i < v1parts.length; ++i) {
+				if (v2parts.length === i) {
 					return 1;
 				}
 
-				if(v1parts[i] > v2parts[i]) {
+				if (v1parts[i] > v2parts[i]) {
 					return 1;
 				}
-				else if(v1parts[i] < v2parts[i]) {
+				else if (v1parts[i] < v2parts[i]) {
 					return -1;
 				}
 			}
 
-			if(v1parts.length !== v2parts.length) {
+			if (v1parts.length !== v2parts.length) {
 				return -1;
 			}
 
@@ -1792,30 +1792,30 @@ var ShapedScripts =
 		var _ = __webpack_require__(2);
 
 		var validatorFactories = {
-			orderedContent: function(spec) {
+			orderedContent: function (spec) {
 				return makeContentModelValidator(spec);
 			},
 
-			unorderedContent: function(spec) {
+			unorderedContent: function (spec) {
 				return makeContentModelValidator(spec);
 			},
 
-			string: function(spec) {
-				if(spec.pattern) {
-					if(spec.matchGroup) {
+			string: function (spec) {
+				if (spec.pattern) {
+					if (spec.matchGroup) {
 						return regExValidator(spec.name, extractRegexPart(spec.pattern, spec.matchGroup), spec.caseSensitive);
 					}
 					else {
 						return regExValidator(spec.name, spec.pattern, spec.caseSensitive);
 					}
 				}
-				return function() {
+				return function () {
 				};
 			},
 
-			enumType: function(spec) {
-				return function(value, errors) {
-					if(!_.some(spec.enumValues, function(enumVal) {
+			enumType: function (spec) {
+				return function (value, errors) {
+					if (!_.some(spec.enumValues, function (enumVal) {
 							return new RegExp('^' + enumVal + '$', 'i').test(value);
 						})) {
 						errors.add('Value "' + value + '" should have been one of [' + spec.enumValues.join(',') + ']');
@@ -1823,18 +1823,18 @@ var ShapedScripts =
 				};
 			},
 
-			ability: function(spec) {
+			ability: function (spec) {
 				return regExValidator(spec.name, '\\d+');
 			},
 
-			heading: function(spec) {
-				return function() {
+			heading: function (spec) {
+				return function () {
 				};
 			},
 
-			number: function(spec) {
-				return function(value, errors) {
-					if(typeof value !== 'number') {
+			number: function (spec) {
+				return function (value, errors) {
+					if (typeof value !== 'number') {
 						errors.add('Value "' + value + '" should have been a number');
 					}
 				};
@@ -1843,15 +1843,15 @@ var ShapedScripts =
 
 		function extractRegexPart(regexp, matchIndex) {
 			var braceCount = 0;
-			var startIndex = _.findIndex(regexp, function(character, index) {
-				if(character === '(' &&
+			var startIndex = _.findIndex(regexp, function (character, index) {
+				if (character === '(' &&
 					(index < 2 || regexp[index - 1] !== '\\') &&
 					regexp[index + 1] !== '?') {
 					return ++braceCount === matchIndex;
 				}
 			});
 
-			if(startIndex === -1) {
+			if (startIndex === -1) {
 				throw new Error('Can\'t find matchgroup ' + matchIndex + ' in regular expression ' + regexp);
 			}
 
@@ -1859,16 +1859,16 @@ var ShapedScripts =
 			startIndex++;
 
 			var openCount = 1;
-			var endIndex = _.findIndex(regexp.slice(startIndex), function(character, index, regexp) {
-				if(character === '(' && regexp[index - 1] !== '\\') {
+			var endIndex = _.findIndex(regexp.slice(startIndex), function (character, index, regexp) {
+				if (character === '(' && regexp[index - 1] !== '\\') {
 					openCount++;
 				}
-				if(character === ')' && regexp[index - 1] !== '\\') {
+				if (character === ')' && regexp[index - 1] !== '\\') {
 					return --openCount === 0;
 				}
 			});
 
-			if(endIndex === -1) {
+			if (endIndex === -1) {
 				throw new Error('matchgroup ' + matchIndex + ' seems not to have closing brace in regular expression ' +
 					regexp);
 			}
@@ -1878,8 +1878,8 @@ var ShapedScripts =
 
 		function regExValidator(fieldName, regexp, caseSensitive) {
 			var re = new RegExp('^' + regexp + '$', caseSensitive ? undefined : 'i');
-			return function(value, errors) {
-				if(!re.test(value)) {
+			return function (value, errors) {
+				if (!re.test(value)) {
 					errors.add('Value "' + value + '" doesn\'t match pattern /' + regexp + '/');
 				}
 			};
@@ -1900,27 +1900,27 @@ var ShapedScripts =
 				.value();
 			var flattened = _.map(parts[0], makeValidator);
 
-			var subValidators = _.reduce(parts[1], function(subValidators, field) {
+			var subValidators = _.reduce(parts[1], function (subValidators, field) {
 				subValidators[field.name] = makeValidator(field);
 				return subValidators;
 			}, {});
 
-			return function(object, errors, isFlatten) {
-				var completed = _.reduce(object, function(completed, fieldValue, fieldName) {
+			return function (object, errors, isFlatten) {
+				var completed = _.reduce(object, function (completed, fieldValue, fieldName) {
 					var validator = subValidators[fieldName];
-					if(validator) {
+					if (validator) {
 						completed.push(fieldName);
 						errors.pushPath(fieldName);
-						if(_.isArray(fieldValue)) {
-							if(fieldValue.length > validator.max) {
+						if (_.isArray(fieldValue)) {
+							if (fieldValue.length > validator.max) {
 								errors.add('Number of entries [' + fieldValue.length + '] exceeds maximum allowed: ' + validator.max);
 							}
-							else if(fieldValue.length < validator.min) {
+							else if (fieldValue.length < validator.min) {
 								errors.add('Number of entries [' + fieldValue.length + '] is less than minimum allowed: ' +
 									validator.min);
 							}
 							else {
-								_.each(fieldValue, function(arrayItem, index) {
+								_.each(fieldValue, function (arrayItem, index) {
 									errors.pushIndex(arrayItem.name ? arrayItem.name : index);
 									validator(arrayItem, errors);
 									errors.popIndex();
@@ -1938,9 +1938,9 @@ var ShapedScripts =
 
 				var toValidate = _.omit(object, completed);
 				_.chain(flattened)
-					.map(function(validator) {
+					.map(function (validator) {
 						var subCompleted = validator(toValidate, errors, true);
-						if(subCompleted.length === 0) {
+						if (subCompleted.length === 0) {
 							return validator;
 						}
 						else {
@@ -1949,8 +1949,8 @@ var ShapedScripts =
 						toValidate = _.omit(toValidate, completed);
 					})
 					.compact()
-					.each(function(validator) {
-						if(validator.min > 0) {
+					.each(function (validator) {
+						if (validator.min > 0) {
 							errors.pushPath(validator.fieldName);
 							errors.add('Section is missing');
 							errors.popPath();
@@ -1960,11 +1960,11 @@ var ShapedScripts =
 				//If we're a flattened validator (our content is injected directly into the parent content model)
 				//Then we should only report missing fields if there was some match in our content model - otherwise
 				//the parent content model will check the cardinality of this model as a whole
-				if(!isFlatten || !_.isEmpty(completed)) {
+				if (!isFlatten || !_.isEmpty(completed)) {
 					_.chain(subValidators)
 						.omit(completed)
-						.each(function(validator) {
-							if(validator.min > 0) {
+						.each(function (validator) {
+							if (validator.min > 0) {
 								errors.pushPath(validator.fieldName);
 								errors.add('Field is missing');
 								errors.popPath();
@@ -1974,10 +1974,10 @@ var ShapedScripts =
 
 				//Flattened content models shouldn't check for unrecognised fields since they're only parsing
 				//part of the current content model.
-				if(!isFlatten) {
+				if (!isFlatten) {
 					_.chain(object)
 						.omit(completed)
-						.each(function(value, key) {
+						.each(function (value, key) {
 							errors.pushPath(key);
 							errors.add('Unrecognised field');
 							errors.popPath();
@@ -1993,31 +1993,31 @@ var ShapedScripts =
 
 			var errors = [];
 			var currentPath = [];
-			this.pushPath = function(path) {
+			this.pushPath = function (path) {
 				currentPath.push(path);
 			};
-			this.popPath = function() {
+			this.popPath = function () {
 				currentPath.pop();
 			};
-			this.pushIndex = function(index) {
+			this.pushIndex = function (index) {
 				currentPath[currentPath.length - 1] = currentPath[currentPath.length - 1] + '[' + index + ']';
 			};
 
-			this.popIndex = function(index) {
+			this.popIndex = function (index) {
 				currentPath[currentPath.length - 1] = currentPath[currentPath.length - 1].replace(/\[[^\]]+\]/, '');
 			};
 
-			this.add = function(msg) {
+			this.add = function (msg) {
 				errors.push({ msg: msg, path: _.clone(currentPath) });
 			};
 
-			this.getErrors = function() {
+			this.getErrors = function () {
 				return _.chain(errors)
-					.groupBy(function(error) {
+					.groupBy(function (error) {
 						return error.path[0];
 					})
-					.mapObject(function(errorList) {
-						return _.map(errorList, function(error) {
+					.mapObject(function (errorList) {
+						return _.map(errorList, function (error) {
 							return error.path.slice(1).join('.') + ': ' + error.msg;
 						});
 					})
@@ -2034,13 +2034,13 @@ var ShapedScripts =
 				pattern: '^' + spec.formatVersion.replace('.', '\\.') + '$'
 			};
 			var contentValidator = makeValidator({ type: 'unorderedContent', contentModel: [spec, versionProp] });
-			this.validate = function(object) {
+			this.validate = function (object) {
 				var errors = new Errors();
 				contentValidator(object, errors);
 				return errors.getErrors();
 			};
 
-			this.getVersionNumber = function() {
+			this.getVersionNumber = function () {
 				return spec.formatVersion;
 			};
 
@@ -2050,12 +2050,12 @@ var ShapedScripts =
 		/***/
 	},
 	/* 9 */
-	/***/ function(module, exports) {
+	/***/ function (module, exports) {
 
 		'use strict';
 
 		function Reporter(roll20, scriptName) {
-			this.report = function(heading, text) {
+			this.report = function (heading, text) {
 				//Horrible bug with this at the moment - seems to generate spurious chat
 				//messages when noarchive:true is set
 				//sendChat('ShapedScripts', '' + msg, null, {noarchive:true});
@@ -2069,7 +2069,7 @@ var ShapedScripts =
 					'</div>');
 			};
 
-			this.reportError = function(text) {
+			this.reportError = function (text) {
 				roll20.sendChat('',
 					'/w gm <div style="border: 1px solid black; background-color: white; padding: 3px 3px;">' +
 					'<div style="font-weight: bold; border-bottom: 1px solid black;font-size: 130%;color:red;">' +
@@ -2087,7 +2087,7 @@ var ShapedScripts =
 		/***/
 	},
 	/* 10 */
-	/***/ function(module, exports, __webpack_require__) {
+	/***/ function (module, exports, __webpack_require__) {
 
 	/* globals unescape */
 	'use strict';
@@ -2198,7 +2198,7 @@ var ShapedScripts =
 		autoAmmo: 'ammo_auto_use'
 	};
 
-		var booleanValidator = function(value) {
+		var booleanValidator = function (value) {
 				var converted = value === 'true' || (value === 'false' ? false : value);
 				return {
 					valid: typeof value === 'boolean' || value === 'true' || value === 'false',
@@ -2206,16 +2206,16 @@ var ShapedScripts =
 				};
 			},
 
-			stringValidator = function(value) {
+			stringValidator = function (value) {
 				return {
 					valid: true,
 					converted: value
 				};
 			},
 
-			getOptionList = function(options) {
-				return function(value) {
-					if(value === undefined) {
+			getOptionList = function (options) {
+				return function (value) {
+					if (value === undefined) {
 						return options;
 					}
 					return {
@@ -2225,7 +2225,7 @@ var ShapedScripts =
 				};
 			},
 
-			integerValidator = function(value) {
+			integerValidator = function (value) {
 				var parsed = parseInt(value);
 				return {
 					converted: parsed,
@@ -2233,7 +2233,7 @@ var ShapedScripts =
 				};
 			},
 
-			colorValidator = function(value) {
+			colorValidator = function (value) {
 				return {
 					converted: value,
 					valid: /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(value)
@@ -2255,7 +2255,7 @@ var ShapedScripts =
 				color: colorValidator,
 				square: booleanValidator
 			},
-			regExpValidator = function(value) {
+			regExpValidator = function (value) {
 				try {
 					new RegExp(value, 'i').test('');
 					return {
@@ -2263,7 +2263,7 @@ var ShapedScripts =
 						valid: true
 					};
 				}
-				catch(e) {
+				catch (e) {
 				}
 				return {
 					converted: null,
@@ -2305,11 +2305,11 @@ var ShapedScripts =
 			 *
 			 * @param {ChatMessage} msg
 			 */
-			this.handleInput = function(msg) {
+			this.handleInput = function (msg) {
 
 				try {
 					logger.debug(msg);
-					if(msg.type !== 'api') {
+					if (msg.type !== 'api') {
 						this.triggerChatWatchers(msg);
 						return;
 					}
@@ -2317,8 +2317,8 @@ var ShapedScripts =
 					this.getCommandProcessor().processCommand(msg);
 
 				}
-				catch(e) {
-					if(typeof e === 'string' || e instanceof parseModule.ParserError) {
+				catch (e) {
+					if (typeof e === 'string' || e instanceof parseModule.ParserError) {
 						reportError(e);
 						logger.error('Error: $$$', e.toString());
 					}
@@ -2334,7 +2334,7 @@ var ShapedScripts =
 			};
 
 			var configOptionsSpec = {
-				logLevel: function(value) {
+				logLevel: function (value) {
 					var converted = value.toUpperCase();
 					return { valid: _.has(logger, converted), converted: converted };
 				},
@@ -2410,17 +2410,17 @@ var ShapedScripts =
 			/////////////////////////////////////////
 			// Command handlers
 			/////////////////////////////////////////
-			this.configure = function(options) {
+			this.configure = function (options) {
 				utils.deepExtend(myState.config, options);
 
 				var menu;
-				if(options.advTrackerSettings) {
+				if (options.advTrackerSettings) {
 					menu = ConfigUI.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
 				}
-				else if(options.tokenSettings) {
+				else if (options.tokenSettings) {
 					menu = ConfigUI.getConfigOptionGroupTokens(myState.config, configOptionsSpec);
 				}
-				else if(options.newCharSettings) {
+				else if (options.newCharSettings) {
 					menu = ConfigUI.getConfigOptionGroupNewCharSettings(myState.config, configOptionsSpec);
 				}
 				else {
@@ -2430,28 +2430,28 @@ var ShapedScripts =
 				report('Configuration', menu);
 			};
 
-			this.applyTokenDefaults = function(options) {
+			this.applyTokenDefaults = function (options) {
 				var self = this;
-				_.each(options.selected.graphic, function(token) {
+				_.each(options.selected.graphic, function (token) {
 					var represents = token.get('represents');
 					var character = roll20.getObj('character', represents);
-					if(character) {
+					if (character) {
 						self.getTokenConfigurer(token)(character);
 					}
 				});
 			};
 
-			this.importStatblock = function(options) {
+			this.importStatblock = function (options) {
 				logger.info('Importing statblocks for tokens $$$', options.selected.graphic);
 				var self = this;
-				_.each(options.selected.graphic, function(token) {
+				_.each(options.selected.graphic, function (token) {
 					var text = token.get('gmnotes');
-					if(text) {
+					if (text) {
 						text = sanitise(unescape(text), logger);
 						var monsters = parser.parse(text).monsters;
 						mpp(monsters, entityLookup);
 						self.importMonsters(monsters, options, token, [
-							function(character) {
+							function (character) {
 								character.set('gmnotes', text.replace(/\n/g, '<br>'));
 							}
 						]);
@@ -2459,22 +2459,22 @@ var ShapedScripts =
 				});
 			};
 
-			this.importMonstersFromJson = function(options) {
+			this.importMonstersFromJson = function (options) {
 
-				if(options.all) {
+				if (options.all) {
 					options.monsters = entityLookup.getAll('monsters');
 					delete options.all;
 				}
 
-				if(_.isEmpty(options.monsters)) {
+				if (_.isEmpty(options.monsters)) {
 					this.showEntityPicker('monster', 'monsters');
 				}
 				else {
 					this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
 					options.monsters = options.monsters.slice(20);
 					var self = this;
-					if(!_.isEmpty(options.monsters)) {
-						setTimeout(function() {
+					if (!_.isEmpty(options.monsters)) {
+						setTimeout(function () {
 							self.importMonstersFromJson(options);
 						}, 200);
 					}
@@ -2482,19 +2482,19 @@ var ShapedScripts =
 
 			};
 
-			this.importMonsters = function(monsters, options, token, characterProcessors) {
+			this.importMonsters = function (monsters, options, token, characterProcessors) {
 				var characterRetrievalStrategies = [];
 
-				if(token) {
+				if (token) {
 					characterProcessors.push(this.getAvatarCopier(token).bind(this));
-					if(_.size(monsters) === 1) {
+					if (_.size(monsters) === 1) {
 						characterProcessors.push(this.getTokenConfigurer(token).bind(this));
-						if(options.replace || options.overwrite) {
+						if (options.replace || options.overwrite) {
 							characterRetrievalStrategies.push(this.getTokenRetrievalStrategy(token).bind(this));
 						}
 					}
 				}
-				if(options.replace) {
+				if (options.replace) {
 					characterRetrievalStrategies.push(this.nameRetrievalStrategy);
 				}
 
@@ -2503,13 +2503,13 @@ var ShapedScripts =
 
 				var errors = [];
 				var importedList = _.chain(monsters)
-					.map(function(monsterData) {
+					.map(function (monsterData) {
 
-						var character = _.reduce(characterRetrievalStrategies, function(result, strategy) {
+						var character = _.reduce(characterRetrievalStrategies, function (result, strategy) {
 							return result || strategy(monsterData.name, errors);
 						}, null);
 
-						if(!character) {
+						if (!character) {
 							logger.error('Failed to find or create character for monster $$$', monsterData.name);
 							return null;
 						}
@@ -2518,7 +2518,7 @@ var ShapedScripts =
 						_.invoke(oldAttrs, 'remove');
 						character.set('name', monsterData.name);
 
-						_.each(characterProcessors, function(proc) {
+						_.each(characterProcessors, function (proc) {
 							proc(character, monsterData);
 						});
 						return character && character.get('name');
@@ -2526,18 +2526,18 @@ var ShapedScripts =
 					.compact()
 					.value();
 
-				if(!_.isEmpty(importedList)) {
+				if (!_.isEmpty(importedList)) {
 					var monsterList = importedList.join('</li><li>');
 					report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
 				}
-				if(!_.isEmpty(errors)) {
+				if (!_.isEmpty(errors)) {
 					var errorList = errors.join('</li><li>');
 					reportError('The following errors occurred on import:  <ul><li>' + errorList + '</li></ul>');
 				}
 			};
 
-			this.importSpellsFromJson = function(options) {
-				if(_.isEmpty(options.spells)) {
+			this.importSpellsFromJson = function (options) {
+				if (_.isEmpty(options.spells)) {
 					this.showEntityPicker('spell', 'spells');
 				}
 				else {
@@ -2545,12 +2545,12 @@ var ShapedScripts =
 				}
 			};
 
-			this.showEntityPicker = function(entityName, entityNamePlural) {
+			this.showEntityPicker = function (entityName, entityNamePlural) {
 				var list = entityLookup.getKeys(entityNamePlural, true);
 
-				if(!_.isEmpty(list)) {
+				if (!_.isEmpty(list)) {
 					// title case the  names for better display
-					list.forEach(function(part, index) {
+					list.forEach(function (part, index) {
 						list[index] = utils.toTitleCase(part);
 					});
 					// create a clickable button with a roll query to select an entity from the loaded json
@@ -2564,12 +2564,12 @@ var ShapedScripts =
 				}
 			};
 
-			this.addSpellsToCharacter = function(character, spells, noreport) {
+			this.addSpellsToCharacter = function (character, spells, noreport) {
 				var gender = roll20.getAttrByName(character.id, 'gender');
 
 				var defaultIndex = Math.min(myState.config.defaultGenderIndex, myState.config.genderPronouns.length);
 				var defaultPronounInfo = myState.config.genderPronouns[defaultIndex];
-				var pronounInfo = _.clone(_.find(myState.config.genderPronouns, function(pronounDetails) {
+				var pronounInfo = _.clone(_.find(myState.config.genderPronouns, function (pronounDetails) {
 						return new RegExp(pronounDetails.matchPattern, 'i').test(gender);
 					}) || defaultPronounInfo);
 
@@ -2580,16 +2580,16 @@ var ShapedScripts =
 					spells: srdConverter.convertSpells(spells, pronounInfo)
 				};
 				this.getImportDataWrapper(character).mergeImportData(importData);
-				if(!noreport) {
-					report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function(spell) {
+				if (!noreport) {
+					report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function (spell) {
 							return spell.name;
 						}).join('</li><li>') + '</li></ul>');
 				}
 			};
 
 
-			this.monsterDataPopulator = function(character, monsterData) {
-				_.each(myState.config.newCharSettings, function(value, key) {
+			this.monsterDataPopulator = function (character, monsterData) {
+				_.each(myState.config.newCharSettings, function (value, key) {
 					var attribute = roll20.getOrCreateAttr(character.id, configToAttributeLookup[key]);
 					attribute.set('current', _.isBoolean(value) ? (value ? 1 : 0) : value);
 				});
@@ -2599,18 +2599,18 @@ var ShapedScripts =
 				var expandedSpells = converted.spells;
 				delete converted.spells;
 				this.getImportDataWrapper(character).setNewImportData({ npc: converted });
-				if(expandedSpells) {
+				if (expandedSpells) {
 					this.addSpellsToCharacter(character, expandedSpells, true);
 				}
 				return character;
 
 			};
 
-			this.getTokenRetrievalStrategy = function(token) {
-				return function(name, errors) {
-					if(token) {
+			this.getTokenRetrievalStrategy = function (token) {
+				return function (name, errors) {
+					if (token) {
 						var character = roll20.getObj('character', token.get('represents'));
-						if(character && roll20.getAttrByName(character.id, 'locked')) {
+						if (character && roll20.getAttrByName(character.id, 'locked')) {
 							errors.push('Character with name ' + character.get('name') + ' and id ' + character.id +
 								' was locked and cannot be overwritten');
 							return null;
@@ -2620,13 +2620,13 @@ var ShapedScripts =
 				};
 			};
 
-			this.nameRetrievalStrategy = function(name, errors) {
+			this.nameRetrievalStrategy = function (name, errors) {
 				var chars = roll20.findObjs({ type: 'character', name: name });
-				if(chars.length > 1) {
+				if (chars.length > 1) {
 					errors.push('More than one existing character found with name "' + name + '". Can\'t replace');
 				}
 				else {
-					if(chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
+					if (chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
 						errors.push('Character with name ' + chars[0].get('name') + ' and id ' + chars[0].id +
 							' was locked and cannot be overwritten');
 						return null;
@@ -2635,8 +2635,8 @@ var ShapedScripts =
 				}
 			};
 
-			this.creationRetrievalStrategy = function(name, errors) {
-				if(!_.isEmpty(roll20.findObjs({ type: 'character', name: name }))) {
+			this.creationRetrievalStrategy = function (name, errors) {
+				if (!_.isEmpty(roll20.findObjs({ type: 'character', name: name }))) {
 					errors.push('Can\'t create new character with name "' + name +
 						'" because one already exists with that name. Perhaps you want --replace?');
 				}
@@ -2645,33 +2645,33 @@ var ShapedScripts =
 				}
 			};
 
-			this.getAvatarCopier = function(token) {
-				return function(character) {
+			this.getAvatarCopier = function (token) {
+				return function (character) {
 					character.set('avatar', token.get('imgsrc'));
 				};
 			};
 
-			this.getTokenConfigurer = function(token) {
-				return function(character) {
+			this.getTokenConfigurer = function (token) {
+				return function (character) {
 					token.set('represents', character.id);
 					token.set('name', character.get('name'));
 					var settings = myState.config.tokenSettings;
-					if(settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
+					if (settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
 						token.set('name', token.get('name') + ' %%NUMBERED%%');
 					}
 
 					_.chain(settings)
 						.pick(['bar1', 'bar2', 'bar3'])
-						.each(function(bar, barName) {
-							if(!_.isEmpty(bar.attribute)) {
+						.each(function (bar, barName) {
+							if (!_.isEmpty(bar.attribute)) {
 								var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
-								if(attribute) {
+								if (attribute) {
 									token.set(barName + '_value', attribute.get('current'));
-									if(bar.max) {
+									if (bar.max) {
 										token.set(barName + '_max', attribute.get('max'));
 									}
 									token.set('showplayers_' + barName, bar.showPlayers);
-									if(bar.link) {
+									if (bar.link) {
 										token.set(barName + '_link', attribute.id);
 									}
 								}
@@ -2680,7 +2680,7 @@ var ShapedScripts =
 
 					_.chain(settings)
 						.pick(['aura1', 'aura2'])
-						.each(function(aura, auraName) {
+						.each(function (aura, auraName) {
 							token.set(auraName + '_radius', aura.radius);
 							token.set(auraName + '_color', aura.color);
 							token.set(auraName + '_square', aura.square);
@@ -2693,36 +2693,36 @@ var ShapedScripts =
 				};
 			};
 
-			this.getImportDataWrapper = function(character) {
+			this.getImportDataWrapper = function (character) {
 
 
 				return {
-					setNewImportData: function(importData) {
-						if(_.isEmpty(importData)) {
+					setNewImportData: function (importData) {
+						if (_.isEmpty(importData)) {
 							return;
 						}
 						roll20.setAttrByName(character.id, 'import_data', JSON.stringify(importData));
 						roll20.setAttrByName(character.id, 'import_data_present', 'on');
 					},
-					mergeImportData: function(importData) {
-						if(_.isEmpty(importData)) {
+					mergeImportData: function (importData) {
+						if (_.isEmpty(importData)) {
 							return;
 						}
 						var attr = roll20.getOrCreateAttr(character.id, 'import_data');
 						var dataPresentAttr = roll20.getOrCreateAttr(character.id, 'import_data_present');
 						var current = {};
 						try {
-							if(!_.isEmpty(attr.get('current').trim())) {
+							if (!_.isEmpty(attr.get('current').trim())) {
 								current = JSON.parse(attr.get('current'));
 							}
 						}
-						catch(e) {
+						catch (e) {
 							logger.warn('Existing import_data attribute value was not valid JSON: [$$$]', attr.get('current'));
 						}
-						_.each(importData, function(value, key) {
+						_.each(importData, function (value, key) {
 							var currentVal = current[key];
-							if(currentVal) {
-								if(!_.isArray(currentVal)) {
+							if (currentVal) {
+								if (!_.isArray(currentVal)) {
 									current[key] = [currentVal];
 								}
 								current[key] = current[key].concat(value);
@@ -2742,12 +2742,12 @@ var ShapedScripts =
 				};
 			};
 
-			this.applyAdvantageTracker = function(options) {
+			this.applyAdvantageTracker = function (options) {
 				var type = 'normal';
-				if(options.advantage) {
+				if (options.advantage) {
 					type = 'advantage';
 				}
-				else if(options.disadvantage) {
+				else if (options.disadvantage) {
 					type = 'disadvantage';
 				}
 
@@ -2760,67 +2760,67 @@ var ShapedScripts =
 			/////////////////////////////////////////////////
 			// Event Handlers
 			/////////////////////////////////////////////////
-			this.handleAddToken = function(token) {
+			this.handleAddToken = function (token) {
 				var represents = token.get('represents');
-				if(_.isEmpty(represents)) {
+				if (_.isEmpty(represents)) {
 					return;
 				}
 				var character = roll20.getObj('character', represents);
-				if(!character) {
+				if (!character) {
 					return;
 				}
 				addedTokenIds.push(token.id);
 
 				//URGH. Thanks Roll20.
-				setTimeout((function(id, self) {
-					return function() {
+				setTimeout((function (id, self) {
+					return function () {
 						var token = roll20.getObj('graphic', id);
-						if(token) {
+						if (token) {
 							self.handleChangeToken(token);
 						}
 					};
 				}(token.id, this)), 100);
 			};
 
-			this.handleChangeToken = function(token) {
-				if(_.contains(addedTokenIds, token.id)) {
+			this.handleChangeToken = function (token) {
+				if (_.contains(addedTokenIds, token.id)) {
 					addedTokenIds = _.without(addedTokenIds, token.id);
 					this.rollHPForToken(token);
 				}
 			};
 
-			this.getHPBar = function() {
+			this.getHPBar = function () {
 				return _.chain(myState.config.tokenSettings)
 					.pick('bar1', 'bar2', 'bar3')
 					.findKey({ attribute: 'HP' })
 					.value();
 			};
 
-			this.rollHPForToken = function(token) {
+			this.rollHPForToken = function (token) {
 				var hpBar = this.getHPBar();
 				logger.debug('HP bar is $$$', hpBar);
-				if(!hpBar || !myState.config.rollHPOnDrop) {
+				if (!hpBar || !myState.config.rollHPOnDrop) {
 					return;
 				}
 
 				var represents = token.get('represents');
-				if(!represents) {
+				if (!represents) {
 					return;
 				}
 				var character = roll20.getObj('character', represents);
-				if(!character) {
+				if (!character) {
 					return;
 				}
 				var hpBarLink = token.get(hpBar + '_link');
-				if(hpBarLink) {
+				if (hpBarLink) {
 					return;
 				}
 
 				var self = this;
-				roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function(results) {
-					if(results && results.length === 1) {
+				roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function (results) {
+					if (results && results.length === 1) {
 						var message = self.processInlinerolls(results[0]);
-						if(!results[0].inlinerolls || !results[0].inlinerolls[0]) {
+						if (!results[0].inlinerolls || !results[0].inlinerolls[0]) {
 							logger.warn('HP roll didn\'t have the expected structure. This is what we got back: $$$', results[0]);
 						}
 						else {
@@ -2834,20 +2834,20 @@ var ShapedScripts =
 			};
 
 
-			this.registerChatWatcher = function(handler, triggerFields) {
+			this.registerChatWatcher = function (handler, triggerFields) {
 				var matchers = [];
-				if(triggerFields && !_.isEmpty(triggerFields)) {
-					matchers.push(function(msg, options) {
+				if (triggerFields && !_.isEmpty(triggerFields)) {
+					matchers.push(function (msg, options) {
 						return _.intersection(triggerFields, _.keys(options)).length === triggerFields.length;
 					});
 				}
 				chatWatchers.push({ matchers: matchers, handler: handler.bind(this) });
 			};
 
-			this.triggerChatWatchers = function(msg) {
+			this.triggerChatWatchers = function (msg) {
 				var options = this.getRollTemplateOptions(msg);
-				_.each(chatWatchers, function(watcher) {
-					if(_.every(watcher.matchers, function(matcher) {
+				_.each(chatWatchers, function (watcher) {
+					if (_.every(watcher.matchers, function (matcher) {
 							return matcher(msg, options);
 						})) {
 						watcher.handler(options, msg);
@@ -2860,41 +2860,41 @@ var ShapedScripts =
 			 * @param options
 			 * @param {ChatMessage} msg
 			 */
-			this.handleAmmo = function(options, msg) {
+			this.handleAmmo = function (options, msg) {
 
-				if(!roll20.getAttrByName(options.character.id, 'ammo_auto_use')) {
+				if (!roll20.getAttrByName(options.character.id, 'ammo_auto_use')) {
 					return;
 				}
 
 				var ammoAttr = _.chain(roll20.findObjs({ type: 'attribute', characterid: options.character.id }))
-					.filter(function(attribute) {
+					.filter(function (attribute) {
 						return attribute.get('name').indexOf('repeating_ammo') === 0;
 					})
-					.groupBy(function(attribute) {
+					.groupBy(function (attribute) {
 						return attribute.get('name').replace(/(repeating_ammo_[^_]+).*/, '$1');
 					})
-					.find(function(attributes) {
-						return _.find(attributes, function(attribute) {
+					.find(function (attributes) {
+						return _.find(attributes, function (attribute) {
 							return attribute.get('name').match(/.*name$/) && attribute.get('current') === options.ammoName;
 						});
 					})
-					.find(function(attribute) {
+					.find(function (attribute) {
 						return attribute.get('name').match(/.*qty$/);
 					})
 					.value();
 
-				if(!ammoAttr) {
+				if (!ammoAttr) {
 					logger.error('No ammo attribute found corresponding to name $$$', options.ammoName);
 					return;
 				}
 
 				var ammoUsed = 1;
-				if(options.ammo) {
+				if (options.ammo) {
 					var rollRef = options.ammo.match(/\$\[\[(\d+)\]\]/);
-					if(rollRef) {
+					if (rollRef) {
 						var rollExpr = msg.inlinerolls[rollRef[1]].expression;
 						var match = rollExpr.match(/\d+-(\d+)/);
-						if(match) {
+						if (match) {
 							ammoUsed = match[1];
 						}
 					}
@@ -2905,9 +2905,9 @@ var ShapedScripts =
 				ammoAttr.set('current', Math.max(0, val - ammoUsed));
 			};
 
-			this.handleHD = function(options, msg) {
+			this.handleHD = function (options, msg) {
 				var match = options.title.match(/(\d+)d(\d+) Hit Dice/);
-				if(match && myState.config.autoHD) {
+				if (match && myState.config.autoHD) {
 					var hdCount = match[1];
 					var hdSize = match[2];
 					var hdAttr = roll20.getAttrObjectByName(options.character.id, 'hd_d' + hdSize);
@@ -2915,8 +2915,8 @@ var ShapedScripts =
 					var newHp = Math.min(parseInt(hpAttr.get('current')) +
 						this.getRollValue(msg, options.roll1), hpAttr.get('max'));
 
-					if(hdAttr) {
-						if(hdCount <= hdAttr.get('current')) {
+					if (hdAttr) {
+						if (hdCount <= hdAttr.get('current')) {
 							hdAttr.set('current', hdAttr.get('current') - hdCount);
 							hpAttr.set('current', newHp);
 						}
@@ -2930,14 +2930,14 @@ var ShapedScripts =
 			};
 
 
-			this.handleDeathSave = function(options, msg) {
+			this.handleDeathSave = function (options, msg) {
 
 				//TODO: Do we want to output text on death/recovery?
-				var increment = function(val) {
+				var increment = function (val) {
 					return ++val;
 				};
 				//TODO: Advantage?
-				if(roll20.getAttrByName(options.character.id, 'roll_setting') !== '@{roll_2}') {
+				if (roll20.getAttrByName(options.character.id, 'roll_setting') !== '@{roll_2}') {
 					var result = this.getRollValue(msg, options.roll1);
 					var attributeToIncrement = result >= 10 ? 'death_saving_throw_successes' : 'death_saving_throw_failures';
 					roll20.processAttrValue(options.character.id, attributeToIncrement, increment);
@@ -2945,9 +2945,9 @@ var ShapedScripts =
 
 			};
 
-			this.handleFX = function(options, msg) {
+			this.handleFX = function (options, msg) {
 				var parts = options.fx.split(' ');
-				if(parts.length < 2 || _.some(parts.slice(0, 2), _.isEmpty)) {
+				if (parts.length < 2 || _.some(parts.slice(0, 2), _.isEmpty)) {
 					logger.warn('FX roll template variable is not formated correctly: [$$$]', options.fx);
 					return;
 				}
@@ -2963,7 +2963,7 @@ var ShapedScripts =
 					pageId;
 
 				//noinspection FallThroughInSwitchStatementJS
-				switch(pointsOfOrigin) {
+				switch (pointsOfOrigin) {
 					case 'sourceToTarget':
 					case 'source':
 						targetTokenId = parts[2]; //jshint ignore: line
@@ -2975,7 +2975,7 @@ var ShapedScripts =
 						fxCoords.push(targetCoords, sourceCoords);
 				}
 
-				if(targetTokenId) {
+				if (targetTokenId) {
 					var targetToken = roll20.getObj('graphic', targetTokenId);
 					pageId = targetToken.get('_pageid');
 					targetCoords.x = targetToken.get('left');
@@ -2988,7 +2988,7 @@ var ShapedScripts =
 
 				var casterTokens = roll20.findObjs({ type: 'graphic', pageid: pageId, represents: options.character.id });
 
-				if(casterTokens.length) {
+				if (casterTokens.length) {
 					//If there are multiple tokens for the character on this page, then try and find one of them that is selected
 					//This doesn't work without a selected token, and the only way we can get this is to use @{selected} which is a pain
 					//for people who want to launch without a token selected
@@ -3003,18 +3003,18 @@ var ShapedScripts =
 				}
 
 
-				if(!fxCoords[0]) {
+				if (!fxCoords[0]) {
 					logger.warn('Couldn\'t find required point for fx for character $$$, casterTokens: $$$, fxSpec: $$$ ', options.character.id, casterTokens, options.fx);
 					return;
 				}
-				else if(!fxCoords[1]) {
+				else if (!fxCoords[1]) {
 					fxCoords = fxCoords.slice(0, 1);
 				}
 
 				roll20.spawnFx(fxCoords, fxType, pageId);
 			};
 
-			this.getRollValue = function(msg, rollOutputExpr) {
+			this.getRollValue = function (msg, rollOutputExpr) {
 				var rollIndex = rollOutputExpr.match(/\$\[\[(\d+)\]\]/)[1];
 				return msg.inlinerolls[rollIndex].results.total;
 			};
@@ -3023,21 +3023,21 @@ var ShapedScripts =
 			 *
 			 * @returns {*}
 			 */
-			this.getRollTemplateOptions = function(msg) {
-				if(msg.rolltemplate === '5e-shaped') {
+			this.getRollTemplateOptions = function (msg) {
+				if (msg.rolltemplate === '5e-shaped') {
 					var regex = /\{\{(.*?)\}\}/g;
 					var match;
 					var options = {};
-					while(!!(match = regex.exec(msg.content))) {
-						if(match[1]) {
+					while (!!(match = regex.exec(msg.content))) {
+						if (match[1]) {
 							var splitAttr = match[1].split('=');
-							var propertyName = splitAttr[0].replace(/_([a-z])/g, function(match, letter) {
+							var propertyName = splitAttr[0].replace(/_([a-z])/g, function (match, letter) {
 								return letter.toUpperCase();
 							});
 							options[propertyName] = splitAttr.length === 2 ? splitAttr[1] : '';
 						}
 					}
-					if(options.characterName) {
+					if (options.characterName) {
 						options.character = roll20.findObjs({
 							_type: 'character',
 							name: options.characterName
@@ -3048,14 +3048,14 @@ var ShapedScripts =
 				return {};
 			};
 
-			this.processInlinerolls = function(msg) {
-				if(_.has(msg, 'inlinerolls')) {
+			this.processInlinerolls = function (msg) {
+				if (_.has(msg, 'inlinerolls')) {
 					return _.chain(msg.inlinerolls)
-						.reduce(function(previous, current, index) {
+						.reduce(function (previous, current, index) {
 							previous['$[[' + index + ']]'] = current.results.total || 0;
 							return previous;
 						}, {})
-						.reduce(function(previous, current, index) {
+						.reduce(function (previous, current, index) {
 							return previous.replace(index.toString(), current);
 						}, msg.content)
 						.value();
@@ -3065,23 +3065,23 @@ var ShapedScripts =
 				}
 			};
 
-			this.addAbility = function(options) {
-				if(_.isEmpty(options.abilities)) {
+			this.addAbility = function (options) {
+				if (_.isEmpty(options.abilities)) {
 					//TODO report some sort of error?
 					return;
 				}
-				var messages = _.map(options.selected.character, function(character) {
+				var messages = _.map(options.selected.character, function (character) {
 
 					var cache = {};
 					var operationMessages = _.chain(options.abilities)
 						.sortBy('sortKey')
-						.map(function(maker) {
+						.map(function (maker) {
 							return maker.run(character, cache);
 						})
 						.value();
 
 
-					if(_.isEmpty(operationMessages)) {
+					if (_.isEmpty(operationMessages)) {
 						return '<li>' + character.get('name') + ': Nothing to do</li>';
 					}
 
@@ -3097,8 +3097,8 @@ var ShapedScripts =
 
 			};
 
-			var getAbilityMaker = function(character) {
-				return function(abilitySpec) {
+			var getAbilityMaker = function (character) {
+				return function (abilitySpec) {
 					var ability = roll20.getOrCreateObj('ability', { characterid: character.id, name: abilitySpec.name });
 					ability.set({ action: abilitySpec.action, istokenaction: true }); //TODO configure this
 					return abilitySpec.name;
@@ -3106,9 +3106,9 @@ var ShapedScripts =
 			};
 
 			var abilityDeleter = {
-				run: function(character) {
+				run: function (character) {
 					var abilities = roll20.findObjs({ type: 'ability', characterid: character.id });
-					var deleted = _.map(abilities, function(obj) {
+					var deleted = _.map(abilities, function (obj) {
 						var name = obj.get('name');
 						obj.remove();
 						return name;
@@ -3119,13 +3119,13 @@ var ShapedScripts =
 				sortKey: ''
 			};
 
-			var RepeatingAbilityMaker = function(repeatingSection, abilityName, label) {
-				this.run = function(character, cache) {
+			var RepeatingAbilityMaker = function (repeatingSection, abilityName, label) {
+				this.run = function (character, cache) {
 					cache[repeatingSection] = cache[repeatingSection] ||
 						roll20.getRepeatingSectionItemIdsByName(character.id, repeatingSection);
 
 					var configured = _.chain(cache[repeatingSection])
-						.map(function(repeatingId, repeatingName) {
+						.map(function (repeatingId, repeatingName) {
 							var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' +
 								repeatingId +
 								'_' + abilityName + '}';
@@ -3139,8 +3139,8 @@ var ShapedScripts =
 				this.sortKey = 'originalOrder';
 			};
 
-			var RollAbilityMaker = function(abilityName, newName) {
-				this.run = function(character) {
+			var RollAbilityMaker = function (abilityName, newName) {
+				this.run = function (character) {
 					return getAbilityMaker(character)({
 						name: newName,
 						action: '%{' + character.get('name') + '|' + abilityName + '}'
@@ -3165,17 +3165,17 @@ var ShapedScripts =
 				skillsquery: new RollAbilityMaker('ability_checks_query_macro', 'Skills')
 			};
 
-			var abilityLookup = function(optionName, existingOptions) {
+			var abilityLookup = function (optionName, existingOptions) {
 				var maker = staticAbilityOptions[optionName];
 
 				//Makes little sense to add named spells to multiple characters at once
-				if(!maker && existingOptions.selected.character.length === 1) {
+				if (!maker && existingOptions.selected.character.length === 1) {
 
 					existingOptions.spellToRepeatingIdLookup = existingOptions.spellToRepeatingIdLookup ||
 						roll20.getRepeatingSectionItemIdsByName(existingOptions.selected.character[0].id, 'spell');
 
 					var repeatingId = existingOptions.spellToRepeatingIdLookup[optionName.toLowerCase()];
-					if(repeatingId) {
+					if (repeatingId) {
 						maker = new RollAbilityMaker('repeating_spell_' + repeatingId + '_spell', utils.toTitleCase(optionName));
 					}
 				}
@@ -3183,7 +3183,7 @@ var ShapedScripts =
 			};
 
 
-			this.getCommandProcessor = function() {
+			this.getCommandProcessor = function () {
 				return cp('shaped')
 					.addCommand('config', this.configure.bind(this))
 					.options(configOptionsSpec)
@@ -3243,31 +3243,25 @@ var ShapedScripts =
 					.end();
 			};
 
-			this.checkInstall = function() {
+			this.checkInstall = function () {
 				logger.info('-=> ShapedScripts v$$$ <=-', version);
-				if(myState.version !== schemaVersion) {
+				if (myState.version !== schemaVersion) {
 					logger.info('  > Updating Schema to v$$$ from $$$<', schemaVersion, myState && myState.version);
 					logger.info('Preupgrade state: $$$', myState);
 					//noinspection FallThroughInSwitchStatementJS
-					switch(myState && myState.version) {
+					switch (myState && myState.version) {
 						case 0.1:
 						case 0.2:
 						case 0.3:
 							_.extend(myState.config.genderPronouns, utils.deepClone(configDefaults.genderPronouns)); //jshint ignore: line
 						case 0.4:
-							_.defaults(myState.config, utils.deepClone(configDefaults));
-							myState.version = schemaVersion;
-							break;
 						case 0.5:
-							_.defaults(myState.config, utils.deepClone(configDefaults));
-							myState.version = schemaVersion;
-							break;
 						case 0.6:
-							_.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
+							_.defaults(myState.config, utils.deepClone(configDefaults));
 							myState.version = schemaVersion;
 							break;
 						default:
-							if(!myState.version) {
+							if (!myState.version) {
 								_.defaults(myState, {
 									version: schemaVersion,
 									config: utils.deepClone(configDefaults)
@@ -3286,20 +3280,20 @@ var ShapedScripts =
 				}
 			};
 
-			this.registerEventHandlers = function() {
+			this.registerEventHandlers = function () {
 				roll20.on('chat:message', this.handleInput.bind(this));
 				roll20.on('add:token', this.handleAddToken.bind(this));
 				roll20.on('change:token', this.handleChangeToken.bind(this));
-				roll20.on('add:graphic', function(token) {
+				roll20.on('add:graphic', function (token) {
 					logger.debug('on add:graphic');
 					at.updateToken(token);
 				});
-				roll20.on('change:graphic', function(token) {
+				roll20.on('change:graphic', function (token) {
 					logger.debug('on change:graphic');
 					at.updateToken(token);
 				});
-				roll20.on('change:attribute', function(msg) {
-					if(msg.get('name') === 'roll_setting') {
+				roll20.on('change:attribute', function (msg) {
+					if (msg.get('name') === 'roll_setting') {
 						at.updateSetting(msg);
 					}
 				});
@@ -3325,34 +3319,34 @@ var ShapedScripts =
 
 	/* jshint camelcase : false */
 	function getRenameMapper(newName) {
-		return function(key, value, output) {
+		return function (key, value, output) {
 			output[newName] = value;
 		};
 	}
 
-		var identityMapper = function(key, value, output) {
+		var identityMapper = function (key, value, output) {
 				output[key] = value;
 			},
-			booleanMapper = function(key, value, output) {
-				if(value) {
+			booleanMapper = function (key, value, output) {
+				if (value) {
 					output[key] = 'Yes';
 				}
 			},
-			camelCaseFixMapper = function(key, value, output) {
-				var newKey = key.replace(/[A-Z]/g, function(letter) {
+			camelCaseFixMapper = function (key, value, output) {
+				var newKey = key.replace(/[A-Z]/g, function (letter) {
 					return '_' + letter.toLowerCase();
 				});
 				output[newKey] = value;
 			},
-			castingStatMapper = function(key, value, output) {
-				if(value) {
+			castingStatMapper = function (key, value, output) {
+				if (value) {
 					output.add_casting_modifier = 'Yes';
 				}
 			},
-			componentMapper = function(key, value, output) {
+			componentMapper = function (key, value, output) {
 				output.components = _.chain(value)
-					.map(function(value, key) {
-						if(key !== 'materialMaterial') {
+					.map(function (value, key) {
+						if (key !== 'materialMaterial') {
 							return key.toUpperCase().slice(0, 1);
 	        }
 						else {
@@ -3384,10 +3378,10 @@ var ShapedScripts =
 			};
 
 	function getObjectMapper(mappings) {
-		return function(key, value, output) {
-			_.each(value, function(propVal, propName) {
+		return function (key, value, output) {
+			_.each(value, function (propVal, propName) {
 				var mapper = mappings[propName];
-				if(!mapper) {
+				if (!mapper) {
 					throw 'Unrecognised property when attempting to convert to srd format: [' + propName + '] ' +
 					JSON.stringify(output);
 				}
@@ -3405,10 +3399,10 @@ var ShapedScripts =
 		range: identityMapper,
 		castingTime: camelCaseFixMapper,
 		target: identityMapper,
-		description: function(key, value, output) {
+		description: function (key, value, output) {
 			output.content = value + (output.content ? '\n' + output.content : '');
 		},
-		higherLevel: function(key, value, output) {
+		higherLevel: function (key, value, output) {
 			output.content = (output.content ? output.content + '\n' : '') + value;
 		},
 		ritual: booleanMapper,
@@ -3425,8 +3419,8 @@ var ShapedScripts =
 			bonus: getRenameMapper('heal_bonus')
 		}),
 		components: componentMapper,
-		prepared: function(key, value, output) {
-			if(value) {
+		prepared: function (key, value, output) {
+			if (value) {
 				output.is_prepared = 'on';
 			}
 
@@ -3457,14 +3451,14 @@ var ShapedScripts =
 		wisdom: identityMapper,
 		charisma: identityMapper,
 		skills: getRenameMapper('skills_srd'),
-		spells: function(key, value, output) {
+		spells: function (key, value, output) {
 			var splitSpells = _.partition(value, _.isObject);
-			if(!_.isEmpty(splitSpells[1])) {
+			if (!_.isEmpty(splitSpells[1])) {
 				output.spells_srd = splitSpells[1].join(', ');
 			}
-			if(!_.isEmpty(splitSpells[0])) {
+			if (!_.isEmpty(splitSpells[0])) {
 				output.spells = splitSpells[0];
-				_.each(output.spells, function(spell) {
+				_.each(output.spells, function (spell) {
 					spell.prepared = true;
 				});
 			}
@@ -3497,14 +3491,14 @@ var ShapedScripts =
 
 	module.exports = {
 
-		convertMonster: function(npcObject) {
+		convertMonster: function (npcObject) {
 
 			var output = {};
 			monsterMapper(null, npcObject, output);
 
 			var actionTraitTemplate = _.template('**<%=data.name%><% if(data.recharge) { print(" (" + data.recharge + ")") } %>**: <%=data.text%>', { variable: 'data' });
 			var legendaryTemplate = _.template('**<%=data.name%><% if(data.cost && data.cost > 1){ print(" (Costs " + data.cost + " actions)") }%>**: <%=data.text%>', { variable: 'data' });
-			var lairRegionalTemplate = function(item) {
+			var lairRegionalTemplate = function (item) {
 				return '**' + item;
 			};
 
@@ -3523,9 +3517,9 @@ var ShapedScripts =
 				{ prop: 'regionalEffects', itemTemplate: lairRegionalTemplate, sectionTemplate: regionalSectionTemplate }
 			];
 
-			var makeDataObject = function(propertyName, itemList) {
+			var makeDataObject = function (propertyName, itemList) {
 				return {
-					title: propertyName.replace(/([A-Z])/g, ' $1').replace(/^[a-z]/, function(letter) {
+					title: propertyName.replace(/([A-Z])/g, ' $1').replace(/^[a-z]/, function (letter) {
 						return letter.toUpperCase();
 					}),
 					name: output.character_name,
@@ -3539,14 +3533,14 @@ var ShapedScripts =
 			output.edit_mode = 'off';
 
 			output.content_srd = _.chain(srdContentSections)
-				.map(function(sectionSpec) {
+				.map(function (sectionSpec) {
 					var items = output[sectionSpec.prop];
 					delete output[sectionSpec.prop];
 					return _.map(items, sectionSpec.itemTemplate);
 				})
-				.map(function(sectionItems, sectionIndex) {
+				.map(function (sectionItems, sectionIndex) {
 					var sectionSpec = srdContentSections[sectionIndex];
-					if(!_.isEmpty(sectionItems)) {
+					if (!_.isEmpty(sectionItems)) {
 						return sectionSpec.sectionTemplate(makeDataObject(sectionSpec.prop, sectionItems));
 					}
 
@@ -3563,13 +3557,13 @@ var ShapedScripts =
 		},
 
 
-		convertSpells: function(spellObjects, pronounInfo) {
+		convertSpells: function (spellObjects, pronounInfo) {
 
-			return _.map(spellObjects, function(spellObject) {
+			return _.map(spellObjects, function (spellObject) {
 				var converted = {};
 				spellMapper(null, spellObject, converted);
-				if(converted.emote) {
-					_.each(pronounTokens, function(pronounType, token) {
+				if (converted.emote) {
+					_.each(pronounTokens, function (pronounType, token) {
 						var replacement = pronounInfo[pronounType];
 						converted.emote = converted.emote.replace(token, replacement);
 					});
@@ -3591,16 +3585,16 @@ var ShapedScripts =
 	var utils = __webpack_require__(7);
 
 
-		var getParser = function(optionString, validator) {
+		var getParser = function (optionString, validator) {
 			'use strict';
-			return function(arg, errors, options) {
+			return function (arg, errors, options) {
 				var argParts = arg.split(/\s+/);
-				if(argParts[0].toLowerCase() === optionString.toLowerCase()) {
-					if(argParts.length <= 2) {
+				if (argParts[0].toLowerCase() === optionString.toLowerCase()) {
+					if (argParts.length <= 2) {
 						//Allow for bare switches
 						var value = argParts.length === 2 ? argParts[1] : true;
 						var result = validator(value);
-						if(result.valid) {
+						if (result.valid) {
 							options[argParts[0]] = result.converted;
 	        }
 						else {
@@ -3613,22 +3607,22 @@ var ShapedScripts =
 			};
 	};
 
-		var getObjectParser = function(specObject) {
+		var getObjectParser = function (specObject) {
 			'use strict';
-			return function(arg, errors, options) {
+			return function (arg, errors, options) {
 				var argParts = arg.split(/\s+/);
 				var newObject = utils.createObjectFromPath(argParts[0], argParts.slice(1).join(' '));
 
 				var comparison = { spec: specObject, actual: newObject };
-				while(comparison.spec) {
+				while (comparison.spec) {
 					var key = _.keys(comparison.actual)[0];
 					var spec = comparison.spec[key];
-					if(!spec) {
+					if (!spec) {
 						return false;
 					}
-					if(_.isFunction(comparison.spec[key])) {
+					if (_.isFunction(comparison.spec[key])) {
 						var result = comparison.spec[key](comparison.actual[key]);
-						if(result.valid) {
+						if (result.valid) {
 							comparison.actual[key] = result.converted;
 							utils.deepExtend(options, newObject);
 	        }
@@ -3637,7 +3631,7 @@ var ShapedScripts =
 						}
 						return true;
 					}
-					else if(_.isArray(comparison.actual[key])) {
+					else if (_.isArray(comparison.actual[key])) {
 						var newVal = [];
 						newVal[comparison.actual[key].length - 1] = comparison.spec[key][0];
 						comparison.spec = newVal;
@@ -3662,12 +3656,12 @@ var ShapedScripts =
 	}
 
 
-		Command.prototype.option = function(optionString, validator) {
+		Command.prototype.option = function (optionString, validator) {
 			'use strict';
-			if(_.isFunction(validator)) {
+			if (_.isFunction(validator)) {
 				this.parsers.push(getParser(optionString, validator));
 			}
-			else if(_.isObject(validator)) {
+			else if (_.isObject(validator)) {
 				var dummy = {};
 				dummy[optionString] = validator;
 				this.parsers.push(getObjectParser(dummy));
@@ -3679,32 +3673,32 @@ var ShapedScripts =
 			return this;
 	};
 
-		Command.prototype.options = function(optsSpec) {
+		Command.prototype.options = function (optsSpec) {
 			'use strict';
 			var self = this;
-			_.each(optsSpec, function(validator, key) {
+			_.each(optsSpec, function (validator, key) {
 				self.option(key, validator);
 			});
 			return this;
 	};
 
-		Command.prototype.optionLookup = function(groupName, lookup) {
+		Command.prototype.optionLookup = function (groupName, lookup) {
 			'use strict';
-			if(typeof lookup !== 'function') {
+			if (typeof lookup !== 'function') {
 				lookup = _.propertyOf(lookup);
 			}
-			this.parsers.push(function(arg, errors, options) {
+			this.parsers.push(function (arg, errors, options) {
 				options[groupName] = options[groupName] || [];
 				var someMatch = false;
 				var resolved = lookup(arg, options);
-				if(resolved) {
+				if (resolved) {
 					options[groupName].push(resolved);
 					someMatch = true;
 				}
 				else {
-					_.each(arg.split(','), function(name) {
+					_.each(arg.split(','), function (name) {
 						var resolved = lookup(name.trim(), options);
-						if(resolved) {
+						if (resolved) {
 							options[groupName].push(resolved);
 							someMatch = true;
 						}
@@ -3715,41 +3709,41 @@ var ShapedScripts =
 			return this;
 	};
 
-		Command.prototype.handle = function(args, selection) {
+		Command.prototype.handle = function (args, selection) {
 			'use strict';
 			var self = this;
 			var options = { errors: [] };
 			options.selected = this.selectionSpec && processSelection(selection || [], this.selectionSpec);
-			options = _.reduce(args, function(options, arg) {
-				var parser = _.find(self.parsers, function(parser) {
+			options = _.reduce(args, function (options, arg) {
+				var parser = _.find(self.parsers, function (parser) {
 					return parser(arg, options.errors, options);
 				});
-				if(!parser) {
+				if (!parser) {
 					options.errors.push('Unrecognised or poorly formed option ' + arg);
 				}
 
 				return options;
 			}, options);
-			if(options.errors.length > 0) {
+			if (options.errors.length > 0) {
 				throw options.errors.join('\n');
 			}
 			delete options.errors;
 			this.handler(options);
 	};
 
-		Command.prototype.withSelection = function(selectionSpec) {
+		Command.prototype.withSelection = function (selectionSpec) {
 			'use strict';
 			this.selectionSpec = selectionSpec;
 			return this;
 	};
 
 
-		Command.prototype.addCommand = function(cmdString, handler) {
+		Command.prototype.addCommand = function (cmdString, handler) {
 			'use strict';
 			return this.root.addCommand(cmdString, handler);
 	};
 
-		Command.prototype.end = function() {
+		Command.prototype.end = function () {
 			'use strict';
 			return this.root;
 	};
@@ -3757,17 +3751,17 @@ var ShapedScripts =
 
 	function processSelection(selection, constraints) {
 		'use strict';
-		return _.reduce(constraints, function(result, constraintDetails, type) {
+		return _.reduce(constraints, function (result, constraintDetails, type) {
 
 			var objects = _.chain(selection)
 				.where({ _type: type === 'character' ? 'graphic' : type })
-				.map(function(selected) {
+				.map(function (selected) {
 					return roll20.getObj(selected._type, selected._id);
 				})
-				.map(function(object) {
-					if(type === 'character' && object) {
+				.map(function (object) {
+					if (type === 'character' && object) {
 						var represents = object.get('represents');
-						if(represents) {
+						if (represents) {
 							return roll20.getObj('character', represents);
 						}
 	        }
@@ -3775,15 +3769,15 @@ var ShapedScripts =
 				})
 				.compact()
 				.value();
-			if(_.size(objects) < constraintDetails.min || _.size(objects) > constraintDetails.max) {
+			if (_.size(objects) < constraintDetails.min || _.size(objects) > constraintDetails.max) {
 				throw 'Wrong number of objects of type [' + type + '] selected, should be between ' + constraintDetails.min +
 				' and ' + constraintDetails.max;
 			}
-			switch(_.size(objects)) {
+			switch (_.size(objects)) {
 				case 0:
 					break;
 				case 1:
-					if(constraintDetails.max === 1) {
+					if (constraintDetails.max === 1) {
 						result[type] = objects[0];
 	        }
 					else {
@@ -3797,25 +3791,25 @@ var ShapedScripts =
 		}, {});
 	}
 
-		module.exports = function(rootCommand) {
+		module.exports = function (rootCommand) {
 			'use strict';
 
 			var commands = {};
 			return {
-				addCommand: function(cmds, handler) {
+				addCommand: function (cmds, handler) {
 					var command = new Command(this, handler);
 					_.each(_.isArray(cmds) ? cmds : [cmds], cmdString => commands[cmdString] = command);
 					return command;
 				},
 
-				processCommand: function(msg) {
+				processCommand: function (msg) {
 					var prefix = '!' + rootCommand + '-';
-					if(msg.type === 'api' && msg.content.indexOf(prefix) === 0) {
+					if (msg.type === 'api' && msg.content.indexOf(prefix) === 0) {
 						var cmdString = msg.content.slice(prefix.length);
 						var parts = cmdString.split(/\s+--/);
 						var cmdName = parts.shift();
 						var cmd = commands[cmdName];
-						if(!cmd) {
+						if (!cmd) {
 							throw 'Unrecognised command ' + prefix + cmdName;
 	        }
 						cmd.handle(parts, msg.selected);
@@ -3836,14 +3830,14 @@ var ShapedScripts =
 		var _ = __webpack_require__(2);
 
 	var levelStrings = ['Cantrips ', '1st level ', '2nd level ', '3rd level '];
-		_.each(_.range(4, 10), function(level) {
+		_.each(_.range(4, 10), function (level) {
 			levelStrings[level] = level + 'th level ';
 	});
 
 	var spellcastingHandler = {
 		splitRegex: /(Cantrips|(?:1st|2nd|3rd|[4-9]th)\s*level)\.?\s*\(([^\)]+)\)\s*:/i,
 
-		makeLevelDetailsObject: function(match) {
+		makeLevelDetailsObject: function (match) {
 			var levelMatch = match[1].match(/\d/);
 			return {
 				level: levelMatch ? parseInt(levelMatch[0]) : 0,
@@ -3851,7 +3845,7 @@ var ShapedScripts =
 			};
 		},
 
-		setLevelDetailsString: function(levelDetails) {
+		setLevelDetailsString: function (levelDetails) {
 			levelDetails.newText = levelStrings[levelDetails.level] + '(' + levelDetails.slots + '): ';
 			levelDetails.newText += levelDetails.spells.join(', ');
 		}
@@ -3861,7 +3855,7 @@ var ShapedScripts =
 	var innateHandler = {
 		splitRegex: /(At\s?will|\d\s?\/\s?day)(?:\s?each)?\s?:/i,
 
-		makeLevelDetailsObject: function(match) {
+		makeLevelDetailsObject: function (match) {
 			var usesMatch = match[1].match(/\d/);
 			return {
 				uses: usesMatch ? parseInt(usesMatch[0]) : 0,
@@ -3869,9 +3863,9 @@ var ShapedScripts =
 			};
 		},
 
-		setLevelDetailsString: function(levelDetails) {
+		setLevelDetailsString: function (levelDetails) {
 			levelDetails.newText = levelDetails.uses === 0 ? 'At will' : levelDetails.uses + '/day';
-			if(levelDetails.spells.length > 1) {
+			if (levelDetails.spells.length > 1) {
 				levelDetails.newText += ' each';
 			}
 			levelDetails.newText += ': ';
@@ -3883,49 +3877,49 @@ var ShapedScripts =
 
 	function processSpellcastingTrait(monster, traitName, traitHandler, entityLookup) {
 		var trait = _.findWhere(monster.traits, { name: traitName });
-		if(trait) {
+		if (trait) {
 			var spellList = trait.text.substring(trait.text.indexOf(':') + 1).replace('\n', ' ');
 			var castingDetails = trait.text.substring(0, trait.text.indexOf(':'));
 			var levelDetails = [];
 			var match;
-			while((match = traitHandler.splitRegex.exec(spellList)) !== null) {
-				if(_.last(levelDetails)) {
+			while ((match = traitHandler.splitRegex.exec(spellList)) !== null) {
+				if (_.last(levelDetails)) {
 					_.last(levelDetails).spells = spellList.slice(0, match.index);
 				}
 				levelDetails.push(traitHandler.makeLevelDetailsObject(match));
 				spellList = spellList.slice(match.index + match[0].length);
 			}
-			if(_.last(levelDetails)) {
+			if (_.last(levelDetails)) {
 				_.last(levelDetails).spells = spellList;
 			}
 
 			var hasCastBeforeCombat = false;
 			var spellDetailsByLevel = _.chain(levelDetails)
-				.each(function(levelDetails) {
+				.each(function (levelDetails) {
 					levelDetails.spells = _.chain(levelDetails.spells.replace(',*', '*,').split(','))
 						.map(_.partial(_.result, _, 'trim'))
-						.map(function(spellName) {
+						.map(function (spellName) {
 							var match = spellName.match(/([^\(\*]+)(?:\(([^\)]+)\))?(\*)?/);
 							hasCastBeforeCombat = hasCastBeforeCombat || !!match[3];
 							return {
 								name: match[1].trim(),
 								restriction: match[2],
 								castBeforeCombat: !!match[3],
-								toString: function() {
+								toString: function () {
 									return this.name +
 										(this.restriction ? ' (' + this.restriction + ')' : '') +
 										(this.castBeforeCombat ? '*' : '');
 								},
-								toSpellArrayItem: function() {
+								toSpellArrayItem: function () {
 									return this.name;
 								}
 							};
 						})
-						.each(function(spell) {
+						.each(function (spell) {
 							spell.object = entityLookup.findEntity('spells', spell.name, true);
-							if(spell.object) {
+							if (spell.object) {
 								spell.name = spell.object.name;
-								spell.toSpellArrayItem = function() {
+								spell.toSpellArrayItem = function () {
 									return this.object;
 								};
 							}
@@ -3937,7 +3931,7 @@ var ShapedScripts =
 
 
 			trait.text = castingDetails + ':\n' + _.pluck(spellDetailsByLevel, 'newText').join('\n');
-			if(hasCastBeforeCombat) {
+			if (hasCastBeforeCombat) {
 				trait.text += '\n* The ' + monster.name.toLowerCase() + ' casts these spells on itself before combat.';
 			}
 			var spells = _.chain(spellDetailsByLevel)
@@ -3949,7 +3943,7 @@ var ShapedScripts =
 				.sortBy('level')
 				.value();
 
-			if(!_.isEmpty(spells)) {
+			if (!_.isEmpty(spells)) {
 				monster.spells = spells;
 	    }
 		}
@@ -3957,8 +3951,8 @@ var ShapedScripts =
 	}
 
 
-		module.exports = function(monsters, entityLookup) {
-			_.each(monsters, function(monster) {
+		module.exports = function (monsters, entityLookup) {
+			_.each(monsters, function (monster) {
 				processSpellcastingTrait(monster, 'Spellcasting', spellcastingHandler, entityLookup);
 				processSpellcastingTrait(monster, 'Innate Spellcasting', innateHandler, entityLookup);
 			});
@@ -3968,7 +3962,7 @@ var ShapedScripts =
 
 /***/ },
 	/* 14 */
-	/***/ function(module, exports, __webpack_require__) {
+	/***/ function (module, exports, __webpack_require__) {
 
 		'use strict';
 		var _ = __webpack_require__(2);
@@ -3989,7 +3983,7 @@ var ShapedScripts =
 
 			getSelectedCharacters(selected) {
 				return _.chain(selected)
-					.map(function(s) {
+					.map(function (s) {
 						return s.get('_id');
 					})
 					.value();
@@ -4005,8 +3999,8 @@ var ShapedScripts =
 				isAdvantage = '@{roll_advantage}' === setting;
 				isDisadvantage = '@{roll_disadvantage}' === setting;
 
-				if(this.myState.config.advTrackerSettings.showMarkers) {
-					_.each(br[0].tokens, function(t) {
+				if (this.myState.config.advTrackerSettings.showMarkers) {
+					_.each(br[0].tokens, function (t) {
 						t.set('status_' + disadvantageMarker, isDisadvantage);
 						t.set('status_' + advantageMarker, isAdvantage);
 					});
@@ -4015,13 +4009,13 @@ var ShapedScripts =
 
 			updateToken(token) {
 				this.logger.debug('AT: Updating New Token');
-				if(!this.myState.config.advTrackerSettings.showMarkers) {
+				if (!this.myState.config.advTrackerSettings.showMarkers) {
 					return;
 				}
 
 				var character, setting, isAdvantage, isDisadvantage;
 
-				if(token.get('represents') === '') {
+				if (token.get('represents') === '') {
 					return;
 				}
 
@@ -4030,8 +4024,8 @@ var ShapedScripts =
 				isAdvantage = '@{roll_advantage}' === setting;
 				isDisadvantage = '@{roll_disadvantage}' === setting;
 
-				if(ignoreNpc) {
-					if(roll20.getAttrByName(character.id, 'is_npc') === '1') {
+				if (ignoreNpc) {
+					if (roll20.getAttrByName(character.id, 'is_npc') === '1') {
 						return;
 					}
 				}
@@ -4042,15 +4036,15 @@ var ShapedScripts =
 
 			buildResources(ids) {
 				return _.chain(ids)
-					.map(function(cid) {
+					.map(function (cid) {
 						return roll20.getObj('character', cid);
 					})
 					.reject(_.isUndefined)
 					//.filter(this.npcCheckFunc)
-					.map(function(c) {
+					.map(function (c) {
 						return {
 							character: c,
-							tokens: roll20.filterObjs(function(o) {
+							tokens: roll20.filterObjs(function (o) {
 								return 'graphic' === o.get('_type') &&
 									c.id === o.get('represents');
 							})
@@ -4060,7 +4054,7 @@ var ShapedScripts =
 			}
 
 			setAttribute(options) {
-				if(!options.current && options.current !== '') {
+				if (!options.current && options.current !== '') {
 					roll20.log('Error setting empty value: ');// + name);
 					return;
 				}
@@ -4071,14 +4065,14 @@ var ShapedScripts =
 					name: options.name
 				})[0];
 
-				if(!attr) {
+				if (!attr) {
 					roll20.createObj('attribute', {
 						name: options.name,
 						current: options.current,
 						characterid: options.characterId
 					});
 				}
-				else if(!attr.get('current') || attr.get('current').toString() !== options.current) {
+				else if (!attr.get('current') || attr.get('current').toString() !== options.current) {
 					attr.set({
 						current: options.current
 					});
@@ -4108,16 +4102,16 @@ var ShapedScripts =
 					isAdvantage = 'advantage' === type,
 					isDisadvantage = 'disadvantage' === type;
 
-				_.each(resources, function(r) {
-					if(self.myState.config.advTrackerSettings.showMarkers) {
-						_.each(r.tokens, function(t) {
+				_.each(resources, function (r) {
+					if (self.myState.config.advTrackerSettings.showMarkers) {
+						_.each(r.tokens, function (t) {
 							t.set('status_' + disadvantageMarker, isDisadvantage);
 							t.set('status_' + advantageMarker, isAdvantage);
 	        });
 					}
 
 					setting = roll20.getAttrByName(r.character.get('_id'), 'roll_setting');
-					if(setting === valByType[type]) {
+					if (setting === valByType[type]) {
 						return;
 					}
 
@@ -4127,12 +4121,12 @@ var ShapedScripts =
 						current: valByType[type]
 					});
 
-					if(valByType[type] === '@{roll_advantage}') {
+					if (valByType[type] === '@{roll_advantage}') {
 						rollInfo = '{{advantage=1}}';
 						preroll = 2;
 						postroll = 'kh1';
 					}
-					if(valByType[type] === '@{roll_disadvantage}') {
+					if (valByType[type] === '@{roll_disadvantage}') {
 						rollInfo = '{{disadvantage=1}}';
 						preroll = 2;
 						postroll = 'kl1';
@@ -4171,7 +4165,7 @@ var ShapedScripts =
 		/***/
 	},
 	/* 15 */
-	/***/ function(module, exports, __webpack_require__) {
+	/***/ function (module, exports, __webpack_require__) {
 
 		'use strict';
 		var _ = __webpack_require__(2);
@@ -4198,7 +4192,7 @@ var ShapedScripts =
 					ConfigUi.makeToggleSetting(config, 'tokenSettings.showName', 'Show Name Tag') +
 					ConfigUi.makeToggleSetting(config, 'tokenSettings.showNameToPlayers', 'Show Name to Players');
 
-				for(var i = 1; i <= 3; i++) {
+				for (var i = 1; i <= 3; i++) {
 					retVal += ConfigUi.makeInputSetting(config, 'tokenSettings.bar' + i + '.attribute', 'Bar ' + i +
 						' Attribute', 'Bar ' + i + ' Attribute (empty to unset)');
 					retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.max', 'Bar ' + i + ' Set Max');
@@ -4232,7 +4226,7 @@ var ShapedScripts =
 			static makeInputSetting(config, path, title, prompt) {
 				var currentVal = utils.getObjectFromPath(config, path);
 				var emptyHint = '[not set]';
-				if(currentVal) {
+				if (currentVal) {
 					emptyHint = currentVal;
 				}
 
@@ -4242,7 +4236,7 @@ var ShapedScripts =
 
 			static makeToggleSetting(config, path, title, optionsSpec) {
 				var currentVal = utils.getObjectFromPath(config, path);
-				if(optionsSpec) {
+				if (optionsSpec) {
 					currentVal = _.invert(optionsSpec)[currentVal] === 'true';
 				}
 
@@ -4287,7 +4281,7 @@ var ShapedScripts =
 		/***/
 	},
 	/* 16 */
-	/***/ function(module, exports) {
+	/***/ function (module, exports) {
 
 		function sanitise(statblock, logger) {
 			'use strict';
@@ -4322,7 +4316,7 @@ var ShapedScripts =
 			//In this case we can fix the title case stuff, because we can find the word boundaries. That will at least meaning
 			//that the core statblock parsing will work. If this happens inside the lowercase body text, however, there's nothing
 			//we can do about it because you need to understand the natural language to reinsert the word breaks properly.
-			statblock = statblock.replace(/([A-Z])(\s[a-z]){2,}/g, function(match, p1) {
+			statblock = statblock.replace(/([A-Z])(\s[a-z]){2,}/g, function (match, p1) {
 				return p1 + match.slice(1).replace(/\s([a-z])/g, '$1');
 			});
 
@@ -4332,12 +4326,12 @@ var ShapedScripts =
 			statblock = statblock.replace(/([A-Z][a-z]+)(?=[A-Z])/g, '$1 ');
 
 			//This covers abilites that end up as 'C O N' or similar
-			statblock = statblock.replace(/^[A-Z]\s?[A-Z]\s?[A-Z](?=\s|$)/mg, function(match) {
+			statblock = statblock.replace(/^[A-Z]\s?[A-Z]\s?[A-Z](?=\s|$)/mg, function (match) {
 				return match.replace(/\s/g, '');
 			});
 
-			statblock = statblock.replace(/^[A-Z ]+$/m, function(match) {
-				return match.replace(/([A-Z])([A-Z]+)(?=\s|$)/g, function(match, p1, p2) {
+			statblock = statblock.replace(/^[A-Z ]+$/m, function (match) {
+				return match.replace(/([A-Z])([A-Z]+)(?=\s|$)/g, function (match, p1, p2) {
 					return p1 + p2.toLowerCase();
 	    });
 			});
@@ -4409,7 +4403,7 @@ var ShapedScripts =
 				'spe ll': 'spell'
 			};
 			var re = new RegExp(Object.keys(replaceObj).join('|'), 'g');
-			statblock = statblock.replace(re, function(matched) {
+			statblock = statblock.replace(re, function (matched) {
 				return replaceObj[matched];
 			});
 
