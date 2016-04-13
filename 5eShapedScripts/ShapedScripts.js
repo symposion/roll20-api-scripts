@@ -2097,7 +2097,7 @@ var ShapedScripts =
 	var ConfigUI = __webpack_require__(15);
 
 		var version = '0.8.1',
-	  schemaVersion = 0.7,
+			schemaVersion = 0.8,
 	  configDefaults = {
 	    logLevel: 'INFO',
 	    tokenSettings: {
@@ -3263,6 +3263,7 @@ var ShapedScripts =
 	        case 0.4:
 	        case 0.5:
 	        case 0.6:
+					case 0.7:
 						_.defaults(myState.config, utils.deepClone(configDefaults));
 	          myState.version = schemaVersion;
 	          break;

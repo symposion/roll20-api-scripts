@@ -10,7 +10,7 @@ var AdvantageTracker = require('./advantage-tracker');
 var ConfigUI = require('./config-ui');
 
 var version = '0.8.1',
-  schemaVersion = 0.7,
+  schemaVersion = 0.8,
   configDefaults = {
     logLevel: 'INFO',
     tokenSettings: {
@@ -1176,6 +1176,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         case 0.4:
         case 0.5:
         case 0.6:
+        case 0.7:
           _.defaults(myState.config, utils.deepClone(configDefaults));
           myState.version = schemaVersion;
           break;
