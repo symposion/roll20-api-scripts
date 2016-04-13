@@ -6,7 +6,7 @@ deploy:
   provider: releases
   api_key:
     secure: OLxCwKVhQASZcSKjt/6GMnOH8q1veDqvTkjyaet5CFpORmwcWW1hblxopk3vTLSPKOVDYJjzK2s+LGCKm5fCmFwttYjwCKoFQHW1Np8KlXGmn8ho9qU21pJx1jy15/SNATznaDp8vfvAyY7sLUhv3ZVXgYdSLhoPxbWXh+tntiztB79Rf/k8qta36qCjPbwhOVz/McoUIBZhADWbUq8Nn4kQ3llNOifHM0rN3edNrEVLBFNyQ1AoRMg9q/W12OQRjbhZEfOWHBzJU4x3kQYKpZKH5g9wJsYN0yKKUus0vA18kLrJ27hvY7Bun+WvlcOKr2D2NNmpq28PWST8sD/2bOc+APdFOusGqBOLeA1opHYO+w9rBdW/6EwbB5GrkSaV5/4aQzJaiwOkJo0Bghi6AtlrInMEZ7azMhVLCdrO0kwtgav9BQIqlQJSDoqtN84hefky6/Dxw0GAv5BM5SsQjTSHYFrbngB/Wm24VHMtgMqQoDQG0nA2Mq/rtFxGxDI2MezvygPPDs0qEYbcAW4PvYW0ZY4peNVCaJqB7X4t+0n/WxdjQCq44xqtTFrgDURKw7EtTHZBrEqK8Mw887MrcgHsliqtlJ93WIPYIFNtU5dj81wZS/mcjrB+1mzU2S/tw8zpBnxlIJHLXJMxovOGAcilKECq5mi55MkqyuqZues=
-  file: 5eShapedScripts/ShapedScripts.js
+  file: ShapedScripts.js
   on:
     repo: symposion/roll20-api-scripts
     tags: true
