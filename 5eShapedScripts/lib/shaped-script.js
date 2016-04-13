@@ -980,11 +980,10 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     }
     var messages = _.map(options.selected.character, function(character) {
 
-      var cache = {};
       var operationMessages = _.chain(options.abilities)
         .sortBy('sortKey')
         .map(function(maker) {
-          return maker.run(character, cache);
+          return maker.run(character, options);
         })
         .value();
 
@@ -1027,15 +1026,18 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     sortKey: ''
   };
 
-  var RepeatingAbilityMaker = function(repeatingSection, abilityName, label) {
-    this.run = function(character, cache) {
-      cache[repeatingSection] = cache[repeatingSection] ||
+  var RepeatingAbilityMaker = function (repeatingSection, abilityName, label, canMark) {
+    this.run = function (character, options) {
+      options[`cache${repeatingSection}`] = options[`cache${repeatingSection}`] ||
         roll20.getRepeatingSectionItemIdsByName(character.id, repeatingSection);
 
-      var configured = _.chain(cache[repeatingSection])
+      var configured = _.chain(options[`cache${repeatingSection}`])
         .map(function(repeatingId, repeatingName) {
           var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId +
             '_' + abilityName + '}';
+          if (canMark && options.mark) {
+            repeatingAction += '\n!mark @{target|token_id}';
+          }
           return { name: utils.toTitleCase(repeatingName), action: repeatingAction };
         })
         .map(getAbilityMaker(character))
@@ -1067,11 +1069,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     savingthrowsquery: new RollAbilityMaker('saving_throw_query_macro', 'Saving Throws'),
     saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
     savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
-    attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks'),
+    attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks', true),
     statblock: new RollAbilityMaker('statblock', 'Statblock'),
     traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
     'traits-macro': new RollAbilityMaker('traits_macro', 'Traits'),
-    actions: new RepeatingAbilityMaker('action', 'action', 'Actions'),
+    actions: new RepeatingAbilityMaker('action', 'action', 'Actions', true),
     'actions-macro': new RollAbilityMaker('actions_macro', 'Actions'),
     reactions: new RepeatingAbilityMaker('reaction', 'action', 'Reactions'),
     'reactions-macro': new RollAbilityMaker('reactions_macro', 'Reactions'),
@@ -1152,6 +1154,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         }
       })
       .optionLookup('abilities', abilityLookup)
+      .option('mark', booleanValidator)
       .addCommand('token-defaults', this.applyTokenDefaults.bind(this))
       .withSelection({
         graphic: {
