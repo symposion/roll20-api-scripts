@@ -321,13 +321,13 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
   /////////////////////////////////////////
   this.configure = function(options) {
     utils.deepExtend(myState.config, options);
-    
+
     var cui = new ConfigUI();
-    
+
     logger.debug('options: ' + options);
 
     var menu;
-    if(options.advTrackerSettings || options.atMenu) {      
+    if (options.advTrackerSettings || options.atMenu) {
       menu = cui.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
     }
     else if(options.tokenSettings || options.tsMenu) {
@@ -602,8 +602,8 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       logger.debug('Settings for tokens: $$$', settings);
       token.set('showname', settings.showName);
       token.set('showplayers_name', settings.showNameToPlayers);
-      //token.set('showplayers_aura1', settings.showAura1ToPlayers);
-      //token.set('showplayers_aura2', settings.showAura2ToPlayers);
+      token.set('showplayers_aura1', settings.showAura1ToPlayers);
+      token.set('showplayers_aura2', settings.showAura2ToPlayers);
     };
   };
 

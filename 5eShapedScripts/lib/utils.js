@@ -1,6 +1,7 @@
 'use strict';
 var _ = require('underscore');
 
+//noinspection JSUnusedGlobalSymbols
 module.exports = {
   deepExtend: function(original, newValues) {
     var self = this;
@@ -100,7 +101,7 @@ module.exports = {
   /**
    * Calculates a contrasting color using YIQ luma value
    * @param {string} hexcolor - the color to calculate a contrasting color for
-   * @return {string} either 'white' or 'black' as determined to be the best contrasting text color for the input color 
+   * @return {string} either 'white' or 'black' as determined to be the best contrasting text color for the input color
    */
   getContrastYIQ: function(hexcolor) {
     hexcolor = hexcolor.replace('#', '');
@@ -115,14 +116,14 @@ module.exports = {
   /**
    * Builds an html element as a string using the specified options
    * @param {string} tag - the html tag type
-   * @param innerHtml - can be a string to be used as the element inner html, or a {tag, innerHtml, attrs} object 
+   * @param innerHtml - can be a string to be used as the element inner html, or a {tag, innerHtml, attrs} object
    *                    in order to build a child html element string
    * @param attrs - a collection of attributes and their values to be applied to the html element
    * @return {string} the full html element as a string
    */
   buildHTML: function(tag, innerHtml, attrs) {
     var self = this;
-    
+
     if (typeof innerHtml === 'object') {
       var res = '';
       _.each(innerHtml, function(html) {
@@ -132,7 +133,7 @@ module.exports = {
       });
       innerHtml = res;
     }
-    
+
     var h = '<' + tag;
 
     for (var attr in attrs) {
@@ -141,8 +142,8 @@ module.exports = {
         h += ' ' + attr + '="' + attrs[attr] + '"';
       }
     }
-    
-    return h += innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
+
+    return h + innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
   },
 
   versionCompare: function(v1, v2) {

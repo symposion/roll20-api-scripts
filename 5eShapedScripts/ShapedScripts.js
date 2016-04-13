@@ -124,7 +124,7 @@ var ShapedScripts =
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* globals state, createObj, findObjs, filterObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
+	/* globals state:false, createObj, findObjs, filterObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
 	'use strict';
 	var _ = __webpack_require__(2);
 	//noinspection JSUnusedGlobalSymbols
@@ -1639,20 +1639,21 @@ var ShapedScripts =
 	'use strict';
 	var _ = __webpack_require__(2);
 
+	//noinspection JSUnusedGlobalSymbols
 	module.exports = {
 	  deepExtend: function(original, newValues) {
 	    var self = this;
-	    if(!original) {
+	    if (!original) {
 	      original = _.isArray(newValues) ? [] : {};
 	    }
 	    _.each(newValues, function(value, key) {
-	      if(_.isArray(original[key])) {
-	        if(!_.isArray(value)) {
+	      if (_.isArray(original[key])) {
+	        if (!_.isArray(value)) {
 	          original[key].push(value);
 	        }
 	        else {
 	          original[key] = _.map(value, function(item, index) {
-	            if(_.isObject(item)) {
+	            if (_.isObject(item)) {
 	              return self.deepExtend(original[key][index], item);
 	            }
 	            else {
@@ -1661,7 +1662,7 @@ var ShapedScripts =
 	          });
 	        }
 	      }
-	      else if(_.isObject(original[key])) {
+	      else if (_.isObject(original[key])) {
 	        original[key] = self.deepExtend(original[key], value);
 	      }
 	      else {
@@ -1678,7 +1679,7 @@ var ShapedScripts =
 	      var match = pathPart.match(/([^.\[]*)(?:\[(\d+)\])?/);
 	      var newVal = index === pathParts.length - 1 ? value : {};
 
-	      if(match[2]) {
+	      if (match[2]) {
 	        object[match[1]] = [];
 	        object[match[1]][match[2]] = newVal;
 	      }
@@ -1695,9 +1696,9 @@ var ShapedScripts =
 	    path = path.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
 	    path = path.replace(/^\./, '');           // strip a leading dot
 	    var a = path.split('.');
-	    for(var i = 0, n = a.length; i < n; ++i) {
+	    for (var i = 0, n = a.length; i < n; ++i) {
 	      var k = a[i];
-	      if(k in obj) {
+	      if (k in obj) {
 	        obj = obj[k];
 	      }
 	      else {
@@ -1712,7 +1713,7 @@ var ShapedScripts =
 	  },
 
 	  executor: function() {
-	    switch(arguments.length) {
+	    switch (arguments.length) {
 	      case 0:
 	        return;
 	      case 1:
@@ -1735,15 +1736,63 @@ var ShapedScripts =
 	    });
 	  },
 
+	  /**
+	   * Calculates a contrasting color using YIQ luma value
+	   * @param {string} hexcolor - the color to calculate a contrasting color for
+	   * @return {string} either 'white' or 'black' as determined to be the best contrasting text color for the input color
+	   */
+	  getContrastYIQ: function(hexcolor) {
+	    hexcolor = hexcolor.replace('#', '');
+	    if (hexcolor.length === 3) { hexcolor += hexcolor; }
+	    var r = parseInt(hexcolor.substr(0, 2), 16);
+	    var g = parseInt(hexcolor.substr(2, 2), 16);
+	    var b = parseInt(hexcolor.substr(4, 2), 16);
+	    var yiq = (r * 299 + g * 587 + b * 114) / 1000;
+	    return yiq >= 128 ? 'black' : 'white';
+	  },
+
+	  /**
+	   * Builds an html element as a string using the specified options
+	   * @param {string} tag - the html tag type
+	   * @param innerHtml - can be a string to be used as the element inner html, or a {tag, innerHtml, attrs} object
+	   *                    in order to build a child html element string
+	   * @param attrs - a collection of attributes and their values to be applied to the html element
+	   * @return {string} the full html element as a string
+	   */
+	  buildHTML: function(tag, innerHtml, attrs) {
+	    var self = this;
+
+	    if (typeof innerHtml === 'object') {
+	      var res = '';
+	      _.each(innerHtml, function(html) {
+	        if (!_.isUndefined(html)) {
+	          res += '' + self.buildHTML(html.tag, html.innerHtml, html.attrs);
+	        }
+	      });
+	      innerHtml = res;
+	    }
+
+	    var h = '<' + tag;
+
+	    for (var attr in attrs) {
+	      if (attrs.hasOwnProperty(attr)) {
+	        if (attrs[attr] === false) { continue; }
+	        h += ' ' + attr + '="' + attrs[attr] + '"';
+	      }
+	    }
+
+	    return h + innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
+	  },
+
 	  versionCompare: function(v1, v2) {
 
-	    if(v1 === v2) {
+	    if (v1 === v2) {
 	      return 0;
 	    }
-	    else if(v1 === undefined || v1 === null) {
+	    else if (v1 === undefined || v1 === null) {
 	      return -1;
 	    }
-	    else if(v2 === undefined || v2 === null) {
+	    else if (v2 === undefined || v2 === null) {
 	      return 1;
 	    }
 
@@ -1754,27 +1803,27 @@ var ShapedScripts =
 	      return /^\d+$/.test(x);
 	    };
 
-	    if(!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
+	    if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
 	      return NaN;
 	    }
 
 	    v1parts = _.map(v1parts, Number);
 	    v2parts = _.map(v2parts, Number);
 
-	    for(var i = 0; i < v1parts.length; ++i) {
-	      if(v2parts.length === i) {
+	    for (var i = 0; i < v1parts.length; ++i) {
+	      if (v2parts.length === i) {
 	        return 1;
 	      }
 
-	      if(v1parts[i] > v2parts[i]) {
+	      if (v1parts[i] > v2parts[i]) {
 	        return 1;
 	      }
-	      else if(v1parts[i] < v2parts[i]) {
+	      else if (v1parts[i] < v2parts[i]) {
 	        return -1;
 	      }
 	    }
 
-	    if(v1parts.length !== v2parts.length) {
+	    if (v1parts.length !== v2parts.length) {
 	      return -1;
 	    }
 
@@ -1791,6 +1840,7 @@ var ShapedScripts =
 	'use strict';
 	var _ = __webpack_require__(2);
 
+	//noinspection JSUnusedGlobalSymbols
 	var validatorFactories = {
 	  orderedContent: function(spec) {
 	    return makeContentModelValidator(spec);
@@ -2096,8 +2146,8 @@ var ShapedScripts =
 	var AdvantageTracker = __webpack_require__(14);
 	var ConfigUI = __webpack_require__(15);
 
-		var version = '0.8.1',
-			schemaVersion = 0.9,
+	var version = '0.8.2',
+	  schemaVersion = 0.9,
 	  configDefaults = {
 	    logLevel: 'INFO',
 	    tokenSettings: {
@@ -2247,7 +2297,7 @@ var ShapedScripts =
 	    showPlayers: booleanValidator
 	  },
 	  auraValidator = {
-	    radius: integerValidator,
+	    radius: stringValidator,
 	    color: colorValidator,
 	    square: booleanValidator
 	  },
@@ -2409,18 +2459,22 @@ var ShapedScripts =
 	  this.configure = function(options) {
 	    utils.deepExtend(myState.config, options);
 
+	    var cui = new ConfigUI();
+
+	    logger.debug('options: ' + options);
+
 	    var menu;
-	    if(options.advTrackerSettings) {
-	      menu = ConfigUI.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
+	    if(options.advTrackerSettings || options.atMenu) {
+	      menu = cui.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
 	    }
-	    else if(options.tokenSettings) {
-	      menu = ConfigUI.getConfigOptionGroupTokens(myState.config, configOptionsSpec);
+	    else if(options.tokenSettings || options.tsMenu) {
+	      menu = cui.getConfigOptionGroupTokens(myState.config, configOptionsSpec);
 	    }
-	    else if(options.newCharSettings) {
-	      menu = ConfigUI.getConfigOptionGroupNewCharSettings(myState.config, configOptionsSpec);
+	    else if(options.newCharSettings || options.ncMenu) {
+	      menu = cui.getConfigOptionGroupNewCharSettings(myState.config, configOptionsSpec);
 	    }
 	    else {
-	      menu = ConfigUI.getConfigOptionsAll(myState.config, configOptionsSpec);
+	      menu = cui.getConfigOptionsMenu();
 	    }
 
 	    report('Configuration', menu);
@@ -2682,11 +2736,11 @@ var ShapedScripts =
 	          token.set(auraName + '_square', aura.square);
 	        });
 
-				logger.debug('Settings for tokens: $$$', settings);
+	      logger.debug('Settings for tokens: $$$', settings);
 	      token.set('showname', settings.showName);
 	      token.set('showplayers_name', settings.showNameToPlayers);
-				//token.set('showplayers_aura1', settings.showAura1ToPlayers);
-				//token.set('showplayers_aura2', settings.showAura2ToPlayers);
+	      token.set('showplayers_aura1', settings.showAura1ToPlayers);
+	      token.set('showplayers_aura2', settings.showAura2ToPlayers);
 	    };
 	  };
 
@@ -3071,7 +3125,7 @@ var ShapedScripts =
 	      var operationMessages = _.chain(options.abilities)
 	        .sortBy('sortKey')
 	        .map(function(maker) {
-						return maker.run(character, options);
+	          return maker.run(character, options);
 	        })
 	        .value();
 
@@ -3114,18 +3168,18 @@ var ShapedScripts =
 	    sortKey: ''
 	  };
 
-		var RepeatingAbilityMaker = function (repeatingSection, abilityName, label, canMark) {
-			this.run = function (character, options) {
-				options[`cache${repeatingSection}`] = options[`cache${repeatingSection}`] ||
+	  var RepeatingAbilityMaker = function (repeatingSection, abilityName, label, canMark) {
+	    this.run = function (character, options) {
+	      options[`cache${repeatingSection}`] = options[`cache${repeatingSection}`] ||
 	        roll20.getRepeatingSectionItemIdsByName(character.id, repeatingSection);
 
-				var configured = _.chain(options[`cache${repeatingSection}`])
+	      var configured = _.chain(options[`cache${repeatingSection}`])
 	        .map(function(repeatingId, repeatingName) {
 	          var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId +
 	            '_' + abilityName + '}';
-						if (canMark && options.mark) {
-							repeatingAction += '\n!mark @{target|token_id}';
-						}
+	          if (canMark && options.mark) {
+	            repeatingAction += '\n!mark @{target|token_id}';
+	          }
 	          return { name: utils.toTitleCase(repeatingName), action: repeatingAction };
 	        })
 	        .map(getAbilityMaker(character))
@@ -3157,11 +3211,11 @@ var ShapedScripts =
 	    savingthrowsquery: new RollAbilityMaker('saving_throw_query_macro', 'Saving Throws'),
 	    saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
 	    savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
-			attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks', true),
+	    attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks', true),
 	    statblock: new RollAbilityMaker('statblock', 'Statblock'),
 	    traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
 	    'traits-macro': new RollAbilityMaker('traits_macro', 'Traits'),
-			actions: new RepeatingAbilityMaker('action', 'action', 'Actions', true),
+	    actions: new RepeatingAbilityMaker('action', 'action', 'Actions', true),
 	    'actions-macro': new RollAbilityMaker('actions_macro', 'Actions'),
 	    reactions: new RepeatingAbilityMaker('reaction', 'action', 'Reactions'),
 	    'reactions-macro': new RollAbilityMaker('reactions_macro', 'Reactions'),
@@ -3196,6 +3250,9 @@ var ShapedScripts =
 	    return cp('shaped')
 	      .addCommand('config', this.configure.bind(this))
 	      .options(configOptionsSpec)
+	      .option('atMenu', booleanValidator)
+	      .option('tsMenu', booleanValidator)
+	      .option('ncMenu', booleanValidator)
 	      .addCommand('import-statblock', self.importStatblock.bind(self))
 	      .option('overwrite', booleanValidator)
 	      .option('replace', booleanValidator)
@@ -3242,7 +3299,7 @@ var ShapedScripts =
 	        }
 	      })
 	      .optionLookup('abilities', abilityLookup)
-				.option('mark', booleanValidator)
+	      .option('mark', booleanValidator)
 	      .addCommand('token-defaults', this.applyTokenDefaults.bind(this))
 	      .withSelection({
 	        graphic: {
@@ -3267,12 +3324,12 @@ var ShapedScripts =
 	        case 0.4:
 	        case 0.5:
 	        case 0.6:
-					case 0.7:
-					case 0.8:
-						_.defaults(myState.config, utils.deepClone(configDefaults));
-						_.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
-						_.defaults(myState.config.newCharSettings, utils.deepClone(configDefaults.newCharSettings));
-						_.defaults(myState.config.advTrackerSettings, utils.deepClone(configDefaults.advTrackerSettings));
+	        case 0.7:
+	        case 0.8:
+	          _.defaults(myState.config, utils.deepClone(configDefaults));
+	          _.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
+	          _.defaults(myState.config.newCharSettings, utils.deepClone(configDefaults.newCharSettings));
+	          _.defaults(myState.config.advTrackerSettings, utils.deepClone(configDefaults.advTrackerSettings));
 	          myState.version = schemaVersion;
 	          break;
 	        default:
@@ -4189,79 +4246,172 @@ var ShapedScripts =
 	var _ = __webpack_require__(2);
 	var utils = __webpack_require__(7);
 
+	// eslint-disable-next-line
 	class ConfigUi {
-	  static getConfigOptionsAll(config, optionsSpec) {
-	    return ConfigUi.getConfigOptionGroupAdvTracker(config, optionsSpec) +
-	      ConfigUi.getConfigOptionGroupTokens(config, optionsSpec) +
-	      ConfigUi.getConfigOptionGroupNewCharSettings(config, optionsSpec);
+
+	  ////////////
+	  // Menus
+	  ////////////
+	  getConfigOptionsAll(config, optionsSpec) {
+	    return this.getConfigOptionGroupAdvTracker(config, optionsSpec) +
+	      this.getConfigOptionGroupTokens(config, optionsSpec) +
+	      this.getConfigOptionGroupNewCharSettings(config, optionsSpec);
+
 	  }
 
-	  static getConfigOptionGroupAdvTracker(config, optionsSpec) {
-	    return '<table style="width: 100%; font-size: 0.9em;">' +
-	      '<tr style="margin-top: 5px;"><th colspan=2>Advantage Tracker Options</th></tr>' +
-	      ConfigUi.makeToggleSetting(config, 'advTrackerSettings.showMarkers', 'Show Markers') +
-	      '</table>';
+	  getConfigOptionsMenu() {
+	    var optionRows = this.makeOptionRow('Advantage Tracker', 'atMenu', '', 'view', '', '#02baf2') +
+	      this.makeOptionRow('Token Defaults', 'tsMenu', '', 'view', '', '#02baf2') +
+	      this.makeOptionRow('New Characters', 'ncMenu', '', 'view', '', '#02baf2');
+
+	    var th = utils.buildHTML('th', 'Main Menu', { colspan: '2' });
+	    var tr = utils.buildHTML('tr', th, { style: 'margin-top: 5px;' });
+
+	    return utils.buildHTML('table', tr + optionRows, { style: 'width: 100%; font-size: 0.9em;' });
 	  }
 
-	  static getConfigOptionGroupTokens(config, optionsSpec) {
+	  getConfigOptionGroupAdvTracker(config, optionsSpec) {
+	    var optionRows = this.makeToggleSetting(config, 'advTrackerSettings.showMarkers', 'Show Markers');
+
+	    var th = utils.buildHTML('th', 'Advantage Tracker Options', { colspan: '2' });
+	    var tr = utils.buildHTML('tr', th, { style: 'margin-top: 5px;' });
+	    var table = utils.buildHTML('table', tr + optionRows, { style: 'width: 100%; font-size: 0.9em;' });
+
+	    return table + this.backToMainMenuButton();
+	  }
+
+	  getConfigOptionGroupTokens(config, optionsSpec) {
+	    var auraButtonWidth = 60;
+
 	    var retVal = '<table style="width: 100%; font-size: 0.9em;">' +
 	      '<tr style="margin-top: 5px;"><th colspan=2>Token Options</th></tr>' +
-	      ConfigUi.makeToggleSetting(config, 'tokenSettings.number', 'Numbered Tokens') +
-	      ConfigUi.makeToggleSetting(config, 'tokenSettings.showName', 'Show Name Tag') +
-	      ConfigUi.makeToggleSetting(config, 'tokenSettings.showNameToPlayers', 'Show Name to Players');
+	      this.makeToggleSetting(config, 'tokenSettings.number', 'Numbered Tokens') +
+	      this.makeToggleSetting(config, 'tokenSettings.showName', 'Show Name Tag') +
+	      this.makeToggleSetting(config, 'tokenSettings.showNameToPlayers', 'Show Name to Players');
 
-	    for(var i = 1; i <= 3; i++) {
-	      retVal += ConfigUi.makeInputSetting(config, 'tokenSettings.bar' + i + '.attribute', 'Bar ' + i +
+	    for (var i = 1; i <= 3; i++) {
+	      retVal += this.makeInputSetting(config, 'tokenSettings.bar' + i + '.attribute', 'Bar ' + i +
 	        ' Attribute', 'Bar ' + i + ' Attribute (empty to unset)');
-	      retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.max', 'Bar ' + i + ' Set Max');
-	      retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.link', 'Bar ' + i + ' Link');
-	      retVal += ConfigUi.makeToggleSetting(config, 'tokenSettings.bar' + i + '.showPlayers', 'Bar ' + i +
+	      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.max', 'Bar ' + i + ' Set Max');
+	      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.link', 'Bar ' + i + ' Link');
+	      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.showPlayers', 'Bar ' + i +
 	        ' Show Players');
 	    }
 
-	    retVal += '</table>';
+	    // Build out the aura grids
+	    for (i = 1; i <= 2; i++) {
+	      var currRad = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.radius');
+	      var currRadEmptyHint = currRad ? currRad : '[not set]';
+	      // if (currRad) {
+	      //   currRadEmptyHint = currRad;
+	      // }
+	      var currColor = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.color');
+	      var currSquare = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.square');
+
+	      var radBtn = this.makeOptionButton('tokenSettings.aura' + i + '.radius',
+	        '?{Aura ' + i + ' Radius (empty to unset)' + '|' + currRad + '}',
+	        this.makeText(currRadEmptyHint), 'click to edit', currRadEmptyHint === '[not set]' ? '#f84545' : '#02baf2',
+	        undefined, auraButtonWidth);
+	      var colorBtn = this.makeOptionButton('tokenSettings.aura' + i + '.color',
+	        '?{Aura ' + i + ' Color (hex colors)' + '|' + currColor + '}',
+	        this.makeText(currColor), 'click to edit', currColor, utils.getContrastYIQ(currColor), auraButtonWidth);
+	      var squareBtn = this.makeOptionButton('tokenSettings.aura' + i + '.square', !currSquare,
+	        this.makeBoolText(currSquare), 'click to toggle', currSquare ? '#65c4bd' : '#f84545',
+	        undefined, auraButtonWidth);
+
+	      retVal += utils.buildHTML('tr', [{tag: 'td', innerHtml:
+	        [{tag: 'table', innerHtml:
+	          [{ tag: 'tr', innerHtml:
+	            [{ tag: 'th', innerHtml: 'Aura ' + i, attrs: { colspan: 3 } }] },
+	          { tag: 'tr', innerHtml:
+	            [{ tag: 'td', innerHtml: 'Range' }, { tag: 'td', innerHtml: 'Color' }, { tag: 'td', innerHtml: 'Square' }] },
+	          { tag: 'tr', innerHtml: [
+	            { tag: 'td', innerHtml: radBtn }, { tag: 'td', innerHtml: colorBtn }, { tag: 'td', innerHtml: squareBtn}] }],
+	        attrs: { style: 'width: 100%; text-align: center;' }}], attrs:{colspan: '2'}}], {style: 'border: 1px solid gray;'});
+
+	    }
+
+	    retVal += '</table>' + this.backToMainMenuButton();
 
 	    return retVal;
 	  }
 
-	  static getConfigOptionGroupNewCharSettings(config, optionsSpec) {
-	    return '<table style="width: 100%; font-size: 0.9em;">' +
-	      '<tr style="margin-top: 5px;"><th colspan=2>New Character Sheets</th></tr>' +
-	      ConfigUi.makeQuerySetting(config, 'newCharSettings.sheetOutput', 'Sheet Output', optionsSpec.newCharSettings.sheetOutput()) +
-	      ConfigUi.makeQuerySetting(config, 'newCharSettings.deathSaveOutput', 'Death Save Output', optionsSpec.newCharSettings.deathSaveOutput()) +
-	      ConfigUi.makeQuerySetting(config, 'newCharSettings.initiativeOutput', 'Initiative Output', optionsSpec.newCharSettings.initiativeOutput()) +
-	      ConfigUi.makeToggleSetting(config, 'newCharSettings.showNameOnRollTemplate', 'Show Name on Roll Template', optionsSpec.newCharSettings.showNameOnRollTemplate()) +
-	      ConfigUi.makeQuerySetting(config, 'newCharSettings.rollOptions', 'Roll Options', optionsSpec.newCharSettings.rollOptions()) +
-	      ConfigUi.makeQuerySetting(config, 'newCharSettings.initiativeRoll', 'Init Roll', optionsSpec.newCharSettings.initiativeRoll()) +
-	      ConfigUi.makeToggleSetting(config, 'newCharSettings.initiativeToTracker', 'Init To Tracker', optionsSpec.newCharSettings.initiativeToTracker()) +
-	      ConfigUi.makeToggleSetting(config, 'newCharSettings.breakInitiativeTies', 'Break Init Ties', optionsSpec.newCharSettings.breakInitiativeTies()) +
-	      ConfigUi.makeToggleSetting(config, 'newCharSettings.showTargetAC', 'Show Target AC', optionsSpec.newCharSettings.showTargetAC()) +
-	      ConfigUi.makeToggleSetting(config, 'newCharSettings.showTargetName', 'Show Target Name', optionsSpec.newCharSettings.showTargetName()) +
-	      ConfigUi.makeToggleSetting(config, 'newCharSettings.autoAmmo', 'Auto Use Ammo', optionsSpec.newCharSettings.autoAmmo()) +
-	      '</table>';
+	  getConfigOptionGroupNewCharSettings(config, optionsSpec) {
+	    var optionRows = this.makeQuerySetting(config, 'newCharSettings.sheetOutput', 'Sheet Output',
+	      optionsSpec.newCharSettings.sheetOutput()) +
+	      this.makeQuerySetting(config, 'newCharSettings.deathSaveOutput',
+	        'Death Save Output', optionsSpec.newCharSettings.deathSaveOutput()) +
+	      this.makeQuerySetting(config, 'newCharSettings.initiativeOutput', 'Initiative Output',
+	        optionsSpec.newCharSettings.initiativeOutput()) +
+	      this.makeToggleSetting(config, 'newCharSettings.showNameOnRollTemplate', 'Show Name on Roll Template',
+	        optionsSpec.newCharSettings.showNameOnRollTemplate()) +
+	      this.makeQuerySetting(config, 'newCharSettings.rollOptions', 'Roll Options',
+	        optionsSpec.newCharSettings.rollOptions()) +
+	      this.makeQuerySetting(config, 'newCharSettings.initiativeRoll', 'Init Roll',
+	        optionsSpec.newCharSettings.initiativeRoll()) +
+	      this.makeToggleSetting(config, 'newCharSettings.initiativeToTracker', 'Init To Tracker',
+	        optionsSpec.newCharSettings.initiativeToTracker()) +
+	      this.makeToggleSetting(config, 'newCharSettings.breakInitiativeTies', 'Break Init Ties',
+	        optionsSpec.newCharSettings.breakInitiativeTies()) +
+	      this.makeToggleSetting(config, 'newCharSettings.showTargetAC', 'Show Target AC',
+	        optionsSpec.newCharSettings.showTargetAC()) +
+	      this.makeToggleSetting(config, 'newCharSettings.showTargetName', 'Show Target Name',
+	        optionsSpec.newCharSettings.showTargetName()) +
+	      this.makeToggleSetting(config, 'newCharSettings.autoAmmo', 'Auto Use Ammo',
+	        optionsSpec.newCharSettings.autoAmmo());
+
+	    var th = utils.buildHTML('th', 'New Character Sheets', { colspan: '2' });
+	    var tr = utils.buildHTML('tr', th, { style: 'margin-top: 5px;' });
+	    var table = utils.buildHTML('table', tr + optionRows, { style: 'width: 100%; font-size: 0.9em;' });
+
+	    return table + this.backToMainMenuButton();
 	  }
 
-	  static makeInputSetting(config, path, title, prompt) {
+	  backToMainMenuButton() {
+	    return utils.buildHTML('a', 'back to main menu', {
+	      href: '!shaped-config',
+	      style: 'text-align: center; margin: 5px 0 0 0; padding: 2px 2px ; border-radius: 10px; white-space: nowrap; ' +
+	      'overflow: hidden; text-overflow: ellipsis; background-color: #02baf2; border-color: #c0c0c0;'
+	    });
+	  }
+
+	  makeInputSetting(config, path, title, prompt) {
 	    var currentVal = utils.getObjectFromPath(config, path);
 	    var emptyHint = '[not set]';
-	    if(currentVal) {
+	    if (currentVal) {
 	      emptyHint = currentVal;
 	    }
 
-	    return ConfigUi.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
+	    return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
 	      '}', emptyHint, 'click to edit', emptyHint === '[not set]' ? '#f84545' : '#02baf2');
 	  }
 
-	  static makeToggleSetting(config, path, title, optionsSpec) {
+	  //noinspection JSUnusedGlobalSymbols
+	  makeColorSetting(config, path, title, prompt) {
 	    var currentVal = utils.getObjectFromPath(config, path);
-	    if(optionsSpec) {
+	    var emptyHint = '[not set]';
+
+	    if (currentVal) {
+	      emptyHint = currentVal;
+	    }
+
+	    var buttonColor = emptyHint === '[not set]' ? '#02baf2' : currentVal;
+
+	    return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
+	      '}', emptyHint, 'click to edit', buttonColor, utils.getContrastYIQ(buttonColor));
+	  }
+
+	  makeToggleSetting(config, path, title, optionsSpec) {
+	    var currentVal = utils.getObjectFromPath(config, path);
+	    if (optionsSpec) {
 	      currentVal = _.invert(optionsSpec)[currentVal] === 'true';
 	    }
 
-	    return ConfigUi.makeOptionRow(title, path, !currentVal, ConfigUi.makeBoolText(currentVal), 'click to toggle', currentVal ? '#65c4bd' : '#f84545');
+	    return this.makeOptionRow(title, path, !currentVal,
+	      this.makeBoolText(currentVal), 'click to toggle', currentVal ? '#65c4bd' : '#f84545');
 	  }
 
-	  static makeQuerySetting(config, path, title, optionsSpec) {
+	  makeQuerySetting(config, path, title, optionsSpec) {
 	    var currentVal = _.invert(optionsSpec)[utils.getObjectFromPath(config, path)];
 	    var optionList = _.keys(optionsSpec);
 
@@ -4269,27 +4419,43 @@ var ShapedScripts =
 	    optionList.splice(optionList.indexOf(currentVal), 1);
 	    optionList.unshift(currentVal);
 
-	    return ConfigUi.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') +
-	      '}', ConfigUi.makeText(currentVal), 'click to change', '#02baf2');
+	    return this.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') +
+	      '}', this.makeText(currentVal), 'click to change', '#02baf2');
 	  }
 
-	  static makeOptionRow(optionTitle, path, command, linkText, tooltip, buttonColor) {
-	    return '<tr style="border: 1px solid gray"><td>' +
-	      optionTitle + '</td>' +
-	      '</td><td style="text-align:right"> ' +
-	      '<a style="text-align: center; width: 80px; background-color: ' + buttonColor + '" title="' + tooltip +
-	      '" href="!shaped-config --' + path + ' ' + command + '">' +
-	      linkText + '</a></td></tr>';
+	  makeOptionRow(optionTitle, path, command, linkText, tooltip, buttonColor, buttonTextColor) {
+	    var col1 = utils.buildHTML('td', optionTitle);
+	    var col2 = utils.buildHTML('td', this.makeOptionButton(path, command, linkText, tooltip, buttonColor, buttonTextColor),
+	      { style: 'text-align:right;' });
+
+	    return utils.buildHTML('tr', col1 + col2, { style: 'border: 1px solid gray;' });
 	  }
 
-	  static makeText(value) {
-	    return '<span style=" padding: 0 2px;">' + value + '</span>';
+	  makeOptionButton(path, command, linkText, tooltip, buttonColor, buttonTextColor, width) {
+	    if (_.isUndefined(width)) { width = 80; }
+
+	    var css = 'text-align: center; width: ' + width + 'px; margin: 5px 0 0 0; ' +
+	      'padding: 2px 2px ; border-radius: 10px; border-color: #c0c0c0;' +
+	      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: ' +
+	      buttonColor + ';';
+	    if (buttonTextColor) {
+	      css += 'color: ' + buttonTextColor + '; ';
+	    }
+
+	    return utils.buildHTML('a', linkText, {
+	      style: css,
+	      href: '!shaped-config --' + path + ' ' + command
+	    });
 	  }
 
-	  static makeBoolText(value) {
+	  makeText(value) {
+	    return utils.buildHTML('span', value, { style: 'padding: 0 2px;' });
+	  }
+
+	  makeBoolText(value) {
 	    return value === true ?
-	      '<span style=" padding: 0 2px;">on</span>' :
-	      '<span style=" padding: 0 2px;">off</span>';
+	      utils.buildHTML('span', 'on', { style: 'padding: 0 2px;' }) :
+	      utils.buildHTML('span', 'off', { style: 'padding: 0 2px;' });
 	  }
 	}
 

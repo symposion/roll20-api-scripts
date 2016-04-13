@@ -1,6 +1,7 @@
 'use strict';
 var _ = require('underscore');
 
+//noinspection JSUnusedGlobalSymbols
 var validatorFactories = {
   orderedContent: function(spec) {
     return makeContentModelValidator(spec);

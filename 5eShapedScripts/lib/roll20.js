@@ -1,4 +1,4 @@
-/* globals state, createObj, findObjs, filterObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
+/* globals state:false, createObj, findObjs, filterObjs, getObj, getAttrByName, sendChat, on, log, Campaign, playerIsGM, spawnFx, spawnFxBetweenPoints */
 'use strict';
 var _ = require('underscore');
 //noinspection JSUnusedGlobalSymbols
