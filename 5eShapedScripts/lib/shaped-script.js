@@ -9,7 +9,7 @@ var mpp = require('./monster-post-processor');
 var AdvantageTracker = require('./advantage-tracker');
 var ConfigUI = require('./config-ui');
 
-var version = '0.8',
+var version = '0.8.1',
   schemaVersion = 0.7,
   configDefaults = {
     logLevel: 'INFO',
