@@ -9,8 +9,8 @@ var mpp = require('./monster-post-processor');
 var AdvantageTracker = require('./advantage-tracker');
 var ConfigUI = require('./config-ui');
 
-var version = '0.8.1',
-  schemaVersion = 0.8,
+var version = '0.8.2',
+  schemaVersion = 0.9,
   configDefaults = {
     logLevel: 'INFO',
     tokenSettings: {
@@ -595,10 +595,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
           token.set(auraName + '_square', aura.square);
         });
 
+      logger.debug('Settings for tokens: $$$', settings);
       token.set('showname', settings.showName);
       token.set('showplayers_name', settings.showNameToPlayers);
-      token.set('showplayers_aura1', settings.showAura1ToPlayers);
-      token.set('showplayers_aura2', settings.showAura2ToPlayers);
+      //token.set('showplayers_aura1', settings.showAura1ToPlayers);
+      //token.set('showplayers_aura2', settings.showAura2ToPlayers);
     };
   };
 
@@ -1180,7 +1181,11 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
         case 0.5:
         case 0.6:
         case 0.7:
+        case 0.8:
           _.defaults(myState.config, utils.deepClone(configDefaults));
+          _.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
+          _.defaults(myState.config.newCharSettings, utils.deepClone(configDefaults.newCharSettings));
+          _.defaults(myState.config.advTrackerSettings, utils.deepClone(configDefaults.advTrackerSettings));
           myState.version = schemaVersion;
           break;
         default:
