@@ -2,7 +2,6 @@
 var _ = require('underscore');
 var utils = require('./utils');
 
-// eslint-disable-next-line
 class ConfigUi {
 
   ////////////
@@ -39,33 +38,30 @@ class ConfigUi {
   getConfigOptionGroupTokens(config, optionsSpec) {
     var auraButtonWidth = 60;
 
+    
+    var ts = 'tokenSettings';
+    
     var retVal = '<table style="width: 100%; font-size: 0.9em;">' +
       '<tr style="margin-top: 5px;"><th colspan=2>Token Options</th></tr>' +
-      this.makeToggleSetting(config, 'tokenSettings.number', 'Numbered Tokens') +
-      this.makeToggleSetting(config, 'tokenSettings.showName', 'Show Name Tag') +
-      this.makeToggleSetting(config, 'tokenSettings.showNameToPlayers', 'Show Name to Players');
+      this.makeToggleSetting(config, `${ts}.number`, 'Numbered Tokens') +
+      this.makeToggleSetting(config, `${ts}.showName`, 'Show Name Tag') +
+      this.makeToggleSetting(config, `${ts}.showNameToPlayers`, 'Show Name to Players');
 
     for (var i = 1; i <= 3; i++) {
-      retVal += this.makeInputSetting(config, 'tokenSettings.bar' + i + '.attribute', 'Bar ' + i +
-        ' Attribute', 'Bar ' + i + ' Attribute (empty to unset)');
-      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.max', 'Bar ' + i + ' Set Max');
-      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.link', 'Bar ' + i + ' Link');
-      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.showPlayers', 'Bar ' + i +
-        ' Show Players');
+      retVal += this.makeInputSetting(config, `${ts}.bar${i}.attribute`, `Bar ${i} Attribute`, `Bar ${i} Attribute (empty to unset)`);
+      retVal += this.makeToggleSetting(config, `${ts}.bar${i}.max`, `Bar ${i} Set Max`);
+      retVal += this.makeToggleSetting(config, `${ts}.bar${i}.link`, `Bar ${i} Link`);
+      retVal += this.makeToggleSetting(config, `${ts}.bar${i}.showPlayers`, `Bar ${i} Show Players`);
     }
 
     // Build out the aura grids
     for (i = 1; i <= 2; i++) {
-      var currRad = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.radius');
-      var currRadEmptyHint = currRad ? currRad : '[not set]';
-      // if (currRad) {
-      //   currRadEmptyHint = currRad;
-      // }
-      var currColor = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.color');
-      var currSquare = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.square');
+      var currRad = utils.getObjectFromPath(config, `${ts}.aura${i}.radius`);
+    var currRadEmptyHint = currRad ? currRad : '[not set]';
+      var currColor = utils.getObjectFromPath(config, `${ts}.aura${i}.color`);
+      var currSquare = utils.getObjectFromPath(config, `${ts}.aura${i}.square`);
 
-      var radBtn = this.makeOptionButton('tokenSettings.aura' + i + '.radius',
-        '?{Aura ' + i + ' Radius (empty to unset)' + '|' + currRad + '}',
+      var radBtn = this.makeOptionButton(`${ts}.aura${i}.radius`, `?{Aura ${i} Radius (empty to unset)|${currRad}}`,
         this.makeText(currRadEmptyHint), 'click to edit', currRadEmptyHint === '[not set]' ? '#f84545' : '#02baf2',
         undefined, auraButtonWidth);
       var colorBtn = this.makeOptionButton('tokenSettings.aura' + i + '.color',
@@ -91,6 +87,15 @@ class ConfigUi {
         attrs: { style: 'width: 100%; text-align: center;' }}], attrs:{colspan: '2'}}], {style: 'border: 1px solid gray;'});
 
     }
+    
+    // Vision\Light options
+    retVal += this.makeInputSetting(config, `${ts}.light.radius`, 'Light Radius', 'Light Radius (empty to unset)');
+    retVal += this.makeInputSetting(config, `${ts}.light.dimRadius`, 'Dim Radius', 'Light Dim Radius (empty to unset)');
+    retVal += this.makeToggleSetting(config, `${ts}.light.otherPlayers`, 'Show other players');
+    retVal += this.makeToggleSetting(config, `${ts}.light.hasSight`, 'Has Sight');
+    retVal += this.makeInputSetting(config, `${ts}.light.angle`, 'Light Angle', 'Light Amgle');
+    retVal += this.makeInputSetting(config, `${ts}.light.losAngle`, 'LOS Angle', 'LOS Angle');
+    retVal += this.makeInputSetting(config, `${ts}.light.multiplier`, 'Light Muliplier', 'Light Muliplier');
 
     retVal += '</table>' + this.backToMainMenuButton();
 
@@ -143,8 +148,7 @@ class ConfigUi {
       emptyHint = currentVal;
     }
 
-    return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
-      '}', emptyHint, 'click to edit', emptyHint === '[not set]' ? '#f84545' : '#02baf2');
+    return this.makeOptionRow(title, path, `?{${prompt}|${currentVal}}`, emptyHint, 'click to edit', emptyHint === '[not set]' ? '#f84545' : '#02baf2');
   }
 
   //noinspection JSUnusedGlobalSymbols
@@ -158,8 +162,8 @@ class ConfigUi {
 
     var buttonColor = emptyHint === '[not set]' ? '#02baf2' : currentVal;
 
-    return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
-      '}', emptyHint, 'click to edit', buttonColor, utils.getContrastYIQ(buttonColor));
+    // return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal + '}', emptyHint, 'click to edit', buttonColor, utils.getContrastYIQ(buttonColor));
+    return this.makeOptionRow(title, path, `?{${prompt}|${currentVal}}`, emptyHint, 'click to edit', buttonColor, utils.getContrastYIQ(buttonColor));
   }
 
   makeToggleSetting(config, path, title, optionsSpec) {
@@ -180,8 +184,8 @@ class ConfigUi {
     optionList.splice(optionList.indexOf(currentVal), 1);
     optionList.unshift(currentVal);
 
-    return this.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') +
-      '}', this.makeText(currentVal), 'click to change', '#02baf2');
+    // return this.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') + '}', this.makeText(currentVal), 'click to change', '#02baf2');
+    return this.makeOptionRow(title, path, `?{${title}|${optionList.join('|')}}`, this.makeText(currentVal), 'click to change', '#02baf2');
   }
 
   makeOptionRow(optionTitle, path, command, linkText, tooltip, buttonColor, buttonTextColor) {
@@ -195,17 +199,16 @@ class ConfigUi {
   makeOptionButton(path, command, linkText, tooltip, buttonColor, buttonTextColor, width) {
     if (_.isUndefined(width)) { width = 80; }
 
-    var css = 'text-align: center; width: ' + width + 'px; margin: 5px 0 0 0; ' +
-      'padding: 2px 2px ; border-radius: 10px; border-color: #c0c0c0;' +
-      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: ' +
-      buttonColor + ';';
+    var css = `text-align: center; width: ${width}px; margin: 5px 0 0 0; ` +
+      `padding: 2px 2px ; border-radius: 10px; border-color: #c0c0c0;` +
+      `white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: ${buttonColor};`;
     if (buttonTextColor) {
-      css += 'color: ' + buttonTextColor + '; ';
+      css += `color: ${buttonTextColor}`; // 'color: ' + buttonTextColor + '; ';
     }
 
     return utils.buildHTML('a', linkText, {
       style: css,
-      href: '!shaped-config --' + path + ' ' + command
+      href: `!shaped-config --${path} ${command}` //'!shaped-config --' + path + ' ' + command
     });
   }
 
