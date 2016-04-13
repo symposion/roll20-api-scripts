@@ -2096,7 +2096,7 @@ var ShapedScripts =
 	var AdvantageTracker = __webpack_require__(14);
 	var ConfigUI = __webpack_require__(15);
 
-	var version = '0.8',
+		var version = '0.8.1',
 	  schemaVersion = 0.7,
 	  configDefaults = {
 	    logLevel: 'INFO',
