@@ -2097,7 +2097,7 @@ var ShapedScripts =
 	var ConfigUI = __webpack_require__(15);
 
 		var version = '0.8.1',
-			schemaVersion = 0.8,
+			schemaVersion = 0.9,
 	  configDefaults = {
 	    logLevel: 'INFO',
 	    tokenSettings: {
@@ -2682,10 +2682,11 @@ var ShapedScripts =
 	          token.set(auraName + '_square', aura.square);
 	        });
 
+				logger.debug('Settings for tokens: $$$', settings);
 	      token.set('showname', settings.showName);
 	      token.set('showplayers_name', settings.showNameToPlayers);
-	      token.set('showplayers_aura1', settings.showAura1ToPlayers);
-	      token.set('showplayers_aura2', settings.showAura2ToPlayers);
+				//token.set('showplayers_aura1', settings.showAura1ToPlayers);
+				//token.set('showplayers_aura2', settings.showAura2ToPlayers);
 	    };
 	  };
 
@@ -3067,11 +3068,10 @@ var ShapedScripts =
 	    }
 	    var messages = _.map(options.selected.character, function(character) {
 
-	      var cache = {};
 	      var operationMessages = _.chain(options.abilities)
 	        .sortBy('sortKey')
 	        .map(function(maker) {
-	          return maker.run(character, cache);
+						return maker.run(character, options);
 	        })
 	        .value();
 
@@ -3114,15 +3114,18 @@ var ShapedScripts =
 	    sortKey: ''
 	  };
 
-	  var RepeatingAbilityMaker = function(repeatingSection, abilityName, label) {
-	    this.run = function(character, cache) {
-	      cache[repeatingSection] = cache[repeatingSection] ||
+		var RepeatingAbilityMaker = function (repeatingSection, abilityName, label, canMark) {
+			this.run = function (character, options) {
+				options[`cache${repeatingSection}`] = options[`cache${repeatingSection}`] ||
 	        roll20.getRepeatingSectionItemIdsByName(character.id, repeatingSection);
 
-	      var configured = _.chain(cache[repeatingSection])
+				var configured = _.chain(options[`cache${repeatingSection}`])
 	        .map(function(repeatingId, repeatingName) {
 	          var repeatingAction = '%{' + character.get('name') + '|repeating_' + repeatingSection + '_' + repeatingId +
 	            '_' + abilityName + '}';
+						if (canMark && options.mark) {
+							repeatingAction += '\n!mark @{target|token_id}';
+						}
 	          return { name: utils.toTitleCase(repeatingName), action: repeatingAction };
 	        })
 	        .map(getAbilityMaker(character))
@@ -3154,11 +3157,11 @@ var ShapedScripts =
 	    savingthrowsquery: new RollAbilityMaker('saving_throw_query_macro', 'Saving Throws'),
 	    saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
 	    savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
-	    attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks'),
+			attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks', true),
 	    statblock: new RollAbilityMaker('statblock', 'Statblock'),
 	    traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
 	    'traits-macro': new RollAbilityMaker('traits_macro', 'Traits'),
-	    actions: new RepeatingAbilityMaker('action', 'action', 'Actions'),
+			actions: new RepeatingAbilityMaker('action', 'action', 'Actions', true),
 	    'actions-macro': new RollAbilityMaker('actions_macro', 'Actions'),
 	    reactions: new RepeatingAbilityMaker('reaction', 'action', 'Reactions'),
 	    'reactions-macro': new RollAbilityMaker('reactions_macro', 'Reactions'),
@@ -3239,6 +3242,7 @@ var ShapedScripts =
 	        }
 	      })
 	      .optionLookup('abilities', abilityLookup)
+				.option('mark', booleanValidator)
 	      .addCommand('token-defaults', this.applyTokenDefaults.bind(this))
 	      .withSelection({
 	        graphic: {
@@ -3264,7 +3268,11 @@ var ShapedScripts =
 	        case 0.5:
 	        case 0.6:
 					case 0.7:
+					case 0.8:
 						_.defaults(myState.config, utils.deepClone(configDefaults));
+						_.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
+						_.defaults(myState.config.newCharSettings, utils.deepClone(configDefaults.newCharSettings));
+						_.defaults(myState.config.advTrackerSettings, utils.deepClone(configDefaults.advTrackerSettings));
 	          myState.version = schemaVersion;
 	          break;
 	        default:
