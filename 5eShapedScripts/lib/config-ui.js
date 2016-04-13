@@ -38,7 +38,7 @@ class ConfigUi {
 
   getConfigOptionGroupTokens(config, optionsSpec) {
     var auraButtonWidth = 60;
-    
+
     var retVal = '<table style="width: 100%; font-size: 0.9em;">' +
       '<tr style="margin-top: 5px;"><th colspan=2>Token Options</th></tr>' +
       this.makeToggleSetting(config, 'tokenSettings.number', 'Numbered Tokens') +
@@ -63,7 +63,7 @@ class ConfigUi {
       // }
       var currColor = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.color');
       var currSquare = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.square');
-      
+
       var radBtn = this.makeOptionButton('tokenSettings.aura' + i + '.radius',
         '?{Aura ' + i + ' Radius (empty to unset)' + '|' + currRad + '}',
         this.makeText(currRadEmptyHint), 'click to edit', currRadEmptyHint === '[not set]' ? '#f84545' : '#02baf2',
@@ -74,18 +74,22 @@ class ConfigUi {
       var squareBtn = this.makeOptionButton('tokenSettings.aura' + i + '.square', !currSquare,
         this.makeBoolText(currSquare), 'click to toggle', currSquare ? '#65c4bd' : '#f84545',
         undefined, auraButtonWidth);
-        
-      var table = utils.buildHTML('tr', [{tag: 'td', innerHtml: 
-        [{tag: 'table', innerHtml: 
-          [{ tag: 'tr', innerHtml: 
+
+      retVal += utils.buildHTML('tr', [
+        {
+          tag: 'td', innerHtml: [
+          {
+            tag: 'table', innerHtml: [
+            {
+              tag: 'tr', innerHtml:
             [{ tag: 'th', innerHtml: 'Aura ' + i, attrs: { colspan: 3 } }] },
-          { tag: 'tr', innerHtml: 
+            {
+              tag: 'tr', innerHtml:
             [{ tag: 'td', innerHtml: 'Range' }, { tag: 'td', innerHtml: 'Color' }, { tag: 'td', innerHtml: 'Square' }] },
           { tag: 'tr', innerHtml: [
             { tag: 'td', innerHtml: radBtn }, { tag: 'td', innerHtml: colorBtn }, { tag: 'td', innerHtml: squareBtn}] }],
         attrs: { style: 'width: 100%; text-align: center;' }}], attrs:{colspan: '2'}}], {style: 'border: 1px solid gray;'});
 
-      retVal += table;
     }
 
     retVal += '</table>' + this.backToMainMenuButton();
@@ -143,6 +147,7 @@ class ConfigUi {
       '}', emptyHint, 'click to edit', emptyHint === '[not set]' ? '#f84545' : '#02baf2');
   }
 
+  //noinspection JSUnusedGlobalSymbols
   makeColorSetting(config, path, title, prompt) {
     var currentVal = utils.getObjectFromPath(config, path);
     var emptyHint = '[not set]';
