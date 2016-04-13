@@ -2096,7 +2096,7 @@ var ShapedScripts =
 	var AdvantageTracker = __webpack_require__(14);
 	var ConfigUI = __webpack_require__(15);
 
-		var version = '0.8.1',
+		var version = '0.8.2',
 			schemaVersion = 0.9,
 	  configDefaults = {
 	    logLevel: 'INFO',
@@ -2685,8 +2685,8 @@ var ShapedScripts =
 				logger.debug('Settings for tokens: $$$', settings);
 	      token.set('showname', settings.showName);
 	      token.set('showplayers_name', settings.showNameToPlayers);
-				//token.set('showplayers_aura1', settings.showAura1ToPlayers);
-				//token.set('showplayers_aura2', settings.showAura2ToPlayers);
+				token.set('showplayers_aura1', settings.showAura1ToPlayers);
+				token.set('showplayers_aura2', settings.showAura2ToPlayers);
 	    };
 	  };
 

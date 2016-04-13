@@ -602,8 +602,8 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
       logger.debug('Settings for tokens: $$$', settings);
       token.set('showname', settings.showName);
       token.set('showplayers_name', settings.showNameToPlayers);
-      //token.set('showplayers_aura1', settings.showAura1ToPlayers);
-      //token.set('showplayers_aura2', settings.showAura2ToPlayers);
+      token.set('showplayers_aura1', settings.showAura1ToPlayers);
+      token.set('showplayers_aura2', settings.showAura2ToPlayers);
     };
   };
 
