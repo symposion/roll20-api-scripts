@@ -1781,7 +1781,9 @@ var ShapedScripts =
 	      }
 	    }
 
-	    return h + innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
+			h += innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
+
+			return h;
 	  },
 
 	  versionCompare: function(v1, v2) {
@@ -2464,7 +2466,7 @@ var ShapedScripts =
 	    logger.debug('options: ' + options);
 
 	    var menu;
-	    if(options.advTrackerSettings || options.atMenu) {
+			if (options.advTrackerSettings || options.atMenu) {
 	      menu = cui.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
 	    }
 	    else if(options.tokenSettings || options.tsMenu) {
@@ -3212,7 +3214,7 @@ var ShapedScripts =
 	    saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
 	    savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
 	    attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks', true),
-	    statblock: new RollAbilityMaker('statblock', 'Statblock'),
+			statblock: new RollAbilityMaker('statblock', 'Statblck'),
 	    traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
 	    'traits-macro': new RollAbilityMaker('traits_macro', 'Traits'),
 	    actions: new RepeatingAbilityMaker('action', 'action', 'Actions', true),
@@ -4319,11 +4321,16 @@ var ShapedScripts =
 	        this.makeBoolText(currSquare), 'click to toggle', currSquare ? '#65c4bd' : '#f84545',
 	        undefined, auraButtonWidth);
 
-	      retVal += utils.buildHTML('tr', [{tag: 'td', innerHtml:
-	        [{tag: 'table', innerHtml:
-	          [{ tag: 'tr', innerHtml:
+				retVal += utils.buildHTML('tr', [
+					{
+						tag: 'td', innerHtml: [
+						{
+							tag: 'table', innerHtml: [
+							{
+								tag: 'tr', innerHtml:
 	            [{ tag: 'th', innerHtml: 'Aura ' + i, attrs: { colspan: 3 } }] },
-	          { tag: 'tr', innerHtml:
+							{
+								tag: 'tr', innerHtml:
 	            [{ tag: 'td', innerHtml: 'Range' }, { tag: 'td', innerHtml: 'Color' }, { tag: 'td', innerHtml: 'Square' }] },
 	          { tag: 'tr', innerHtml: [
 	            { tag: 'td', innerHtml: radBtn }, { tag: 'td', innerHtml: colorBtn }, { tag: 'td', innerHtml: squareBtn}] }],
