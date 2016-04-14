@@ -143,7 +143,7 @@ module.exports = {
       }
     }
 
-    return h + innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
+    return h += innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
   },
 
   versionCompare: function(v1, v2) {
