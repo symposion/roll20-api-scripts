@@ -1781,7 +1781,9 @@ var ShapedScripts =
 	      }
 	    }
 
-	    return h + innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
+			h += innerHtml ? '>' + innerHtml + '</' + tag + '>' : '/>';
+
+			return h;
 	  },
 
 	  versionCompare: function(v1, v2) {
@@ -2146,8 +2148,8 @@ var ShapedScripts =
 	var AdvantageTracker = __webpack_require__(14);
 	var ConfigUI = __webpack_require__(15);
 
-	var version = '0.8.2',
-	  schemaVersion = 0.9,
+		var version = '0.8.3',
+			schemaVersion = 1.0,
 	  configDefaults = {
 	    logLevel: 'INFO',
 	    tokenSettings: {
@@ -2180,6 +2182,15 @@ var ShapedScripts =
 	        color: '#59e594',
 	        square: false
 	      },
+				light: {
+					radius: '',
+					dimRadius: '',
+					otherPlayers: false,
+					hasSight: false,
+					angle: 360,
+					losAngle: 360,
+					multiplier: 1
+				},
 	      showName: true,
 	      showNameToPlayers: false,
 	      showAura1ToPlayers: true,
@@ -2245,12 +2256,12 @@ var ShapedScripts =
 	};
 
 	var booleanValidator = function(value) {
-	    var converted = value === 'true' || (value === 'false' ? false : value);
-	    return {
-	      valid: typeof value === 'boolean' || value === 'true' || value === 'false',
-	      converted: converted
-	    };
-	  },
+			var converted = value === 'true' || (value === 'false' ? false : value);
+			return {
+				valid: typeof value === 'boolean' || value === 'true' || value === 'false',
+				converted: converted
+			};
+		},
 
 	  stringValidator = function(value) {
 	    return {
@@ -2261,7 +2272,7 @@ var ShapedScripts =
 
 	  getOptionList = function(options) {
 	    return function(value) {
-	      if(value === undefined) {
+				if (value === undefined) {
 	        return options;
 	      }
 	      return {
@@ -2301,6 +2312,15 @@ var ShapedScripts =
 	    color: colorValidator,
 	    square: booleanValidator
 	  },
+		lightValidator = {
+			radius: stringValidator,
+			dimRadius: stringValidator,
+			otherPlayers: booleanValidator,
+			hasSight: booleanValidator,
+			angle: integerValidator,
+			losAngle: integerValidator,
+			multiplier: integerValidator
+		},
 	  regExpValidator = function(value) {
 	    try {
 	      new RegExp(value, 'i').test('');
@@ -2309,7 +2329,7 @@ var ShapedScripts =
 	        valid: true
 	      };
 	    }
-	    catch(e) {
+			catch (e) {
 	    }
 	    return {
 	      converted: null,
@@ -2355,7 +2375,7 @@ var ShapedScripts =
 
 	    try {
 	      logger.debug(msg);
-	      if(msg.type !== 'api') {
+				if (msg.type !== 'api') {
 	        this.triggerChatWatchers(msg);
 	        return;
 	      }
@@ -2363,8 +2383,8 @@ var ShapedScripts =
 	      this.getCommandProcessor().processCommand(msg);
 
 	    }
-	    catch(e) {
-	      if(typeof e === 'string' || e instanceof parseModule.ParserError) {
+			catch (e) {
+				if (typeof e === 'string' || e instanceof parseModule.ParserError) {
 	        reportError(e);
 	        logger.error('Error: $$$', e.toString());
 	      }
@@ -2391,6 +2411,7 @@ var ShapedScripts =
 	      bar3: barValidator,
 	      aura1: auraValidator,
 	      aura2: auraValidator,
+				light: lightValidator,
 	      showName: booleanValidator,
 	      showNameToPlayers: booleanValidator,
 	      showAura1ToPlayers: booleanValidator,
@@ -2464,13 +2485,13 @@ var ShapedScripts =
 	    logger.debug('options: ' + options);
 
 	    var menu;
-	    if(options.advTrackerSettings || options.atMenu) {
+			if (options.advTrackerSettings || options.atMenu) {
 	      menu = cui.getConfigOptionGroupAdvTracker(myState.config, configOptionsSpec);
 	    }
-	    else if(options.tokenSettings || options.tsMenu) {
+			else if (options.tokenSettings || options.tsMenu) {
 	      menu = cui.getConfigOptionGroupTokens(myState.config, configOptionsSpec);
 	    }
-	    else if(options.newCharSettings || options.ncMenu) {
+			else if (options.newCharSettings || options.ncMenu) {
 	      menu = cui.getConfigOptionGroupNewCharSettings(myState.config, configOptionsSpec);
 	    }
 	    else {
@@ -2485,7 +2506,7 @@ var ShapedScripts =
 	    _.each(options.selected.graphic, function(token) {
 	      var represents = token.get('represents');
 	      var character = roll20.getObj('character', represents);
-	      if(character) {
+				if (character) {
 	        self.getTokenConfigurer(token)(character);
 	      }
 	    });
@@ -2496,7 +2517,7 @@ var ShapedScripts =
 	    var self = this;
 	    _.each(options.selected.graphic, function(token) {
 	      var text = token.get('gmnotes');
-	      if(text) {
+				if (text) {
 	        text = sanitise(unescape(text), logger);
 	        var monsters = parser.parse(text).monsters;
 	        mpp(monsters, entityLookup);
@@ -2511,19 +2532,19 @@ var ShapedScripts =
 
 	  this.importMonstersFromJson = function(options) {
 
-	    if(options.all) {
+			if (options.all) {
 	      options.monsters = entityLookup.getAll('monsters');
 	      delete options.all;
 	    }
 
-	    if(_.isEmpty(options.monsters)) {
+			if (_.isEmpty(options.monsters)) {
 	      this.showEntityPicker('monster', 'monsters');
 	    }
 	    else {
 	      this.importMonsters(options.monsters.slice(0, 20), options, options.selected.graphic, []);
 	      options.monsters = options.monsters.slice(20);
 	      var self = this;
-	      if(!_.isEmpty(options.monsters)) {
+				if (!_.isEmpty(options.monsters)) {
 	        setTimeout(function() {
 	          self.importMonstersFromJson(options);
 	        }, 200);
@@ -2535,16 +2556,16 @@ var ShapedScripts =
 	  this.importMonsters = function(monsters, options, token, characterProcessors) {
 	    var characterRetrievalStrategies = [];
 
-	    if(token) {
+			if (token) {
 	      characterProcessors.push(this.getAvatarCopier(token).bind(this));
-	      if(_.size(monsters) === 1) {
+				if (_.size(monsters) === 1) {
 	        characterProcessors.push(this.getTokenConfigurer(token).bind(this));
-	        if(options.replace || options.overwrite) {
+					if (options.replace || options.overwrite) {
 	          characterRetrievalStrategies.push(this.getTokenRetrievalStrategy(token).bind(this));
 	        }
 	      }
 	    }
-	    if(options.replace) {
+			if (options.replace) {
 	      characterRetrievalStrategies.push(this.nameRetrievalStrategy);
 	    }
 
@@ -2559,7 +2580,7 @@ var ShapedScripts =
 	          return result || strategy(monsterData.name, errors);
 	        }, null);
 
-	        if(!character) {
+					if (!character) {
 	          logger.error('Failed to find or create character for monster $$$', monsterData.name);
 	          return null;
 	        }
@@ -2576,18 +2597,18 @@ var ShapedScripts =
 	      .compact()
 	      .value();
 
-	    if(!_.isEmpty(importedList)) {
+			if (!_.isEmpty(importedList)) {
 	      var monsterList = importedList.join('</li><li>');
 	      report('Import Success', 'Added the following monsters: <ul><li>' + monsterList + '</li></ul>');
 	    }
-	    if(!_.isEmpty(errors)) {
+			if (!_.isEmpty(errors)) {
 	      var errorList = errors.join('</li><li>');
 	      reportError('The following errors occurred on import:  <ul><li>' + errorList + '</li></ul>');
 	    }
 	  };
 
 	  this.importSpellsFromJson = function(options) {
-	    if(_.isEmpty(options.spells)) {
+			if (_.isEmpty(options.spells)) {
 	      this.showEntityPicker('spell', 'spells');
 	    }
 	    else {
@@ -2598,7 +2619,7 @@ var ShapedScripts =
 	  this.showEntityPicker = function(entityName, entityNamePlural) {
 	    var list = entityLookup.getKeys(entityNamePlural, true);
 
-	    if(!_.isEmpty(list)) {
+			if (!_.isEmpty(list)) {
 	      // title case the  names for better display
 	      list.forEach(function(part, index) {
 	        list[index] = utils.toTitleCase(part);
@@ -2620,8 +2641,8 @@ var ShapedScripts =
 	    var defaultIndex = Math.min(myState.config.defaultGenderIndex, myState.config.genderPronouns.length);
 	    var defaultPronounInfo = myState.config.genderPronouns[defaultIndex];
 	    var pronounInfo = _.clone(_.find(myState.config.genderPronouns, function(pronounDetails) {
-	        return new RegExp(pronounDetails.matchPattern, 'i').test(gender);
-	      }) || defaultPronounInfo);
+					return new RegExp(pronounDetails.matchPattern, 'i').test(gender);
+				}) || defaultPronounInfo);
 
 	    _.defaults(pronounInfo, defaultPronounInfo);
 
@@ -2630,10 +2651,10 @@ var ShapedScripts =
 	      spells: srdConverter.convertSpells(spells, pronounInfo)
 	    };
 	    this.getImportDataWrapper(character).mergeImportData(importData);
-	    if(!noreport) {
+			if (!noreport) {
 	      report('Import Success', 'Added the following spells:  <ul><li>' + _.map(importData.spells, function(spell) {
-	          return spell.name;
-	        }).join('</li><li>') + '</li></ul>');
+						return spell.name;
+					}).join('</li><li>') + '</li></ul>');
 	    }
 	  };
 
@@ -2649,7 +2670,7 @@ var ShapedScripts =
 	    var expandedSpells = converted.spells;
 	    delete converted.spells;
 	    this.getImportDataWrapper(character).setNewImportData({ npc: converted });
-	    if(expandedSpells) {
+			if (expandedSpells) {
 	      this.addSpellsToCharacter(character, expandedSpells, true);
 	    }
 	    return character;
@@ -2658,9 +2679,9 @@ var ShapedScripts =
 
 	  this.getTokenRetrievalStrategy = function(token) {
 	    return function(name, errors) {
-	      if(token) {
+				if (token) {
 	        var character = roll20.getObj('character', token.get('represents'));
-	        if(character && roll20.getAttrByName(character.id, 'locked')) {
+					if (character && roll20.getAttrByName(character.id, 'locked')) {
 	          errors.push('Character with name ' + character.get('name') + ' and id ' + character.id +
 	            ' was locked and cannot be overwritten');
 	          return null;
@@ -2672,11 +2693,11 @@ var ShapedScripts =
 
 	  this.nameRetrievalStrategy = function(name, errors) {
 	    var chars = roll20.findObjs({ type: 'character', name: name });
-	    if(chars.length > 1) {
+			if (chars.length > 1) {
 	      errors.push('More than one existing character found with name "' + name + '". Can\'t replace');
 	    }
 	    else {
-	      if(chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
+				if (chars[0] && roll20.getAttrByName(chars[0].id, 'locked')) {
 	        errors.push('Character with name ' + chars[0].get('name') + ' and id ' + chars[0].id +
 	          ' was locked and cannot be overwritten');
 	        return null;
@@ -2686,7 +2707,7 @@ var ShapedScripts =
 	  };
 
 	  this.creationRetrievalStrategy = function(name, errors) {
-	    if(!_.isEmpty(roll20.findObjs({ type: 'character', name: name }))) {
+			if (!_.isEmpty(roll20.findObjs({ type: 'character', name: name }))) {
 	      errors.push('Can\'t create new character with name "' + name +
 	        '" because one already exists with that name. Perhaps you want --replace?');
 	    }
@@ -2706,28 +2727,29 @@ var ShapedScripts =
 	      token.set('represents', character.id);
 	      token.set('name', character.get('name'));
 	      var settings = myState.config.tokenSettings;
-	      if(settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
+				if (settings.number && token.get('name').indexOf('%%NUMBERED%%') === -1) {
 	        token.set('name', token.get('name') + ' %%NUMBERED%%');
 	      }
 
 	      _.chain(settings)
 	        .pick(['bar1', 'bar2', 'bar3'])
 	        .each(function(bar, barName) {
-	          if(!_.isEmpty(bar.attribute)) {
+						if (!_.isEmpty(bar.attribute)) {
 	            var attribute = roll20.getOrCreateAttr(character.id, bar.attribute);
-	            if(attribute) {
+							if (attribute) {
 	              token.set(barName + '_value', attribute.get('current'));
-	              if(bar.max) {
+								if (bar.max) {
 	                token.set(barName + '_max', attribute.get('max'));
 	              }
 	              token.set('showplayers_' + barName, bar.showPlayers);
-	              if(bar.link) {
+								if (bar.link) {
 	                token.set(barName + '_link', attribute.id);
 	              }
 	            }
 	          }
 	        });
 
+				// auras
 	      _.chain(settings)
 	        .pick(['aura1', 'aura2'])
 	        .each(function(aura, auraName) {
@@ -2741,6 +2763,13 @@ var ShapedScripts =
 	      token.set('showplayers_name', settings.showNameToPlayers);
 	      token.set('showplayers_aura1', settings.showAura1ToPlayers);
 	      token.set('showplayers_aura2', settings.showAura2ToPlayers);
+				token.set('light_radius', settings.light.radius);
+				token.set('light_dimradius', settings.light.dimRadius);
+				token.set('light_otherplayers', settings.light.otherPlayers);
+				token.set('light_hassight', settings.light.hasSight);
+				token.set('light_angle', settings.light.angle);
+				token.set('light_losangle', settings.light.losAngle);
+				token.set('light_multiplier', settings.light.multiplier);
 	    };
 	  };
 
@@ -2749,31 +2778,31 @@ var ShapedScripts =
 
 	    return {
 	      setNewImportData: function(importData) {
-	        if(_.isEmpty(importData)) {
+					if (_.isEmpty(importData)) {
 	          return;
 	        }
 	        roll20.setAttrByName(character.id, 'import_data', JSON.stringify(importData));
 	        roll20.setAttrByName(character.id, 'import_data_present', 'on');
 	      },
 	      mergeImportData: function(importData) {
-	        if(_.isEmpty(importData)) {
+					if (_.isEmpty(importData)) {
 	          return;
 	        }
 	        var attr = roll20.getOrCreateAttr(character.id, 'import_data');
 	        var dataPresentAttr = roll20.getOrCreateAttr(character.id, 'import_data_present');
 	        var current = {};
 	        try {
-	          if(!_.isEmpty(attr.get('current').trim())) {
+						if (!_.isEmpty(attr.get('current').trim())) {
 	            current = JSON.parse(attr.get('current'));
 	          }
 	        }
-	        catch(e) {
+					catch (e) {
 	          logger.warn('Existing import_data attribute value was not valid JSON: [$$$]', attr.get('current'));
 	        }
 	        _.each(importData, function(value, key) {
 	          var currentVal = current[key];
-	          if(currentVal) {
-	            if(!_.isArray(currentVal)) {
+						if (currentVal) {
+							if (!_.isArray(currentVal)) {
 	              current[key] = [currentVal];
 	            }
 	            current[key] = current[key].concat(value);
@@ -2795,10 +2824,10 @@ var ShapedScripts =
 
 	  this.applyAdvantageTracker = function(options) {
 	    var type = 'normal';
-	    if(options.advantage) {
+			if (options.advantage) {
 	      type = 'advantage';
 	    }
-	    else if(options.disadvantage) {
+			else if (options.disadvantage) {
 	      type = 'disadvantage';
 	    }
 
@@ -2813,11 +2842,11 @@ var ShapedScripts =
 	  /////////////////////////////////////////////////
 	  this.handleAddToken = function(token) {
 	    var represents = token.get('represents');
-	    if(_.isEmpty(represents)) {
+			if (_.isEmpty(represents)) {
 	      return;
 	    }
 	    var character = roll20.getObj('character', represents);
-	    if(!character) {
+			if (!character) {
 	      return;
 	    }
 	    addedTokenIds.push(token.id);
@@ -2826,15 +2855,15 @@ var ShapedScripts =
 	    setTimeout((function(id, self) {
 	      return function() {
 	        var token = roll20.getObj('graphic', id);
-	        if(token) {
+					if (token) {
 	          self.handleChangeToken(token);
 	        }
 	      };
-	    }(token.id, this)), 100);
+			}(token.id, this)), 100);
 	  };
 
 	  this.handleChangeToken = function(token) {
-	    if(_.contains(addedTokenIds, token.id)) {
+			if (_.contains(addedTokenIds, token.id)) {
 	      addedTokenIds = _.without(addedTokenIds, token.id);
 	      this.rollHPForToken(token);
 	    }
@@ -2850,28 +2879,28 @@ var ShapedScripts =
 	  this.rollHPForToken = function(token) {
 	    var hpBar = this.getHPBar();
 	    logger.debug('HP bar is $$$', hpBar);
-	    if(!hpBar || !myState.config.rollHPOnDrop) {
+			if (!hpBar || !myState.config.rollHPOnDrop) {
 	      return;
 	    }
 
 	    var represents = token.get('represents');
-	    if(!represents) {
+			if (!represents) {
 	      return;
 	    }
 	    var character = roll20.getObj('character', represents);
-	    if(!character) {
+			if (!character) {
 	      return;
 	    }
 	    var hpBarLink = token.get(hpBar + '_link');
-	    if(hpBarLink) {
+			if (hpBarLink) {
 	      return;
 	    }
 
 	    var self = this;
 	    roll20.sendChat('', '%{' + character.get('name') + '|npc_hp}', function(results) {
-	      if(results && results.length === 1) {
+				if (results && results.length === 1) {
 	        var message = self.processInlinerolls(results[0]);
-	        if(!results[0].inlinerolls || !results[0].inlinerolls[0]) {
+					if (!results[0].inlinerolls || !results[0].inlinerolls[0]) {
 	          logger.warn('HP roll didn\'t have the expected structure. This is what we got back: $$$', results[0]);
 	        }
 	        else {
@@ -2887,7 +2916,7 @@ var ShapedScripts =
 
 	  this.registerChatWatcher = function(handler, triggerFields) {
 	    var matchers = [];
-	    if(triggerFields && !_.isEmpty(triggerFields)) {
+			if (triggerFields && !_.isEmpty(triggerFields)) {
 	      matchers.push(function(msg, options) {
 	        return _.intersection(triggerFields, _.keys(options)).length === triggerFields.length;
 	      });
@@ -2898,9 +2927,9 @@ var ShapedScripts =
 	  this.triggerChatWatchers = function(msg) {
 	    var options = this.getRollTemplateOptions(msg);
 	    _.each(chatWatchers, function(watcher) {
-	      if(_.every(watcher.matchers, function(matcher) {
-	          return matcher(msg, options);
-	        })) {
+				if (_.every(watcher.matchers, function (matcher) {
+						return matcher(msg, options);
+					})) {
 	        watcher.handler(options, msg);
 	      }
 	    });
@@ -2913,7 +2942,7 @@ var ShapedScripts =
 	   */
 	  this.handleAmmo = function(options, msg) {
 
-	    if(!roll20.getAttrByName(options.character.id, 'ammo_auto_use')) {
+			if (!roll20.getAttrByName(options.character.id, 'ammo_auto_use')) {
 	      return;
 	    }
 
@@ -2934,18 +2963,18 @@ var ShapedScripts =
 	      })
 	      .value();
 
-	    if(!ammoAttr) {
+			if (!ammoAttr) {
 	      logger.error('No ammo attribute found corresponding to name $$$', options.ammoName);
 	      return;
 	    }
 
 	    var ammoUsed = 1;
-	    if(options.ammo) {
+			if (options.ammo) {
 	      var rollRef = options.ammo.match(/\$\[\[(\d+)\]\]/);
-	      if(rollRef) {
+				if (rollRef) {
 	        var rollExpr = msg.inlinerolls[rollRef[1]].expression;
 	        var match = rollExpr.match(/\d+-(\d+)/);
-	        if(match) {
+					if (match) {
 	          ammoUsed = match[1];
 	        }
 	      }
@@ -2958,15 +2987,15 @@ var ShapedScripts =
 
 	  this.handleHD = function(options, msg) {
 	    var match = options.title.match(/(\d+)d(\d+) Hit Dice/);
-	    if(match && myState.config.autoHD) {
+			if (match && myState.config.autoHD) {
 	      var hdCount = match[1];
 	      var hdSize = match[2];
 	      var hdAttr = roll20.getAttrObjectByName(options.character.id, 'hd_d' + hdSize);
 	      var hpAttr = roll20.getAttrObjectByName(options.character.id, 'HP');
 	      var newHp = Math.min(parseInt(hpAttr.get('current')) + this.getRollValue(msg, options.roll1), hpAttr.get('max'));
 
-	      if(hdAttr) {
-	        if(hdCount <= hdAttr.get('current')) {
+				if (hdAttr) {
+					if (hdCount <= hdAttr.get('current')) {
 	          hdAttr.set('current', hdAttr.get('current') - hdCount);
 	          hpAttr.set('current', newHp);
 	        }
@@ -2987,7 +3016,7 @@ var ShapedScripts =
 	      return ++val;
 	    };
 	    //TODO: Advantage?
-	    if(roll20.getAttrByName(options.character.id, 'roll_setting') !== '@{roll_2}') {
+			if (roll20.getAttrByName(options.character.id, 'roll_setting') !== '@{roll_2}') {
 	      var result = this.getRollValue(msg, options.roll1);
 	      var attributeToIncrement = result >= 10 ? 'death_saving_throw_successes' : 'death_saving_throw_failures';
 	      roll20.processAttrValue(options.character.id, attributeToIncrement, increment);
@@ -2997,7 +3026,7 @@ var ShapedScripts =
 
 	  this.handleFX = function(options, msg) {
 	    var parts = options.fx.split(' ');
-	    if(parts.length < 2 || _.some(parts.slice(0, 2), _.isEmpty)) {
+			if (parts.length < 2 || _.some(parts.slice(0, 2), _.isEmpty)) {
 	      logger.warn('FX roll template variable is not formated correctly: [$$$]', options.fx);
 	      return;
 	    }
@@ -3006,14 +3035,14 @@ var ShapedScripts =
 	    var fxType = parts[0],
 	      pointsOfOrigin = parts[1],
 	      targetTokenId,
-	    //sourceTokenId,
+			//sourceTokenId,
 	      sourceCoords = {},
 	      targetCoords = {},
 	      fxCoords = [],
 	      pageId;
 
 	    //noinspection FallThroughInSwitchStatementJS
-	    switch(pointsOfOrigin) {
+			switch (pointsOfOrigin) {
 	      case 'sourceToTarget':
 	      case 'source':
 	        targetTokenId = parts[2]; //jshint ignore: line
@@ -3025,7 +3054,7 @@ var ShapedScripts =
 	        fxCoords.push(targetCoords, sourceCoords);
 	    }
 
-	    if(targetTokenId) {
+			if (targetTokenId) {
 	      var targetToken = roll20.getObj('graphic', targetTokenId);
 	      pageId = targetToken.get('_pageid');
 	      targetCoords.x = targetToken.get('left');
@@ -3038,7 +3067,7 @@ var ShapedScripts =
 
 	    var casterTokens = roll20.findObjs({ type: 'graphic', pageid: pageId, represents: options.character.id });
 
-	    if(casterTokens.length) {
+			if (casterTokens.length) {
 	      //If there are multiple tokens for the character on this page, then try and find one of them that is selected
 	      //This doesn't work without a selected token, and the only way we can get this is to use @{selected} which is a pain
 	      //for people who want to launch without a token selected
@@ -3053,11 +3082,11 @@ var ShapedScripts =
 	    }
 
 
-	    if(!fxCoords[0]) {
+			if (!fxCoords[0]) {
 	      logger.warn('Couldn\'t find required point for fx for character $$$, casterTokens: $$$, fxSpec: $$$ ', options.character.id, casterTokens, options.fx);
 	      return;
 	    }
-	    else if(!fxCoords[1]) {
+			else if (!fxCoords[1]) {
 	      fxCoords = fxCoords.slice(0, 1);
 	    }
 
@@ -3074,12 +3103,12 @@ var ShapedScripts =
 	   * @returns {*}
 	   */
 	  this.getRollTemplateOptions = function(msg) {
-	    if(msg.rolltemplate === '5e-shaped') {
+			if (msg.rolltemplate === '5e-shaped') {
 	      var regex = /\{\{(.*?)\}\}/g;
 	      var match;
 	      var options = {};
-	      while(!!(match = regex.exec(msg.content))) {
-	        if(match[1]) {
+				while (!!(match = regex.exec(msg.content))) {
+					if (match[1]) {
 	          var splitAttr = match[1].split('=');
 	          var propertyName = splitAttr[0].replace(/_([a-z])/g, function(match, letter) {
 	            return letter.toUpperCase();
@@ -3087,7 +3116,7 @@ var ShapedScripts =
 	          options[propertyName] = splitAttr.length === 2 ? splitAttr[1] : '';
 	        }
 	      }
-	      if(options.characterName) {
+				if (options.characterName) {
 	        options.character = roll20.findObjs({
 	          _type: 'character',
 	          name: options.characterName
@@ -3099,7 +3128,7 @@ var ShapedScripts =
 	  };
 
 	  this.processInlinerolls = function(msg) {
-	    if(_.has(msg, 'inlinerolls')) {
+			if (_.has(msg, 'inlinerolls')) {
 	      return _.chain(msg.inlinerolls)
 	        .reduce(function(previous, current, index) {
 	          previous['$[[' + index + ']]'] = current.results.total || 0;
@@ -3116,7 +3145,7 @@ var ShapedScripts =
 	  };
 
 	  this.addAbility = function(options) {
-	    if(_.isEmpty(options.abilities)) {
+			if (_.isEmpty(options.abilities)) {
 	      //TODO report some sort of error?
 	      return;
 	    }
@@ -3130,7 +3159,7 @@ var ShapedScripts =
 	        .value();
 
 
-	      if(_.isEmpty(operationMessages)) {
+				if (_.isEmpty(operationMessages)) {
 	        return '<li>' + character.get('name') + ': Nothing to do</li>';
 	      }
 
@@ -3168,8 +3197,8 @@ var ShapedScripts =
 	    sortKey: ''
 	  };
 
-	  var RepeatingAbilityMaker = function (repeatingSection, abilityName, label, canMark) {
-	    this.run = function (character, options) {
+		var RepeatingAbilityMaker = function (repeatingSection, abilityName, label, canMark) {
+			this.run = function (character, options) {
 	      options[`cache${repeatingSection}`] = options[`cache${repeatingSection}`] ||
 	        roll20.getRepeatingSectionItemIdsByName(character.id, repeatingSection);
 
@@ -3212,7 +3241,7 @@ var ShapedScripts =
 	    saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
 	    savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
 	    attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks', true),
-	    statblock: new RollAbilityMaker('statblock', 'Statblock'),
+			statblock: new RollAbilityMaker('statblock', 'Statblck'),
 	    traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
 	    'traits-macro': new RollAbilityMaker('traits_macro', 'Traits'),
 	    actions: new RepeatingAbilityMaker('action', 'action', 'Actions', true),
@@ -3232,13 +3261,13 @@ var ShapedScripts =
 	    var maker = staticAbilityOptions[optionName];
 
 	    //Makes little sense to add named spells to multiple characters at once
-	    if(!maker && existingOptions.selected.character.length === 1) {
+			if (!maker && existingOptions.selected.character.length === 1) {
 
 	      existingOptions.spellToRepeatingIdLookup = existingOptions.spellToRepeatingIdLookup ||
 	        roll20.getRepeatingSectionItemIdsByName(existingOptions.selected.character[0].id, 'spell');
 
 	      var repeatingId = existingOptions.spellToRepeatingIdLookup[optionName.toLowerCase()];
-	      if(repeatingId) {
+				if (repeatingId) {
 	        maker = new RollAbilityMaker('repeating_spell_' + repeatingId + '_spell', utils.toTitleCase(optionName));
 	      }
 	    }
@@ -3312,11 +3341,11 @@ var ShapedScripts =
 
 	  this.checkInstall = function() {
 	    logger.info('-=> ShapedScripts v$$$ <=-', version);
-	    if(myState.version !== schemaVersion) {
+			if (myState.version !== schemaVersion) {
 	      logger.info('  > Updating Schema to v$$$ from $$$<', schemaVersion, myState && myState.version);
 	      logger.info('Preupgrade state: $$$', myState);
 	      //noinspection FallThroughInSwitchStatementJS
-	      switch(myState && myState.version) {
+				switch (myState && myState.version) {
 	        case 0.1:
 	        case 0.2:
 	        case 0.3:
@@ -3326,6 +3355,7 @@ var ShapedScripts =
 	        case 0.6:
 	        case 0.7:
 	        case 0.8:
+					case 0.9:
 	          _.defaults(myState.config, utils.deepClone(configDefaults));
 	          _.defaults(myState.config.tokenSettings, utils.deepClone(configDefaults.tokenSettings));
 	          _.defaults(myState.config.newCharSettings, utils.deepClone(configDefaults.newCharSettings));
@@ -3333,7 +3363,7 @@ var ShapedScripts =
 	          myState.version = schemaVersion;
 	          break;
 	        default:
-	          if(!myState.version) {
+						if (!myState.version) {
 	            _.defaults(myState, {
 	              version: schemaVersion,
 	              config: utils.deepClone(configDefaults)
@@ -3365,7 +3395,7 @@ var ShapedScripts =
 	      at.updateToken(token);
 	    });
 	    roll20.on('change:attribute', function(msg) {
-	      if(msg.get('name') === 'roll_setting') {
+				if (msg.get('name') === 'roll_setting') {
 	        at.updateSetting(msg);
 	      }
 	    });
@@ -4246,7 +4276,6 @@ var ShapedScripts =
 	var _ = __webpack_require__(2);
 	var utils = __webpack_require__(7);
 
-	// eslint-disable-next-line
 	class ConfigUi {
 
 	  ////////////
@@ -4283,33 +4312,30 @@ var ShapedScripts =
 	  getConfigOptionGroupTokens(config, optionsSpec) {
 	    var auraButtonWidth = 60;
 
+
+			var ts = 'tokenSettings';
+	    
 	    var retVal = '<table style="width: 100%; font-size: 0.9em;">' +
 	      '<tr style="margin-top: 5px;"><th colspan=2>Token Options</th></tr>' +
-	      this.makeToggleSetting(config, 'tokenSettings.number', 'Numbered Tokens') +
-	      this.makeToggleSetting(config, 'tokenSettings.showName', 'Show Name Tag') +
-	      this.makeToggleSetting(config, 'tokenSettings.showNameToPlayers', 'Show Name to Players');
+				this.makeToggleSetting(config, `${ts}.number`, 'Numbered Tokens') +
+				this.makeToggleSetting(config, `${ts}.showName`, 'Show Name Tag') +
+				this.makeToggleSetting(config, `${ts}.showNameToPlayers`, 'Show Name to Players');
 
 	    for (var i = 1; i <= 3; i++) {
-	      retVal += this.makeInputSetting(config, 'tokenSettings.bar' + i + '.attribute', 'Bar ' + i +
-	        ' Attribute', 'Bar ' + i + ' Attribute (empty to unset)');
-	      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.max', 'Bar ' + i + ' Set Max');
-	      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.link', 'Bar ' + i + ' Link');
-	      retVal += this.makeToggleSetting(config, 'tokenSettings.bar' + i + '.showPlayers', 'Bar ' + i +
-	        ' Show Players');
+				retVal += this.makeInputSetting(config, `${ts}.bar${i}.attribute`, `Bar ${i} Attribute`, `Bar ${i} Attribute (empty to unset)`);
+				retVal += this.makeToggleSetting(config, `${ts}.bar${i}.max`, `Bar ${i} Set Max`);
+				retVal += this.makeToggleSetting(config, `${ts}.bar${i}.link`, `Bar ${i} Link`);
+				retVal += this.makeToggleSetting(config, `${ts}.bar${i}.showPlayers`, `Bar ${i} Show Players`);
 	    }
 
 	    // Build out the aura grids
 	    for (i = 1; i <= 2; i++) {
-	      var currRad = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.radius');
-	      var currRadEmptyHint = currRad ? currRad : '[not set]';
-	      // if (currRad) {
-	      //   currRadEmptyHint = currRad;
-	      // }
-	      var currColor = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.color');
-	      var currSquare = utils.getObjectFromPath(config, 'tokenSettings.aura' + i + '.square');
+				var currRad = utils.getObjectFromPath(config, `${ts}.aura${i}.radius`);
+				var currRadEmptyHint = currRad ? currRad : '[not set]';
+				var currColor = utils.getObjectFromPath(config, `${ts}.aura${i}.color`);
+				var currSquare = utils.getObjectFromPath(config, `${ts}.aura${i}.square`);
 
-	      var radBtn = this.makeOptionButton('tokenSettings.aura' + i + '.radius',
-	        '?{Aura ' + i + ' Radius (empty to unset)' + '|' + currRad + '}',
+				var radBtn = this.makeOptionButton(`${ts}.aura${i}.radius`, `?{Aura ${i} Radius (empty to unset)|${currRad}}`,
 	        this.makeText(currRadEmptyHint), 'click to edit', currRadEmptyHint === '[not set]' ? '#f84545' : '#02baf2',
 	        undefined, auraButtonWidth);
 	      var colorBtn = this.makeOptionButton('tokenSettings.aura' + i + '.color',
@@ -4319,17 +4345,31 @@ var ShapedScripts =
 	        this.makeBoolText(currSquare), 'click to toggle', currSquare ? '#65c4bd' : '#f84545',
 	        undefined, auraButtonWidth);
 
-	      retVal += utils.buildHTML('tr', [{tag: 'td', innerHtml:
-	        [{tag: 'table', innerHtml:
-	          [{ tag: 'tr', innerHtml:
+				retVal += utils.buildHTML('tr', [
+					{
+						tag: 'td', innerHtml: [
+						{
+							tag: 'table', innerHtml: [
+							{
+								tag: 'tr', innerHtml:
 	            [{ tag: 'th', innerHtml: 'Aura ' + i, attrs: { colspan: 3 } }] },
-	          { tag: 'tr', innerHtml:
+							{
+								tag: 'tr', innerHtml:
 	            [{ tag: 'td', innerHtml: 'Range' }, { tag: 'td', innerHtml: 'Color' }, { tag: 'td', innerHtml: 'Square' }] },
 	          { tag: 'tr', innerHtml: [
 	            { tag: 'td', innerHtml: radBtn }, { tag: 'td', innerHtml: colorBtn }, { tag: 'td', innerHtml: squareBtn}] }],
 	        attrs: { style: 'width: 100%; text-align: center;' }}], attrs:{colspan: '2'}}], {style: 'border: 1px solid gray;'});
 
 	    }
+
+			// Vision\Light options
+			retVal += this.makeInputSetting(config, `${ts}.light.radius`, 'Light Radius', 'Light Radius (empty to unset)');
+			retVal += this.makeInputSetting(config, `${ts}.light.dimRadius`, 'Dim Radius', 'Light Dim Radius (empty to unset)');
+			retVal += this.makeToggleSetting(config, `${ts}.light.otherPlayers`, 'Show other players');
+			retVal += this.makeToggleSetting(config, `${ts}.light.hasSight`, 'Has Sight');
+			retVal += this.makeInputSetting(config, `${ts}.light.angle`, 'Light Angle', 'Light Amgle');
+			retVal += this.makeInputSetting(config, `${ts}.light.losAngle`, 'LOS Angle', 'LOS Angle');
+			retVal += this.makeInputSetting(config, `${ts}.light.multiplier`, 'Light Muliplier', 'Light Muliplier');
 
 	    retVal += '</table>' + this.backToMainMenuButton();
 
@@ -4382,8 +4422,8 @@ var ShapedScripts =
 	      emptyHint = currentVal;
 	    }
 
-	    return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
-	      '}', emptyHint, 'click to edit', emptyHint === '[not set]' ? '#f84545' : '#02baf2');
+			return this.makeOptionRow(title, path, `?{${prompt}|${currentVal}}`, emptyHint, 'click to edit', emptyHint ===
+			'[not set]' ? '#f84545' : '#02baf2');
 	  }
 
 	  //noinspection JSUnusedGlobalSymbols
@@ -4397,8 +4437,8 @@ var ShapedScripts =
 
 	    var buttonColor = emptyHint === '[not set]' ? '#02baf2' : currentVal;
 
-	    return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal +
-	      '}', emptyHint, 'click to edit', buttonColor, utils.getContrastYIQ(buttonColor));
+			// return this.makeOptionRow(title, path, '?{' + prompt + '|' + currentVal + '}', emptyHint, 'click to edit', buttonColor, utils.getContrastYIQ(buttonColor));
+			return this.makeOptionRow(title, path, `?{${prompt}|${currentVal}}`, emptyHint, 'click to edit', buttonColor, utils.getContrastYIQ(buttonColor));
 	  }
 
 	  makeToggleSetting(config, path, title, optionsSpec) {
@@ -4419,8 +4459,8 @@ var ShapedScripts =
 	    optionList.splice(optionList.indexOf(currentVal), 1);
 	    optionList.unshift(currentVal);
 
-	    return this.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') +
-	      '}', this.makeText(currentVal), 'click to change', '#02baf2');
+			// return this.makeOptionRow(title, path, '?{' + title + '|' + optionList.join('|') + '}', this.makeText(currentVal), 'click to change', '#02baf2');
+			return this.makeOptionRow(title, path, `?{${title}|${optionList.join('|')}}`, this.makeText(currentVal), 'click to change', '#02baf2');
 	  }
 
 	  makeOptionRow(optionTitle, path, command, linkText, tooltip, buttonColor, buttonTextColor) {
@@ -4434,17 +4474,16 @@ var ShapedScripts =
 	  makeOptionButton(path, command, linkText, tooltip, buttonColor, buttonTextColor, width) {
 	    if (_.isUndefined(width)) { width = 80; }
 
-	    var css = 'text-align: center; width: ' + width + 'px; margin: 5px 0 0 0; ' +
-	      'padding: 2px 2px ; border-radius: 10px; border-color: #c0c0c0;' +
-	      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: ' +
-	      buttonColor + ';';
+			var css = `text-align: center; width: ${width}px; margin: 5px 0 0 0; ` +
+				`padding: 2px 2px ; border-radius: 10px; border-color: #c0c0c0;` +
+				`white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: ${buttonColor};`;
 	    if (buttonTextColor) {
-	      css += 'color: ' + buttonTextColor + '; ';
+				css += `color: ${buttonTextColor}`; // 'color: ' + buttonTextColor + '; ';
 	    }
 
 	    return utils.buildHTML('a', linkText, {
 	      style: css,
-	      href: '!shaped-config --' + path + ' ' + command
+				href: `!shaped-config --${path} ${command}` //'!shaped-config --' + path + ' ' + command
 	    });
 	  }
 

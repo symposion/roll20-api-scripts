@@ -9,8 +9,8 @@ var mpp = require('./monster-post-processor');
 var AdvantageTracker = require('./advantage-tracker');
 var ConfigUI = require('./config-ui');
 
-var version = '0.8.2',
-  schemaVersion = 0.10,
+var version = '0.8.3',
+  schemaVersion = 1.0,
   configDefaults = {
     logLevel: 'INFO',
     tokenSettings: {
@@ -1102,7 +1102,7 @@ function ShapedScripts(logger, myState, roll20, parser, entityLookup, reporter) 
     saves: new RollAbilityMaker('saving_throw_macro', 'Saves'),
     savesquery: new RollAbilityMaker('saving_throw_query_macro', 'Saves'),
     attacks: new RepeatingAbilityMaker('attack', 'attack', 'Attacks', true),
-    statblock: new RollAbilityMaker('statblock', 'Statblock'),
+    statblock: new RollAbilityMaker('statblock', 'Statblck'),
     traits: new RepeatingAbilityMaker('trait', 'trait', 'Traits'),
     'traits-macro': new RollAbilityMaker('traits_macro', 'Traits'),
     actions: new RepeatingAbilityMaker('action', 'action', 'Actions', true),
