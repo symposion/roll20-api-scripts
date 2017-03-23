@@ -3261,8 +3261,8 @@ var ShapedScripts =
 	    showName: true,
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
-            showAura2ToPlayers: true,
-            doNotLinkNpcHP: false,
+        showAura2ToPlayers: true,
+        doNotLinkNpcHP: false,
 	  },
 	  newCharSettings: {
 	    sheetOutput: '@{output_to_all}',
@@ -3935,6 +3935,7 @@ var ShapedScripts =
 	        showNameToPlayers: this.booleanValidator,
 	        showAura1ToPlayers: this.booleanValidator,
 	        showAura2ToPlayers: this.booleanValidator,
+			doNotLinkNpcHP: this.booleanValidator,
 	      },
 	      newCharSettings: {
 	        applyToAll: this.booleanValidator,
@@ -6842,9 +6843,10 @@ var ShapedScripts =
 	        .each((bar, barName) => {
 	          if (!_.isEmpty(bar.attribute)) {
 	            // We create attribute here to ensure we have control over the id
-	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);
+	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);			
 	            if (attribute) {
-	              if (bar.link && !(isNpc && settings.doNotLinkNpcHP)) {
+	              if (bar.link && !(attribute.get('name') == "HP" && isNpc && settings.doNotLinkNpcHP)) {
+					this.logger.info
 	                token.set(`${barName}_link`, attribute.id);
 	              }
 	              else {
