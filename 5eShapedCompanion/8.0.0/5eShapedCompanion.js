@@ -3261,9 +3261,9 @@ var ShapedScripts =
 	    showName: true,
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
-        showAura2ToPlayers: true,
-        doNotLinkNpcHP: false,
-        lalala: true,
+            showAura2ToPlayers: true,
+            doNotLinkNpcHP: false,
+            lalala: true,
 	  },
 	  newCharSettings: {
 	    sheetOutput: '@{output_to_all}',
