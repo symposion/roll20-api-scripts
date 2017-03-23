@@ -3261,8 +3261,8 @@ var ShapedScripts =
 	    showName: true,
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
-        showAura2ToPlayers: true,
-        doNotLinkNpcHP: false,
+		showAura2ToPlayers: true,
+		doNotLinkNpcHP: false,
 	  },
 	  newCharSettings: {
 	    sheetOutput: '@{output_to_all}',
@@ -6846,7 +6846,6 @@ var ShapedScripts =
 	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);			
 	            if (attribute) {
 	              if (bar.link && !(attribute.get('name') == "HP" && isNpc && settings.doNotLinkNpcHP)) {
-					this.logger.info
 	                token.set(`${barName}_link`, attribute.id);
 	              }
 	              else {
