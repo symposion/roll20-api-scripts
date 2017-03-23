@@ -3262,6 +3262,7 @@ var ShapedScripts =
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
 	    showAura2ToPlayers: true,
+			doNotLinkNpcHP: false,
 	  },
 	  newCharSettings: {
 	    sheetOutput: '@{output_to_all}',
@@ -4852,6 +4853,10 @@ var ShapedScripts =
 	        path: `${ts}.showAura${i}ToPlayers`, title: `Aura ${i} Show Players`, menuCmd: 'auraMenu',
 	      });
 	    }
+
+			optionRows += this.makeToggleSetting({
+				path: `${ts}.doNotLinkNpcHP`, title: 'Do not link NPC HP', menuCmd: menu,
+			});
 
 	    const th = utils.buildHTML('th', 'Token Aura Options', { colspan: '2' });
 	    const tr = utils.buildHTML('tr', th, { style: 'margin-top: 5px;' });
@@ -6839,7 +6844,7 @@ var ShapedScripts =
 	            // We create attribute here to ensure we have control over the id
 	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);
 	            if (attribute) {
-	              if (bar.link) {
+	              if (bar.link && !(isNpc && settings.doNotLinkNpcHP)) {
 	                token.set(`${barName}_link`, attribute.id);
 	              }
 	              else {
