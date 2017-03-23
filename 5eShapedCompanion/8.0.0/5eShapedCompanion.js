@@ -3261,8 +3261,8 @@ var ShapedScripts =
 	    showName: true,
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
-			showAura2ToPlayers: true,
-			doNotLinkNpcHP: false,
+		showAura2ToPlayers: true,
+		doNotLinkNpcHP: false,
 	  },
 	  newCharSettings: {
 	    sheetOutput: '@{output_to_all}',
@@ -4854,9 +4854,9 @@ var ShapedScripts =
 	      });
 	    }
 
-			optionRows += this.makeToggleSetting({
-				path: `${ts}.doNotLinkNpcHP`, title: 'Do not link NPC HP', menuCmd: menu,
-			});
+        optionRows += this.makeToggleSetting({
+            path: `${ts}.doNotLinkNpcHP`, title: 'Do not link NPC HP', menuCmd: menu,
+        });
 
 	    const th = utils.buildHTML('th', 'Token Aura Options', { colspan: '2' });
 	    const tr = utils.buildHTML('tr', th, { style: 'margin-top: 5px;' });
