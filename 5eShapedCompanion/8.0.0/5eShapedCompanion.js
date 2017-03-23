@@ -3261,7 +3261,7 @@ var ShapedScripts =
 	    showName: true,
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
-	    showAura2ToPlayers: true,
+			showAura2ToPlayers: true,
 			doNotLinkNpcHP: false,
 	  },
 	  newCharSettings: {
