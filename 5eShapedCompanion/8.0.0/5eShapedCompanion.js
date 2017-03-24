@@ -3261,8 +3261,7 @@ var ShapedScripts =
 	    showName: true,
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
-        showAura2ToPlayers: true,
-        doNotLinkNpcHP: false,
+	    showAura2ToPlayers: true,
 	  },
 	  newCharSettings: {
 	    sheetOutput: '@{output_to_all}',
@@ -3935,7 +3934,6 @@ var ShapedScripts =
 	        showNameToPlayers: this.booleanValidator,
 	        showAura1ToPlayers: this.booleanValidator,
 	        showAura2ToPlayers: this.booleanValidator,
-			doNotLinkNpcHP: this.booleanValidator,
 	      },
 	      newCharSettings: {
 	        applyToAll: this.booleanValidator,
@@ -4802,11 +4800,7 @@ var ShapedScripts =
 	      optionRows += this.makeToggleSetting({
 	        path: `${ts}.bar${i}.showPlayers`, title: `Bar ${i} Show Players`, menuCmd: 'barMenu',
 	      });
-        }
-            
-        optionRows += this.makeToggleSetting({
-        	path: `${ts}.doNotLinkNpcHP`, title: 'Do not link NPC HP', menuCmd: 'barMenu'
-		});
+	    }
 
 	    const th = utils.buildHTML('th', 'Token Bar Options', { colspan: '2' });
 	    const tr = utils.buildHTML('tr', th, { style: 'margin-top: 5px;' });
@@ -4858,8 +4852,8 @@ var ShapedScripts =
 	        path: `${ts}.showAura${i}ToPlayers`, title: `Aura ${i} Show Players`, menuCmd: 'auraMenu',
 	      });
 	    }
-            
-            const th = utils.buildHTML('th', 'Token Aura Options', { colspan: '2' });
+
+	    const th = utils.buildHTML('th', 'Token Aura Options', { colspan: '2' });
 	    const tr = utils.buildHTML('tr', th, { style: 'margin-top: 5px;' });
 	    const table = utils.buildHTML('table', tr + optionRows, { style: 'width: 100%; font-size: 0.9em;' });
 
@@ -6843,9 +6837,9 @@ var ShapedScripts =
 	        .each((bar, barName) => {
 	          if (!_.isEmpty(bar.attribute)) {
 	            // We create attribute here to ensure we have control over the id
-	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);			
+	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);
 	            if (attribute) {
-	              if (bar.link && !(attribute.get('name') == "HP" && isNpc && settings.doNotLinkNpcHP)) {
+	              if (bar.link) {
 	                token.set(`${barName}_link`, attribute.id);
 	              }
 	              else {
