@@ -2694,7 +2694,7 @@ var ShapedScripts =
 	    showNameToPlayers: false,
 	    showAura1ToPlayers: true,
 	    showAura2ToPlayers: true,
-	    doNotLinkNpcHP: true,
+	    doNotLinkNpcHP: false,
 	  },
 	  newCharSettings: {
 	    sheetOutput: '@{output_to_all}',
@@ -3410,6 +3410,7 @@ var ShapedScripts =
 	        showNameToPlayers: this.booleanValidator,
 	        showAura1ToPlayers: this.booleanValidator,
 	        showAura2ToPlayers: this.booleanValidator,
+	        doNotLinkNpcHP: this.booleanValidator,
 	      },
 	      newCharSettings: {
 	        applyToAll: this.booleanValidator,
@@ -4334,6 +4335,10 @@ var ShapedScripts =
 	        path: `${ts}.bar${i}.showPlayers`, title: `Bar ${i} Show Players`, menuCmd: 'barMenu',
 	      });
 	    }
+
+	    optionRows += this.makeToggleSetting({
+	        path: `${ts}.doNotLinkNpcHP`, title: 'Do not link NPC HP', menuCmd: 'barMenu'
+	    });
 
 	    return {
 	      title: 'Token Bar Options',
@@ -7846,7 +7851,7 @@ var ShapedScripts =
 	            // We create attribute here to ensure we have control over the id
 	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);
 	            if (attribute) {
-	              if (bar.link) {
+	              if (bar.link && !(attribute.get('name') == "HP" && isNpc && settings.doNotLinkNpcHP))
 	                token.set(`${barName}_link`, attribute.id);
 	              }
 	              else {
