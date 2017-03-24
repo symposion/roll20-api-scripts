@@ -7851,7 +7851,7 @@ var ShapedScripts =
 	            // We create attribute here to ensure we have control over the id
 	            const attribute = this.roll20.getOrCreateAttr(character.id, bar.attribute);
 	            if (attribute) {
-	              if (bar.link && !(attribute.get('name') == "HP" && isNpc && settings.doNotLinkNpcHP))
+	              if (bar.link && !(attribute.get('name') == "HP" && isNpc && settings.doNotLinkNpcHP)) {
 	                token.set(`${barName}_link`, attribute.id);
 	              }
 	              else {
