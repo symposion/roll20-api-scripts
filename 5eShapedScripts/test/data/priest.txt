@@ -1,0 +1,22 @@
+PRIEST
+Medium humanoid (any race), any alignment
+Armor Class 13 (chain shirt) Hit Points 27 (5d8 + 5) Speed 25ft.
+STR DEX 10 (+0) 10 (+0)
+C O N
+12 (+1)
+I N T
+13 (+1)
+W IS 16 (+3)
+C H A 13 (+1)
+Skills Med icine +7, Persuasion +3, Religion +4 Senses passive Perception 13
+Languages any two languages
+Challenge 2 (450 XP)
+Divine Eminence. As a bonus action, the priest can expend a spell slot to cause its melee weapon attacks to magically deal an extra 10 (3d6) radiant damage to a target on a hit . This benefit lasts until the end ofthe turn. Ifthe priest expends a spell slot of 2nd level or higher, the extra damage increases by ld6 for each level above 1st.
+Spellcasting. The priest is a 5th-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 13, +5 to hit with spell attacks). The priest has the following cleric spells prepared:
+Can trips (at will): fight, sacred flame , thaumaturgy
+1st level (4 slots): cure wounds, guiding bolt, sanctuary
+2nd level (3 slots): lesser restoration, spiritual weapon
+3rd level (2 slots): dispel magic, spirit guardians
+ACTIONS
+Mace. Melee Weapon Attack: +2 to hit, reach 5ft., one target. Hit:3 (ld6)
+bludgeoning damage.

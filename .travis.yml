@@ -1,0 +1,4 @@
+language: node_js
+node_js:
+  - "4.2"
+script: cd 5eShapedScripts && npm install && npm test

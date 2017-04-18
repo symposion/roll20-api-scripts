@@ -1,0 +1,23 @@
+Jermlaine
+Tiny fey, neutral evil
+Armor Class 13
+Hit Points 1 (1d4-1)
+Speed 40 ft
+STR 3 (-4)
+DEX 17 (+3)
+CON 8 (-1)
+INT 8 (-1)
+WIS 16 (+3)
+CHA 5 (-3)
+Saving Throws Dex +5, Wis +5
+Skills Perception +5, Stealth +5
+Senses darkvision 60 ft, passive Perception 15
+Languages Jermlaine
+Challenge 1/4 (50 XP)
+Ambusher. The jermlaine has advantage on attack rolls against any creature it has surprised.
+Nimble Escape. The jermlaine can take the Disengage or Hide action as a bonus action on each of its turns.
+Pack Tactics. The jermlaine has advantage on attack rolls against a creature if at least one of its allies is within 5 feet of the creature and that ally isn't incapacitated.
+Speak With Rats. At will, a jermlaine can produce an effect like that of a speak with animals spell, except that it enables communication only with rats and giant rats.
+Actions
+Mini Dart. Ranged Weapon Attack: +5 to hit, range 20/60 ft, one target. Hit: 4 (1d2+3) piercing damage.
+Mini Spear. Melee Weapon Attack: -2 to hit, reach 5 ft, one target. Hit: 1 (1d4-4) piercing damage.

@@ -1,0 +1,21 @@
+{
+  "trailing": true,
+  "white": true,
+  "strict": true,
+  "latedef": "nofunc",
+  "onevar": true,
+  "camelcase": true,
+  "node": true,
+  "noempty": true,
+  "noarg": true,
+  "unused": "vars",
+  "eqeqeq": true,
+  "quotmark": "single",
+  "bitwise": true,
+  "curly": true,
+  "enforceall": true,
+  "undef": true,
+  "nonew": true,
+  "forin": true,
+  "es3": false
+}

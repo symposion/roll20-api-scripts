@@ -1,0 +1,50 @@
+{
+  "npc": {
+    "name": "Jermlaine",
+    "size": "Tiny",
+    "type": "fey",
+    "alignment": "neutral evil",
+    "AC": "13",
+    "HP": "1 (1d4-1)",
+    "speed": "40 ft",
+    "strength": 3,
+    "dexterity": 17,
+    "constitution": 8,
+    "intelligence": 8,
+    "wisdom": 16,
+    "charisma": 5,
+    "savingThrows": "Dex +5, Wis +5",
+    "skills": "Perception +5, Stealth +5",
+    "senses": "darkvision 60 ft",
+    "languages": "Jermlaine",
+    "challenge": "1/4",
+    "traits": [
+      {
+        "name": "Ambusher",
+        "text": "The jermlaine has advantage on attack rolls against any creature it has surprised."
+      },
+      {
+        "name": "Nimble Escape",
+        "text": "The jermlaine can take the Disengage or Hide action as a bonus action on each of its turns."
+      },
+      {
+        "name": "Pack Tactics",
+        "text": "The jermlaine has advantage on attack rolls against a creature if at least one of its allies is within 5 feet of the creature and that ally isn't incapacitated."
+      },
+      {
+        "name": "Speak With Rats",
+        "text": "At will, a jermlaine can produce an effect like that of a speak with animals spell, except that it enables communication only with rats and giant rats."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Mini Dart",
+        "text": "Ranged Weapon Attack: +5 to hit, range 20/60 ft, one target. Hit: 4 (1d2+3) piercing damage."
+      },
+      {
+        "name": "Mini Spear",
+        "text": "Melee Weapon Attack: -2 to hit, reach 5 ft, one target. Hit: 1 (1d4-4) piercing damage."
+      }
+    ]
+  }
+}

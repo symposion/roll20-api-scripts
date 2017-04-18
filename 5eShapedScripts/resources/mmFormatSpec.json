@@ -1,0 +1,367 @@
+{
+  "name": "npc",
+  "type": "orderedContent",
+  "bare": true,
+  "contentModel": [
+    {
+      "name": "coreInfo",
+      "type": "orderedContent",
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "name",
+          "type": "string",
+          "bare": "true"
+        },
+        {
+          "name": "size",
+          "enumValues": [
+            "Tiny",
+            "Small",
+            "Medium",
+            "Large",
+            "Huge",
+            "Gargantuan"
+          ],
+          "type": "enumType",
+          "bare": "true"
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "bare": "true",
+          "pattern": "^([\\w\\s\\(\\)]+),",
+          "matchGroup": 1
+        },
+        {
+          "name": "alignment",
+          "type": "enumType",
+          "enumValues": [
+            "lawful good",
+            "lawful neutral",
+            "lawful evil",
+            "neutral good",
+            "neutral evil",
+            "neutral",
+            "chaotic good",
+            "chaotic neutral",
+            "chaotic evil",
+            "unaligned",
+            "any alignment",
+            "any good alignment",
+            "any evil alignment",
+            "any lawful alignment",
+            "any chaotic alignment"
+          ],
+          "bare": true
+        }
+      ]
+    },
+    {
+      "name": "attributes",
+      "type": "unorderedContent",
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "AC",
+          "parseToken": "armor class",
+          "pattern": "\\d+\\s*(?:\\([^)]*\\))?",
+          "type": "string"
+        },
+        {
+          "name": "HP",
+          "parseToken": "hit points",
+          "type": "string",
+          "pattern": "\\d+(?:\\s?\\(\\s?\\d+d\\d+(?:\\s?[-+]\\s?\\d+)?\\s?\\))?"
+        },
+        {
+          "name": "speed",
+          "minOccurs": 0,
+          "type": "string",
+          "pattern": "^\\d+\\s?ft[\\.]?(,\\s?(fly|swim|burrow|climb)\\s\\d+\\s?ft[\\.]?)*(\\s?\\(hover\\))?$"
+        },
+        {
+          "name": "strength",
+          "parseToken": "str",
+          "type": "ability"
+        },
+        {
+          "name": "dexterity",
+          "parseToken": "dex",
+          "type": "ability"
+        },
+        {
+          "name": "constitution",
+          "parseToken": "con",
+          "type": "ability"
+        },
+        {
+          "name": "intelligence",
+          "parseToken": "int",
+          "type": "ability"
+        },
+        {
+          "name": "wisdom",
+          "parseToken": "wis",
+          "type": "ability"
+        },
+        {
+          "name": "charisma",
+          "parseToken": "cha",
+          "type": "ability"
+        },
+        {
+          "name": "savingThrows",
+          "minOccurs": 0,
+          "parseToken": "saving throws",
+          "type": "string",
+          "pattern": "(?:(?:^|,\\s*)(?:Str|Dex|Con|Int|Wis|Cha)\\s+[\\-\\+]\\d+)+"
+        },
+        {
+          "name": "skills",
+          "minOccurs": 0,
+          "type": "string",
+          "pattern": "(?:(?:^|,\\s*)(?:Acrobatics|Animal Handling|Arcana|Athletics|Deception|History|Insight|Intimidation|Investigation|Medicine|Nature|Perception|Performance|Persuasion|Religion|Slight of Hand|Stealth|Survival)\\s+[\\-\\+]\\d+)+"
+        },
+        {
+          "minOccurs": 0,
+          "type": "string",
+          "name": "damageVulnerabilties",
+          "parseToken": "damage vulnerabilities"
+        },
+        {
+          "minOccurs": 0,
+          "type": "string",
+          "name": "damageResistances",
+          "parseToken": "damage resistances"
+        },
+        {
+          "minOccurs": 0,
+          "type": "string",
+          "name": "damageImmunities",
+          "parseToken": "damage immunities"
+        },
+        {
+          "minOccurs": 0,
+          "type": "string",
+          "name": "conditionImmunities",
+          "parseToken": "condition immunities"
+        },
+        {
+          "name": "senses",
+          "type": "string",
+          "minOccurs": 0,
+          "pattern": "(?:(?:^|,\\s*)(?:blindsight|darkvision|tremorsense|truesight)\\s+\\d+\\s*ft[\\.]?)+"
+        },
+        {
+          "name": "passivePerception",
+          "parseToken": ",?\\s*passive Perception",
+          "minOccurs": 0,
+          "type": "number",
+          "skipOutput": true
+        },
+        {
+          "name": "languages",
+          "minOccurs": 0,
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "challenge",
+      "type": "string",
+      "pattern": "^\\s*(\\d+(?:\\s*\\/\\s*\\d)?)\\s*(?:\\(\\s*[\\d,]+\\s*XP\\s*\\)\\s*)?$",
+      "matchGroup": 1
+    },
+    {
+      "name": "spellBook",
+      "type": "string",
+      "minOccurs": 0
+    },
+    {
+      "name": "traitSection",
+      "type": "orderedContent",
+      "minOccurs": 0,
+      "maxOccurs": 1,
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "traits",
+          "type": "orderedContent",
+          "minOccurs": 1,
+          "maxOccurs": "Infinity",
+          "contentModel": [
+            {
+              "name": "name",
+              "type": "string",
+              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "matchGroup": 2,
+              "forPreviousMatchGroup": 1,
+              "forNextMatchGroup": 3,
+              "bare": true,
+              "caseSensitive": true
+            },
+            {
+              "name": "recharge",
+              "type": "string",
+              "pattern": "^\\(([^\\)]+)\\)",
+              "bare": true,
+              "matchGroup": 1,
+              "minOccurs": 0
+            },
+            {
+              "name": "text",
+              "bare": true,
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "actionSection",
+      "type": "orderedContent",
+      "minOccurs": 0,
+      "maxOccurs": 1,
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "actionHeader",
+          "type": "heading",
+          "bare": true,
+          "pattern": "^Actions$"
+        },
+        {
+          "name": "actions",
+          "type": "orderedContent",
+          "minOccurs": 1,
+          "maxOccurs": "Infinity",
+          "contentModel": [
+            {
+              "name": "name",
+              "type": "string",
+              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "matchGroup": 2,
+              "forPreviousMatchGroup": 1,
+              "forNextMatchGroup": 3,
+              "bare": true,
+              "caseSensitive": true
+            },
+            {
+              "name": "recharge",
+              "type": "string",
+              "bare": true,
+              "pattern": "^\\(([^\\)]+)\\)",
+              "matchGroup": 1,
+              "minOccurs": 0
+            },
+            {
+              "name": "text",
+              "bare": true,
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "reactionSection",
+      "type": "orderedContent",
+      "minOccurs": 0,
+      "maxOccurs": 1,
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "reactionHeader",
+          "type": "heading",
+          "bare": true,
+          "pattern": "^Reactions$"
+        },
+        {
+          "name": "reactions",
+          "type": "orderedContent",
+          "minOccurs": 1,
+          "maxOccurs": "Infinity",
+          "contentModel": [
+            {
+              "name": "name",
+              "type": "string",
+              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "matchGroup": 2,
+              "forPreviousMatchGroup": 1,
+              "forNextMatchGroup": 3,
+              "bare": true,
+              "caseSensitive": true
+            },
+            {
+              "name": "recharge",
+              "type": "string",
+              "bare": true,
+              "pattern": "^\\(([^\\)]+)\\)",
+              "matchGroup": 1,
+              "minOccurs": 0
+            },
+            {
+              "name": "text",
+              "bare": true,
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "legendaryActionSection",
+      "type": "orderedContent",
+      "minOccurs": 0,
+      "maxOccurs": 1,
+      "flatten": true,
+      "contentModel": [
+        {
+          "name": "actionHeader",
+          "type": "heading",
+          "bare": true,
+          "pattern": "^Legendary Actions$"
+        },
+        {
+          "name": "legendaryPoints",
+          "type": "number",
+          "bare": true,
+          "pattern": "^The[ \\w]+can take (\\d+) legendary actions.*?start of its turn[.]?",
+          "matchGroup": 1
+        },
+        {
+          "name": "legendaryActions",
+          "type": "orderedContent",
+          "minOccurs": 1,
+          "maxOccurs": "Infinity",
+          "contentModel": [
+            {
+              "name": "name",
+              "type": "string",
+              "bare": true,
+              "pattern": "(^|.*?[a-z]\\.\\s?)([A-Z][\\w\\-']+(?:\\s(?:[A-Z][\\w\\-']+|of|and|or|a)+)*)(\\s?\\([^\\)]+\\))?\\.(?!$)",
+              "matchGroup": 2,
+              "forPreviousMatchGroup": 1,
+              "forNextMatchGroup": 3,
+              "caseSensitive": true
+            },
+            {
+              "name": "cost",
+              "type": "number",
+              "bare": true,
+              "pattern": "^\\s*\\(\\s*costs (\\d+) actions\\s*\\)",
+              "matchGroup": 1,
+              "minOccurs": 0
+            },
+            {
+              "name": "text",
+              "bare": true,
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
