@@ -1,3 +1,8 @@
+# 13.9.2
+
+### Bug fixes
+- Fixed the version check.
+
 # 13.9.1
 
 ### Bug fixes
